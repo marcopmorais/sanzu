@@ -1,0 +1,14 @@
+# Track only API workspace in this repository.
+*
+!.gitignore
+!README.md
+!.github/
+!.github/**
+!api/
+!api/**
+
+# Ignore build artifacts inside tracked api folder.
+api/**/bin/
+api/**/obj/
+api/publish/
+api/artifacts/
