@@ -37,6 +37,7 @@ public static class ServiceRegistration
             });
 
         services.AddScoped<ITenantOnboardingService, TenantOnboardingService>();
+        services.AddScoped<ITenantCaseDefaultsService, TenantCaseDefaultsService>();
         services.AddScoped<ITenantSubscriptionService, TenantSubscriptionService>();
         services.AddScoped<ITenantBillingService, TenantBillingService>();
         services.AddScoped<ICaseService, CaseService>();
@@ -57,6 +58,7 @@ public static class ServiceRegistration
         services.AddScoped<IValidator<UpdateCaseParticipantRoleRequest>, UpdateCaseParticipantRoleRequestValidator>();
         services.AddScoped<IValidator<UpdateTenantOnboardingProfileRequest>, UpdateTenantOnboardingProfileRequestValidator>();
         services.AddScoped<IValidator<UpdateTenantOnboardingDefaultsRequest>, UpdateTenantOnboardingDefaultsRequestValidator>();
+        services.AddScoped<IValidator<UpdateTenantCaseDefaultsRequest>, UpdateTenantCaseDefaultsRequestValidator>();
         services.AddScoped<IValidator<CreateTenantInvitationRequest>, CreateTenantInvitationRequestValidator>();
         services.AddScoped<IValidator<CompleteTenantOnboardingRequest>, CompleteTenantOnboardingRequestValidator>();
         services.AddScoped<IValidator<ActivateTenantBillingRequest>, ActivateTenantBillingRequestValidator>();

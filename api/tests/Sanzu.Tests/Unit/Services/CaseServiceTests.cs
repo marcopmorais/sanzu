@@ -20,6 +20,10 @@ public sealed class CaseServiceTests
     {
         var dbContext = CreateContext();
         var (tenantId, actorUserId) = await SeedTenantWithAdminAsync(dbContext, TenantStatus.Active);
+        var tenant = await dbContext.Organizations.SingleAsync(x => x.Id == tenantId);
+        tenant.DefaultWorkflowKey = "workflow.default.v1";
+        tenant.DefaultTemplateKey = "template.default.v2";
+        await dbContext.SaveChangesAsync();
         var service = CreateService(dbContext);
 
         var result = await service.CreateCaseAsync(
@@ -41,10 +45,14 @@ public sealed class CaseServiceTests
         result.CaseNumber.Should().Be("CASE-00001");
         result.CaseType.Should().Be("ESTATE");
         result.Urgency.Should().Be("HIGH");
+        result.WorkflowKey.Should().Be("workflow.default.v1");
+        result.TemplateKey.Should().Be("template.default.v2");
 
         var persistedCase = await dbContext.Cases.SingleAsync(x => x.Id == result.CaseId);
         persistedCase.DeceasedFullName.Should().Be("Maria Fernanda Silva");
         persistedCase.Status.Should().Be(CaseStatus.Draft);
+        persistedCase.WorkflowKey.Should().Be("workflow.default.v1");
+        persistedCase.TemplateKey.Should().Be("template.default.v2");
         dbContext.AuditEvents.Should().Contain(x => x.EventType == "CaseCreated");
     }
 

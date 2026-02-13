@@ -37,6 +37,12 @@ public sealed class CaseConfiguration : IEntityTypeConfiguration<Case>
             .HasMaxLength(16)
             .IsRequired();
 
+        builder.Property(x => x.WorkflowKey)
+            .HasMaxLength(128);
+
+        builder.Property(x => x.TemplateKey)
+            .HasMaxLength(128);
+
         builder.Property(x => x.Status)
             .HasConversion<string>()
             .HasMaxLength(32)

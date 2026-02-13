@@ -11,6 +11,8 @@ public sealed class Case
     public DateTime DateOfDeath { get; set; }
     public string CaseType { get; set; } = "GENERAL";
     public string Urgency { get; set; } = "NORMAL";
+    public string? WorkflowKey { get; set; }
+    public string? TemplateKey { get; set; }
     public CaseStatus Status { get; set; } = CaseStatus.Draft;
     public string? Notes { get; set; }
     public Guid ManagerUserId { get; set; }
