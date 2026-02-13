@@ -104,6 +104,98 @@ public sealed class TenantSettingsControllerTests : IClassFixture<CustomWebAppli
         response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
     }
 
+    [Fact]
+    public async Task GetUsageIndicators_ShouldReturnCurrentAndHistoricalMetrics_WithPeriodFiltering()
+    {
+        var client = _factory.CreateClient();
+        var signup = await CreateTenantAsync(client, "settings-usage-1@agency.pt");
+        await SetDefaultsAndCompleteOnboardingAsync(client, signup);
+        await ActivateBillingAsync(client, signup);
+
+        using (var createCaseRequest = BuildAuthorizedJsonRequest(
+                   HttpMethod.Post,
+                   $"/api/v1/tenants/{signup.OrganizationId}/cases",
+                   new CreateCaseRequest
+                   {
+                       DeceasedFullName = "Usage Metrics",
+                       DateOfDeath = DateTime.UtcNow.AddDays(-2),
+                       CaseType = "General",
+                       Urgency = "Normal"
+                   },
+                   signup.UserId,
+                   signup.OrganizationId,
+                   "AgencyAdmin"))
+        {
+            var createCaseResponse = await client.SendAsync(createCaseRequest);
+            createCaseResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+        }
+
+        using var request30 = BuildAuthorizedRequest(
+            HttpMethod.Get,
+            $"/api/v1/tenants/{signup.OrganizationId}/settings/usage-indicators?periodDays=30",
+            signup.UserId,
+            signup.OrganizationId,
+            "AgencyAdmin");
+        var response30 = await client.SendAsync(request30);
+        response30.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var envelope30 = await response30.Content.ReadFromJsonAsync<ApiEnvelope<TenantUsageIndicatorsResponse>>();
+        envelope30.Should().NotBeNull();
+        envelope30!.Data.Should().NotBeNull();
+        envelope30.Data!.PeriodDays.Should().Be(30);
+        envelope30.Data.History.Should().HaveCount(30);
+        envelope30.Data.Current.CasesCreated.Should().BeGreaterThanOrEqualTo(1);
+        envelope30.Data.History.Should().Contain(x => x.CasesCreated > 0);
+
+        using var request7 = BuildAuthorizedRequest(
+            HttpMethod.Get,
+            $"/api/v1/tenants/{signup.OrganizationId}/settings/usage-indicators?periodDays=7",
+            signup.UserId,
+            signup.OrganizationId,
+            "AgencyAdmin");
+        var response7 = await client.SendAsync(request7);
+        response7.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var envelope7 = await response7.Content.ReadFromJsonAsync<ApiEnvelope<TenantUsageIndicatorsResponse>>();
+        envelope7.Should().NotBeNull();
+        envelope7!.Data.Should().NotBeNull();
+        envelope7.Data!.PeriodDays.Should().Be(7);
+        envelope7.Data.History.Should().HaveCount(7);
+    }
+
+    [Fact]
+    public async Task GetUsageIndicators_ShouldReturn400_WhenPeriodIsOutOfRange()
+    {
+        var client = _factory.CreateClient();
+        var signup = await CreateTenantAsync(client, "settings-usage-invalid@agency.pt");
+
+        using var request = BuildAuthorizedRequest(
+            HttpMethod.Get,
+            $"/api/v1/tenants/{signup.OrganizationId}/settings/usage-indicators?periodDays=0",
+            signup.UserId,
+            signup.OrganizationId,
+            "AgencyAdmin");
+        var response = await client.SendAsync(request);
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task GetUsageIndicators_ShouldReturn403_WhenActorBelongsToDifferentTenant()
+    {
+        var client = _factory.CreateClient();
+        var tenantA = await CreateTenantAsync(client, "settings-usage-tenant-a@agency.pt");
+        var tenantB = await CreateTenantAsync(client, "settings-usage-tenant-b@agency.pt");
+
+        using var request = BuildAuthorizedRequest(
+            HttpMethod.Get,
+            $"/api/v1/tenants/{tenantA.OrganizationId}/settings/usage-indicators?periodDays=30",
+            tenantB.UserId,
+            tenantB.OrganizationId,
+            "AgencyAdmin");
+        var response = await client.SendAsync(request);
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
     private static async Task<CreateAgencyAccountResponse> CreateTenantAsync(HttpClient client, string email)
     {
         var request = new CreateAgencyAccountRequest

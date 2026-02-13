@@ -14,10 +14,14 @@ namespace Sanzu.API.Controllers;
 public sealed class TenantSettingsController : ControllerBase
 {
     private readonly ITenantCaseDefaultsService _tenantCaseDefaultsService;
+    private readonly ITenantUsageIndicatorsService _tenantUsageIndicatorsService;
 
-    public TenantSettingsController(ITenantCaseDefaultsService tenantCaseDefaultsService)
+    public TenantSettingsController(
+        ITenantCaseDefaultsService tenantCaseDefaultsService,
+        ITenantUsageIndicatorsService tenantUsageIndicatorsService)
     {
         _tenantCaseDefaultsService = tenantCaseDefaultsService;
+        _tenantUsageIndicatorsService = tenantUsageIndicatorsService;
     }
 
     [Authorize(Policy = "TenantAdmin")]
@@ -85,6 +89,49 @@ public sealed class TenantSettingsController : ControllerBase
         catch (ValidationException validationException)
         {
             return BadRequest(BuildValidationProblem(validationException, "Invalid case defaults request"));
+        }
+        catch (TenantAccessDeniedException)
+        {
+            return Forbid();
+        }
+        catch (TenantOnboardingStateException exception)
+        {
+            return Problem(
+                statusCode: StatusCodes.Status409Conflict,
+                title: "Tenant configuration state conflict",
+                detail: exception.Message);
+        }
+    }
+
+    [Authorize(Policy = "TenantAdmin")]
+    [HttpGet("usage-indicators")]
+    [ProducesResponseType(typeof(ApiEnvelope<TenantUsageIndicatorsResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> GetUsageIndicators(
+        Guid tenantId,
+        [FromQuery] int periodDays = 30,
+        CancellationToken cancellationToken = default)
+    {
+        if (!TryGetActorUserId(out var actorUserId))
+        {
+            return Unauthorized();
+        }
+
+        try
+        {
+            var response = await _tenantUsageIndicatorsService.GetUsageIndicatorsAsync(
+                tenantId,
+                actorUserId,
+                periodDays,
+                cancellationToken);
+
+            return Ok(ApiEnvelope<TenantUsageIndicatorsResponse>.Success(response, BuildMeta()));
+        }
+        catch (ValidationException validationException)
+        {
+            return BadRequest(BuildValidationProblem(validationException, "Invalid usage indicators request"));
         }
         catch (TenantAccessDeniedException)
         {

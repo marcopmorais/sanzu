@@ -38,6 +38,7 @@ public static class ServiceRegistration
 
         services.AddScoped<ITenantOnboardingService, TenantOnboardingService>();
         services.AddScoped<ITenantCaseDefaultsService, TenantCaseDefaultsService>();
+        services.AddScoped<ITenantUsageIndicatorsService, TenantUsageIndicatorsService>();
         services.AddScoped<ITenantSubscriptionService, TenantSubscriptionService>();
         services.AddScoped<ITenantBillingService, TenantBillingService>();
         services.AddScoped<ICaseService, CaseService>();
