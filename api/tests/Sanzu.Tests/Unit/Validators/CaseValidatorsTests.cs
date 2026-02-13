@@ -248,4 +248,32 @@ public sealed class CaseValidatorsTests
         result.IsValid.Should().BeFalse();
         result.Errors.Should().Contain(x => x.PropertyName == nameof(OverrideWorkflowStepReadinessRequest.Rationale));
     }
+
+    [Fact]
+    public void UpdateWorkflowTaskStatusValidator_ShouldPass_WhenStatusIsSupported()
+    {
+        var validator = new UpdateWorkflowTaskStatusRequestValidator();
+        var request = new UpdateWorkflowTaskStatusRequest
+        {
+            TargetStatus = "Started",
+            Notes = "Work started."
+        };
+
+        var result = validator.Validate(request);
+        result.IsValid.Should().BeTrue();
+    }
+
+    [Fact]
+    public void UpdateWorkflowTaskStatusValidator_ShouldFail_WhenStatusIsUnsupported()
+    {
+        var validator = new UpdateWorkflowTaskStatusRequestValidator();
+        var request = new UpdateWorkflowTaskStatusRequest
+        {
+            TargetStatus = "Blocked"
+        };
+
+        var result = validator.Validate(request);
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(x => x.PropertyName == nameof(UpdateWorkflowTaskStatusRequest.TargetStatus));
+    }
 }

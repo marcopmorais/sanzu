@@ -86,4 +86,18 @@ public interface ICaseService
         Guid stepId,
         OverrideWorkflowStepReadinessRequest request,
         CancellationToken cancellationToken);
+
+    Task<CaseTaskWorkspaceResponse> GetCaseTaskWorkspaceAsync(
+        Guid tenantId,
+        Guid actorUserId,
+        Guid caseId,
+        CancellationToken cancellationToken);
+
+    Task<CaseTaskWorkspaceResponse> UpdateWorkflowTaskStatusAsync(
+        Guid tenantId,
+        Guid actorUserId,
+        Guid caseId,
+        Guid stepId,
+        UpdateWorkflowTaskStatusRequest request,
+        CancellationToken cancellationToken);
 }

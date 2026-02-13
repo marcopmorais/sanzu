@@ -735,6 +735,217 @@ public sealed class CasesControllerTests : IClassFixture<CustomWebApplicationFac
         response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
     }
 
+    [Fact]
+    public async Task GetCaseTaskWorkspace_ShouldReturn200AndPrioritySortedTasks_WhenUserIsEditor()
+    {
+        var client = _factory.CreateClient();
+        var signup = await CreateTenantAsync(client, "cases-tasks-workspace@agency.pt");
+        await ActivateTenantAsync(client, signup);
+        var createdCase = await CreateCaseAsync(client, signup, "Task Workspace Integration Case");
+        var editorUserId = await SeedAcceptedParticipantAsync(
+            signup.OrganizationId,
+            createdCase.CaseId,
+            "family.tasks.editor@agency.pt",
+            CaseRole.Editor);
+
+        using (var intakeRequest = BuildAuthorizedJsonRequest(
+                   HttpMethod.Put,
+                   $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/intake",
+                   new SubmitCaseIntakeRequest
+                   {
+                       PrimaryContactName = "Ana Pereira",
+                       PrimaryContactPhone = "+351910000000",
+                       RelationshipToDeceased = "Daughter",
+                       ConfirmAccuracy = true
+                   },
+                   signup.UserId,
+                   signup.OrganizationId,
+                   "AgencyAdmin"))
+        {
+            var intakeResponse = await client.SendAsync(intakeRequest);
+            intakeResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        }
+
+        using (var generateRequest = BuildAuthorizedRequest(
+                   HttpMethod.Post,
+                   $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/plan/generate",
+                   signup.UserId,
+                   signup.OrganizationId,
+                   "AgencyAdmin"))
+        {
+            var generateResponse = await client.SendAsync(generateRequest);
+            generateResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        }
+
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var dbContext = scope.ServiceProvider.GetRequiredService<SanzuDbContext>();
+            var step = dbContext.WorkflowStepInstances
+                .Single(x => x.CaseId == createdCase.CaseId && x.StepKey == "collect-civil-records");
+            step.Status = WorkflowStepStatus.InProgress;
+            step.DueDate = DateTime.UtcNow.AddDays(2);
+            step.UpdatedAt = DateTime.UtcNow;
+            await dbContext.SaveChangesAsync();
+        }
+
+        using var workspaceRequest = BuildAuthorizedRequest(
+            HttpMethod.Get,
+            $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/tasks",
+            editorUserId,
+            signup.OrganizationId,
+            "Editor");
+
+        var response = await client.SendAsync(workspaceRequest);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var envelope = await response.Content.ReadFromJsonAsync<ApiEnvelope<CaseTaskWorkspaceResponse>>();
+        envelope.Should().NotBeNull();
+        envelope!.Data.Should().NotBeNull();
+        envelope.Data!.Tasks.Should().NotBeEmpty();
+        envelope.Data.Tasks[0].StepKey.Should().Be("collect-civil-records");
+        envelope.Data.Tasks[0].PriorityRank.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task UpdateWorkflowTaskStatus_ShouldReturn200AndPersistStatus_WhenEditorStartsTask()
+    {
+        var client = _factory.CreateClient();
+        var signup = await CreateTenantAsync(client, "cases-tasks-update@agency.pt");
+        await ActivateTenantAsync(client, signup);
+        var createdCase = await CreateCaseAsync(client, signup, "Task Update Integration Case");
+        var editorUserId = await SeedAcceptedParticipantAsync(
+            signup.OrganizationId,
+            createdCase.CaseId,
+            "family.tasks.update.editor@agency.pt",
+            CaseRole.Editor);
+
+        using (var intakeRequest = BuildAuthorizedJsonRequest(
+                   HttpMethod.Put,
+                   $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/intake",
+                   new SubmitCaseIntakeRequest
+                   {
+                       PrimaryContactName = "Ana Pereira",
+                       PrimaryContactPhone = "+351910000000",
+                       RelationshipToDeceased = "Daughter",
+                       ConfirmAccuracy = true
+                   },
+                   signup.UserId,
+                   signup.OrganizationId,
+                   "AgencyAdmin"))
+        {
+            var intakeResponse = await client.SendAsync(intakeRequest);
+            intakeResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        }
+
+        using (var generateRequest = BuildAuthorizedRequest(
+                   HttpMethod.Post,
+                   $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/plan/generate",
+                   signup.UserId,
+                   signup.OrganizationId,
+                   "AgencyAdmin"))
+        {
+            var generateResponse = await client.SendAsync(generateRequest);
+            generateResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        }
+
+        Guid targetStepId;
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var dbContext = scope.ServiceProvider.GetRequiredService<SanzuDbContext>();
+            targetStepId = dbContext.WorkflowStepInstances
+                .Single(x => x.CaseId == createdCase.CaseId && x.StepKey == "collect-civil-records")
+                .Id;
+        }
+
+        using var updateRequest = BuildAuthorizedJsonRequest(
+            HttpMethod.Patch,
+            $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/tasks/{targetStepId}/status",
+            new UpdateWorkflowTaskStatusRequest
+            {
+                TargetStatus = "Started",
+                Notes = "Started by editor"
+            },
+            editorUserId,
+            signup.OrganizationId,
+            "Editor");
+
+        var response = await client.SendAsync(updateRequest);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        using var verificationScope = _factory.Services.CreateScope();
+        var verificationContext = verificationScope.ServiceProvider.GetRequiredService<SanzuDbContext>();
+        verificationContext.WorkflowStepInstances.Should().Contain(
+            x => x.Id == targetStepId && x.Status == WorkflowStepStatus.InProgress);
+        verificationContext.AuditEvents.Should().Contain(
+            x => x.EventType == "WorkflowTaskStatusUpdated" && x.CaseId == createdCase.CaseId && x.ActorUserId == editorUserId);
+    }
+
+    [Fact]
+    public async Task UpdateWorkflowTaskStatus_ShouldReturn403_WhenUserIsReader()
+    {
+        var client = _factory.CreateClient();
+        var signup = await CreateTenantAsync(client, "cases-tasks-reader-forbidden@agency.pt");
+        await ActivateTenantAsync(client, signup);
+        var createdCase = await CreateCaseAsync(client, signup, "Task Update Reader Case");
+        var readerUserId = await SeedAcceptedParticipantAsync(
+            signup.OrganizationId,
+            createdCase.CaseId,
+            "family.tasks.reader@agency.pt",
+            CaseRole.Reader);
+
+        using (var intakeRequest = BuildAuthorizedJsonRequest(
+                   HttpMethod.Put,
+                   $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/intake",
+                   new SubmitCaseIntakeRequest
+                   {
+                       PrimaryContactName = "Ana Pereira",
+                       PrimaryContactPhone = "+351910000000",
+                       RelationshipToDeceased = "Daughter",
+                       ConfirmAccuracy = true
+                   },
+                   signup.UserId,
+                   signup.OrganizationId,
+                   "AgencyAdmin"))
+        {
+            var intakeResponse = await client.SendAsync(intakeRequest);
+            intakeResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        }
+
+        using (var generateRequest = BuildAuthorizedRequest(
+                   HttpMethod.Post,
+                   $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/plan/generate",
+                   signup.UserId,
+                   signup.OrganizationId,
+                   "AgencyAdmin"))
+        {
+            var generateResponse = await client.SendAsync(generateRequest);
+            generateResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        }
+
+        Guid targetStepId;
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var dbContext = scope.ServiceProvider.GetRequiredService<SanzuDbContext>();
+            targetStepId = dbContext.WorkflowStepInstances
+                .Single(x => x.CaseId == createdCase.CaseId && x.StepKey == "collect-civil-records")
+                .Id;
+        }
+
+        using var updateRequest = BuildAuthorizedJsonRequest(
+            HttpMethod.Patch,
+            $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/tasks/{targetStepId}/status",
+            new UpdateWorkflowTaskStatusRequest
+            {
+                TargetStatus = "Started"
+            },
+            readerUserId,
+            signup.OrganizationId,
+            "Reader");
+
+        var response = await client.SendAsync(updateRequest);
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
     private async Task ActivateTenantAsync(HttpClient client, CreateAgencyAccountResponse signup)
     {
         using var defaultsRequest = BuildAuthorizedJsonRequest(

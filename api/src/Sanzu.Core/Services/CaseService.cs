@@ -23,6 +23,7 @@ public sealed class CaseService : ICaseService
     private readonly IValidator<CreateCaseRequest> _createCaseValidator;
     private readonly IValidator<SubmitCaseIntakeRequest> _submitCaseIntakeValidator;
     private readonly IValidator<OverrideWorkflowStepReadinessRequest> _overrideWorkflowStepReadinessValidator;
+    private readonly IValidator<UpdateWorkflowTaskStatusRequest> _updateWorkflowTaskStatusValidator;
     private readonly IValidator<UpdateCaseDetailsRequest> _updateCaseDetailsValidator;
     private readonly IValidator<UpdateCaseLifecycleRequest> _updateCaseLifecycleValidator;
     private readonly IValidator<InviteCaseParticipantRequest> _inviteCaseParticipantValidator;
@@ -41,6 +42,7 @@ public sealed class CaseService : ICaseService
         IValidator<CreateCaseRequest> createCaseValidator,
         IValidator<SubmitCaseIntakeRequest> submitCaseIntakeValidator,
         IValidator<OverrideWorkflowStepReadinessRequest> overrideWorkflowStepReadinessValidator,
+        IValidator<UpdateWorkflowTaskStatusRequest> updateWorkflowTaskStatusValidator,
         IValidator<UpdateCaseDetailsRequest> updateCaseDetailsValidator,
         IValidator<UpdateCaseLifecycleRequest> updateCaseLifecycleValidator,
         IValidator<InviteCaseParticipantRequest> inviteCaseParticipantValidator,
@@ -58,6 +60,7 @@ public sealed class CaseService : ICaseService
         _createCaseValidator = createCaseValidator;
         _submitCaseIntakeValidator = submitCaseIntakeValidator;
         _overrideWorkflowStepReadinessValidator = overrideWorkflowStepReadinessValidator;
+        _updateWorkflowTaskStatusValidator = updateWorkflowTaskStatusValidator;
         _updateCaseDetailsValidator = updateCaseDetailsValidator;
         _updateCaseLifecycleValidator = updateCaseLifecycleValidator;
         _inviteCaseParticipantValidator = inviteCaseParticipantValidator;
@@ -266,20 +269,27 @@ public sealed class CaseService : ICaseService
                 var stepEntities = stepBlueprints
                     .Select(
                         (blueprint, index) =>
-                            new WorkflowStepInstance
+                        {
+                            var sequence = index + 1;
+                            var dueDate = BuildStepDueDate(nowUtc, sequence);
+
+                            return new WorkflowStepInstance
                             {
                                 Id = Guid.NewGuid(),
                                 TenantId = tenantId,
                                 CaseId = caseEntity.Id,
                                 StepKey = blueprint.StepKey,
                                 Title = blueprint.Title,
-                                Sequence = index + 1,
+                                Sequence = sequence,
                                 Status = blueprint.DependsOnKeys.Count == 0
                                     ? WorkflowStepStatus.Ready
                                     : WorkflowStepStatus.Blocked,
+                                DueDate = dueDate,
+                                DeadlineSource = BuildDeadlineSource(sequence),
                                 CreatedAt = nowUtc,
                                 UpdatedAt = nowUtc
-                            })
+                            };
+                        })
                     .ToList();
 
                 await _workflowStepRepository.CreateStepsAsync(stepEntities, token);
@@ -401,45 +411,8 @@ public sealed class CaseService : ICaseService
                 }
 
                 var dependencies = await _workflowStepRepository.GetDependenciesByCaseIdAsync(caseEntity.Id, token);
-                var stepById = steps.ToDictionary(x => x.Id, x => x);
-                var dependencyMap = dependencies
-                    .GroupBy(x => x.StepId)
-                    .ToDictionary(x => x.Key, x => x.Select(y => y.DependsOnStepId).ToList());
-
                 var nowUtc = DateTime.UtcNow;
-                var changedSteps = new List<string>();
-
-                foreach (var step in steps)
-                {
-                    if (step.IsReadinessOverridden)
-                    {
-                        continue;
-                    }
-
-                    if (step.Status is WorkflowStepStatus.Complete or WorkflowStepStatus.Skipped)
-                    {
-                        continue;
-                    }
-
-                    var dependencyIds = dependencyMap.TryGetValue(step.Id, out var dependsOn)
-                        ? dependsOn
-                        : new List<Guid>();
-                    var shouldBeReady = dependencyIds.Count == 0
-                        || dependencyIds.All(
-                            dependencyId =>
-                                stepById.TryGetValue(dependencyId, out var dependencyStep)
-                                && dependencyStep.Status is WorkflowStepStatus.Complete or WorkflowStepStatus.Skipped);
-                    var desiredStatus = shouldBeReady ? WorkflowStepStatus.Ready : WorkflowStepStatus.Blocked;
-
-                    if (step.Status == desiredStatus)
-                    {
-                        continue;
-                    }
-
-                    step.Status = desiredStatus;
-                    step.UpdatedAt = nowUtc;
-                    changedSteps.Add(step.StepKey);
-                }
+                var changedSteps = RecalculateReadinessForNonOverriddenSteps(steps, dependencies, nowUtc);
 
                 caseEntity.UpdatedAt = nowUtc;
 
@@ -536,6 +509,121 @@ public sealed class CaseService : ICaseService
 
                 var dependencies = await _workflowStepRepository.GetDependenciesByCaseIdAsync(caseEntity.Id, token);
                 response = MapGeneratedCasePlan(caseEntity.Id, nowUtc, steps, dependencies);
+            },
+            cancellationToken);
+
+        return response!;
+    }
+
+    public async Task<CaseTaskWorkspaceResponse> GetCaseTaskWorkspaceAsync(
+        Guid tenantId,
+        Guid actorUserId,
+        Guid caseId,
+        CancellationToken cancellationToken)
+    {
+        var caseForAccess = await LoadCaseForTenantAsync(tenantId, caseId, cancellationToken);
+        var effectiveRole = await ResolveEffectiveCaseRoleAsync(tenantId, actorUserId, caseForAccess, cancellationToken);
+        await EnsureCaseRoleAsync(effectiveRole, CaseRole.Editor, actorUserId, caseId, "GetCaseTaskWorkspace", cancellationToken);
+
+        var steps = await _workflowStepRepository.GetByCaseIdAsync(caseId, cancellationToken);
+        if (steps.Count == 0)
+        {
+            throw new CaseStateException("A generated case plan is required before opening the task workspace.");
+        }
+
+        var dependencies = await _workflowStepRepository.GetDependenciesByCaseIdAsync(caseId, cancellationToken);
+        return MapCaseTaskWorkspace(caseId, DateTime.UtcNow, steps, dependencies);
+    }
+
+    public async Task<CaseTaskWorkspaceResponse> UpdateWorkflowTaskStatusAsync(
+        Guid tenantId,
+        Guid actorUserId,
+        Guid caseId,
+        Guid stepId,
+        UpdateWorkflowTaskStatusRequest request,
+        CancellationToken cancellationToken)
+    {
+        var validationResult = await _updateWorkflowTaskStatusValidator.ValidateAsync(request, cancellationToken);
+        if (!validationResult.IsValid)
+        {
+            throw new ValidationException(validationResult.Errors);
+        }
+
+        var caseForAccess = await LoadCaseForTenantAsync(tenantId, caseId, cancellationToken);
+        var effectiveRole = await ResolveEffectiveCaseRoleAsync(tenantId, actorUserId, caseForAccess, cancellationToken);
+        await EnsureCaseRoleAsync(effectiveRole, CaseRole.Editor, actorUserId, caseId, "UpdateWorkflowTaskStatus", cancellationToken);
+
+        CaseTaskWorkspaceResponse? response = null;
+
+        await _unitOfWork.ExecuteInTransactionAsync(
+            async token =>
+            {
+                var caseEntity = await LoadCaseForTenantAsync(tenantId, caseId, token);
+                var steps = (await _workflowStepRepository.GetByCaseIdAsync(caseEntity.Id, token)).ToList();
+                if (steps.Count == 0)
+                {
+                    throw new CaseStateException("A generated case plan is required before updating task status.");
+                }
+
+                var step = steps.FirstOrDefault(x => x.Id == stepId);
+                if (step is null || step.CaseId != caseEntity.Id || step.TenantId != tenantId)
+                {
+                    throw new TenantAccessDeniedException();
+                }
+
+                if (step.Status is WorkflowStepStatus.Skipped)
+                {
+                    throw new CaseStateException("Skipped workflow steps cannot be updated.");
+                }
+
+                var targetStatus = ParseTaskExecutionStatus(request.TargetStatus);
+                EnsureTaskExecutionTransitionAllowed(step.Status, targetStatus);
+
+                var dependencies = await _workflowStepRepository.GetDependenciesByCaseIdAsync(caseEntity.Id, token);
+                var stepById = steps.ToDictionary(x => x.Id, x => x);
+                var dependencyMap = dependencies
+                    .GroupBy(x => x.StepId)
+                    .ToDictionary(x => x.Key, x => x.Select(y => y.DependsOnStepId).ToList());
+
+                if (!step.IsReadinessOverridden
+                    && !AreDependenciesSatisfied(step.Id, stepById, dependencyMap)
+                    && targetStatus is WorkflowStepStatus.InProgress or WorkflowStepStatus.AwaitingEvidence or WorkflowStepStatus.Complete)
+                {
+                    throw new CaseStateException("Task status cannot advance while prerequisite steps are incomplete.");
+                }
+
+                var previousStatus = step.Status;
+                var nowUtc = DateTime.UtcNow;
+                step.Status = targetStatus;
+                step.UpdatedAt = nowUtc;
+
+                IReadOnlyList<string> changedReadinessSteps = Array.Empty<string>();
+                if (targetStatus == WorkflowStepStatus.Complete)
+                {
+                    changedReadinessSteps = RecalculateReadinessForNonOverriddenSteps(steps, dependencies, nowUtc);
+                }
+
+                caseEntity.UpdatedAt = nowUtc;
+
+                await WriteAuditEventAsync(
+                    actorUserId,
+                    "WorkflowTaskStatusUpdated",
+                    new
+                    {
+                        CaseId = caseEntity.Id,
+                        StepId = step.Id,
+                        step.StepKey,
+                        PreviousStatus = previousStatus.ToString(),
+                        NewStatus = step.Status.ToString(),
+                        ActorUserId = actorUserId,
+                        Notes = string.IsNullOrWhiteSpace(request.Notes) ? null : request.Notes.Trim(),
+                        UpdatedAt = nowUtc,
+                        ChangedReadinessStepKeys = changedReadinessSteps
+                    },
+                    token,
+                    caseEntity.Id);
+
+                response = MapCaseTaskWorkspace(caseEntity.Id, nowUtc, steps, dependencies);
             },
             cancellationToken);
 
@@ -1255,6 +1343,109 @@ public sealed class CaseService : ICaseService
         throw new CaseStateException("Readiness overrides only support Ready or Blocked statuses.");
     }
 
+    private static WorkflowStepStatus ParseTaskExecutionStatus(string value)
+    {
+        return value.Trim().ToUpperInvariant() switch
+        {
+            "STARTED" => WorkflowStepStatus.InProgress,
+            "COMPLETED" => WorkflowStepStatus.Complete,
+            "NEEDSREVIEW" => WorkflowStepStatus.AwaitingEvidence,
+            _ => throw new CaseStateException("Task status updates only support Started, Completed, or NeedsReview.")
+        };
+    }
+
+    private static void EnsureTaskExecutionTransitionAllowed(WorkflowStepStatus currentStatus, WorkflowStepStatus targetStatus)
+    {
+        if (currentStatus == targetStatus)
+        {
+            return;
+        }
+
+        if (currentStatus is WorkflowStepStatus.Complete or WorkflowStepStatus.Skipped)
+        {
+            throw new CaseStateException("Completed or skipped tasks cannot be moved to another status.");
+        }
+
+        var isAllowed = targetStatus switch
+        {
+            WorkflowStepStatus.InProgress => currentStatus is WorkflowStepStatus.Ready or WorkflowStepStatus.Overdue or WorkflowStepStatus.AwaitingEvidence,
+            WorkflowStepStatus.AwaitingEvidence => currentStatus is WorkflowStepStatus.Ready or WorkflowStepStatus.Overdue or WorkflowStepStatus.InProgress,
+            WorkflowStepStatus.Complete => currentStatus is WorkflowStepStatus.Ready or WorkflowStepStatus.Overdue or WorkflowStepStatus.InProgress or WorkflowStepStatus.AwaitingEvidence,
+            _ => false
+        };
+
+        if (!isAllowed)
+        {
+            throw new CaseStateException($"Invalid task transition from {currentStatus} to {targetStatus}.");
+        }
+    }
+
+    private static DateTime BuildStepDueDate(DateTime planGeneratedAtUtc, int sequence)
+    {
+        var offsetDays = 2 + (sequence * 2);
+        return planGeneratedAtUtc.Date.AddDays(offsetDays);
+    }
+
+    private static string BuildDeadlineSource(int sequence)
+    {
+        var offsetDays = 2 + (sequence * 2);
+        return $"Rule: target completion within {offsetDays} days from plan generation.";
+    }
+
+    private static IReadOnlyList<string> RecalculateReadinessForNonOverriddenSteps(
+        IReadOnlyCollection<WorkflowStepInstance> steps,
+        IReadOnlyList<WorkflowStepDependency> dependencies,
+        DateTime nowUtc)
+    {
+        var changedSteps = new List<string>();
+        var stepById = steps.ToDictionary(x => x.Id, x => x);
+        var dependencyMap = dependencies
+            .GroupBy(x => x.StepId)
+            .ToDictionary(x => x.Key, x => x.Select(y => y.DependsOnStepId).ToList());
+
+        foreach (var step in steps)
+        {
+            if (step.IsReadinessOverridden)
+            {
+                continue;
+            }
+
+            if (step.Status is WorkflowStepStatus.Complete or WorkflowStepStatus.Skipped)
+            {
+                continue;
+            }
+
+            var shouldBeReady = AreDependenciesSatisfied(step.Id, stepById, dependencyMap);
+            var desiredStatus = shouldBeReady ? WorkflowStepStatus.Ready : WorkflowStepStatus.Blocked;
+            if (step.Status == desiredStatus)
+            {
+                continue;
+            }
+
+            step.Status = desiredStatus;
+            step.UpdatedAt = nowUtc;
+            changedSteps.Add(step.StepKey);
+        }
+
+        return changedSteps;
+    }
+
+    private static bool AreDependenciesSatisfied(
+        Guid stepId,
+        IReadOnlyDictionary<Guid, WorkflowStepInstance> stepById,
+        IReadOnlyDictionary<Guid, List<Guid>> dependencyMap)
+    {
+        var dependencyIds = dependencyMap.TryGetValue(stepId, out var dependsOn)
+            ? dependsOn
+            : new List<Guid>();
+
+        return dependencyIds.Count == 0
+            || dependencyIds.All(
+                dependencyId =>
+                    stepById.TryGetValue(dependencyId, out var dependencyStep)
+                    && dependencyStep.Status is WorkflowStepStatus.Complete or WorkflowStepStatus.Skipped);
+    }
+
     private static void EnsureLifecycleTransitionAllowed(CaseStatus currentStatus, CaseStatus targetStatus)
     {
         var isAllowed = currentStatus switch
@@ -1375,6 +1566,102 @@ public sealed class CaseService : ICaseService
                     })
                 .ToList()
         };
+    }
+
+    private static CaseTaskWorkspaceResponse MapCaseTaskWorkspace(
+        Guid caseId,
+        DateTime retrievedAt,
+        IEnumerable<WorkflowStepInstance> steps,
+        IReadOnlyList<WorkflowStepDependency> dependencies)
+    {
+        var dependencyMap = dependencies
+            .GroupBy(x => x.StepId)
+            .ToDictionary(
+                x => x.Key,
+                x => (IReadOnlyList<Guid>)x.Select(y => y.DependsOnStepId).ToList());
+
+        var tasks = steps
+            .Select(
+                step =>
+                {
+                    var urgency = GetUrgencyIndicator(step, retrievedAt);
+                    return new CaseTaskItemResponse
+                    {
+                        StepId = step.Id,
+                        StepKey = step.StepKey,
+                        Title = step.Title,
+                        Sequence = step.Sequence,
+                        PriorityRank = GetTaskPriorityRank(step),
+                        Status = step.Status,
+                        DueDate = step.DueDate,
+                        DeadlineSource = step.DeadlineSource,
+                        UrgencyIndicator = urgency,
+                        DependsOnStepIds = dependencyMap.TryGetValue(step.Id, out var dependsOn)
+                            ? dependsOn
+                            : Array.Empty<Guid>()
+                    };
+                })
+            .OrderBy(x => x.PriorityRank)
+            .ThenBy(
+                x => x.UrgencyIndicator switch
+                {
+                    "overdue" => 0,
+                    "due-soon" => 1,
+                    "upcoming" => 2,
+                    _ => 3
+                })
+            .ThenBy(x => x.DueDate ?? DateTime.MaxValue)
+            .ThenBy(x => x.Sequence)
+            .ToList();
+
+        return new CaseTaskWorkspaceResponse
+        {
+            CaseId = caseId,
+            RetrievedAt = retrievedAt,
+            Tasks = tasks
+        };
+    }
+
+    private static int GetTaskPriorityRank(WorkflowStepInstance step)
+    {
+        return step.Status switch
+        {
+            WorkflowStepStatus.InProgress => 1,
+            WorkflowStepStatus.Ready or WorkflowStepStatus.Overdue => 2,
+            WorkflowStepStatus.AwaitingEvidence => 3,
+            WorkflowStepStatus.Blocked => 4,
+            WorkflowStepStatus.NotStarted => 5,
+            WorkflowStepStatus.Complete or WorkflowStepStatus.Skipped => 6,
+            _ => 7
+        };
+    }
+
+    private static string GetUrgencyIndicator(WorkflowStepInstance step, DateTime nowUtc)
+    {
+        if (step.DueDate is null || step.Status is WorkflowStepStatus.Complete or WorkflowStepStatus.Skipped)
+        {
+            return "none";
+        }
+
+        var dueDate = step.DueDate.Value.Date;
+        var today = nowUtc.Date;
+        if (dueDate < today)
+        {
+            return "overdue";
+        }
+
+        var daysRemaining = (dueDate - today).TotalDays;
+        if (daysRemaining <= 2)
+        {
+            return "due-soon";
+        }
+
+        if (daysRemaining <= 7)
+        {
+            return "upcoming";
+        }
+
+        return "none";
     }
 
     private static CaseStatus? ExtractStatusFromAudit(AuditEvent auditEvent)

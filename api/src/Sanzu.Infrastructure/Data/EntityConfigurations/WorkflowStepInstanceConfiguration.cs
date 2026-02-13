@@ -36,6 +36,14 @@ public sealed class WorkflowStepInstanceConfiguration : IEntityTypeConfiguration
             .HasMaxLength(32)
             .IsRequired();
 
+        builder.Property(x => x.DueDate)
+            .HasColumnType("datetime2");
+
+        builder.Property(x => x.DeadlineSource)
+            .HasMaxLength(255);
+
+        builder.Property(x => x.AssignedUserId);
+
         builder.Property(x => x.IsReadinessOverridden)
             .IsRequired();
 

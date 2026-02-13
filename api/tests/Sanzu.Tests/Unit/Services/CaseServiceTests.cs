@@ -958,6 +958,218 @@ public sealed class CaseServiceTests
     }
 
     [Fact]
+    public async Task GetCaseTaskWorkspace_ShouldReturnTasksSortedByPriorityAndDeadlineUrgency()
+    {
+        var dbContext = CreateContext();
+        var (tenantId, actorUserId) = await SeedTenantWithAdminAsync(dbContext, TenantStatus.Active);
+        var service = CreateService(dbContext);
+        var createdCase = await CreateCaseAsync(service, tenantId, actorUserId, "Task Workspace Case");
+
+        await service.SubmitCaseIntakeAsync(
+            tenantId,
+            actorUserId,
+            createdCase.CaseId,
+            new SubmitCaseIntakeRequest
+            {
+                PrimaryContactName = "Ana Pereira",
+                PrimaryContactPhone = "+351919999999",
+                RelationshipToDeceased = "Daughter",
+                HasWill = true,
+                RequiresLegalSupport = true,
+                ConfirmAccuracy = true
+            },
+            CancellationToken.None);
+
+        await service.GenerateCasePlanAsync(
+            tenantId,
+            actorUserId,
+            createdCase.CaseId,
+            CancellationToken.None);
+
+        var inProgressStep = await dbContext.WorkflowStepInstances
+            .SingleAsync(x => x.CaseId == createdCase.CaseId && x.StepKey == "collect-civil-records");
+        var readyOverdueStep = await dbContext.WorkflowStepInstances
+            .SingleAsync(x => x.CaseId == createdCase.CaseId && x.StepKey == "gather-estate-inventory");
+        inProgressStep.Status = WorkflowStepStatus.InProgress;
+        inProgressStep.DueDate = DateTime.UtcNow.AddDays(2);
+        inProgressStep.UpdatedAt = DateTime.UtcNow;
+        readyOverdueStep.Status = WorkflowStepStatus.Ready;
+        readyOverdueStep.DueDate = DateTime.UtcNow.AddDays(-1);
+        readyOverdueStep.UpdatedAt = DateTime.UtcNow;
+        await dbContext.SaveChangesAsync();
+
+        var workspace = await service.GetCaseTaskWorkspaceAsync(
+            tenantId,
+            actorUserId,
+            createdCase.CaseId,
+            CancellationToken.None);
+
+        workspace.Tasks.Should().NotBeEmpty();
+        workspace.Tasks[0].StepKey.Should().Be("collect-civil-records");
+        workspace.Tasks[0].PriorityRank.Should().Be(1);
+        workspace.Tasks[1].StepKey.Should().Be("gather-estate-inventory");
+        workspace.Tasks[1].UrgencyIndicator.Should().Be("overdue");
+    }
+
+    [Fact]
+    public async Task UpdateWorkflowTaskStatus_ShouldPersistStatusAndAudit_WhenEditorMarksTaskAsStarted()
+    {
+        var dbContext = CreateContext();
+        var (tenantId, actorUserId) = await SeedTenantWithAdminAsync(dbContext, TenantStatus.Active);
+        var service = CreateService(dbContext);
+        var createdCase = await CreateCaseAsync(service, tenantId, actorUserId, "Task Status Update Case");
+
+        await service.SubmitCaseIntakeAsync(
+            tenantId,
+            actorUserId,
+            createdCase.CaseId,
+            new SubmitCaseIntakeRequest
+            {
+                PrimaryContactName = "Ana Pereira",
+                PrimaryContactPhone = "+351919999999",
+                RelationshipToDeceased = "Daughter",
+                ConfirmAccuracy = true
+            },
+            CancellationToken.None);
+
+        await service.GenerateCasePlanAsync(
+            tenantId,
+            actorUserId,
+            createdCase.CaseId,
+            CancellationToken.None);
+
+        var editorUserId = Guid.NewGuid();
+        const string editorEmail = "family.task.editor@agency.pt";
+        await SeedUserAsync(dbContext, editorUserId, tenantId, editorEmail, "Family Editor");
+        await SeedAcceptedParticipantDirectAsync(dbContext, tenantId, createdCase.CaseId, editorUserId, editorEmail, CaseRole.Editor);
+
+        var step = await dbContext.WorkflowStepInstances
+            .SingleAsync(x => x.CaseId == createdCase.CaseId && x.StepKey == "collect-civil-records");
+
+        var response = await service.UpdateWorkflowTaskStatusAsync(
+            tenantId,
+            editorUserId,
+            createdCase.CaseId,
+            step.Id,
+            new UpdateWorkflowTaskStatusRequest
+            {
+                TargetStatus = "Started",
+                Notes = "Started by assigned editor."
+            },
+            CancellationToken.None);
+
+        response.Tasks.Should().Contain(x => x.StepId == step.Id && x.Status == WorkflowStepStatus.InProgress);
+        dbContext.AuditEvents.Should().Contain(
+            x => x.EventType == "WorkflowTaskStatusUpdated" && x.CaseId == createdCase.CaseId && x.ActorUserId == editorUserId);
+    }
+
+    [Fact]
+    public async Task UpdateWorkflowTaskStatus_ShouldRecalculateReadiness_WhenTaskIsCompleted()
+    {
+        var dbContext = CreateContext();
+        var (tenantId, actorUserId) = await SeedTenantWithAdminAsync(dbContext, TenantStatus.Active);
+        var service = CreateService(dbContext);
+        var createdCase = await CreateCaseAsync(service, tenantId, actorUserId, "Task Completion Case");
+
+        await service.SubmitCaseIntakeAsync(
+            tenantId,
+            actorUserId,
+            createdCase.CaseId,
+            new SubmitCaseIntakeRequest
+            {
+                PrimaryContactName = "Ana Pereira",
+                PrimaryContactPhone = "+351919999999",
+                RelationshipToDeceased = "Daughter",
+                ConfirmAccuracy = true
+            },
+            CancellationToken.None);
+
+        await service.GenerateCasePlanAsync(
+            tenantId,
+            actorUserId,
+            createdCase.CaseId,
+            CancellationToken.None);
+
+        var recordsStep = await dbContext.WorkflowStepInstances
+            .SingleAsync(x => x.CaseId == createdCase.CaseId && x.StepKey == "collect-civil-records");
+        var inventoryStep = await dbContext.WorkflowStepInstances
+            .SingleAsync(x => x.CaseId == createdCase.CaseId && x.StepKey == "gather-estate-inventory");
+
+        await service.UpdateWorkflowTaskStatusAsync(
+            tenantId,
+            actorUserId,
+            createdCase.CaseId,
+            recordsStep.Id,
+            new UpdateWorkflowTaskStatusRequest { TargetStatus = "Completed" },
+            CancellationToken.None);
+
+        var response = await service.UpdateWorkflowTaskStatusAsync(
+            tenantId,
+            actorUserId,
+            createdCase.CaseId,
+            inventoryStep.Id,
+            new UpdateWorkflowTaskStatusRequest { TargetStatus = "Completed" },
+            CancellationToken.None);
+
+        response.Tasks.Should().Contain(
+            x => x.StepKey == "submit-succession-notification" && x.Status == WorkflowStepStatus.Ready);
+    }
+
+    [Fact]
+    public async Task UpdateWorkflowTaskStatus_ShouldThrowCaseAccessDeniedAndAudit_WhenUserIsReader()
+    {
+        var dbContext = CreateContext();
+        var (tenantId, actorUserId) = await SeedTenantWithAdminAsync(dbContext, TenantStatus.Active);
+        var service = CreateService(dbContext);
+        var createdCase = await CreateCaseAsync(service, tenantId, actorUserId, "Reader Task Update Case");
+
+        await service.SubmitCaseIntakeAsync(
+            tenantId,
+            actorUserId,
+            createdCase.CaseId,
+            new SubmitCaseIntakeRequest
+            {
+                PrimaryContactName = "Ana Pereira",
+                PrimaryContactPhone = "+351919999999",
+                RelationshipToDeceased = "Daughter",
+                ConfirmAccuracy = true
+            },
+            CancellationToken.None);
+
+        await service.GenerateCasePlanAsync(
+            tenantId,
+            actorUserId,
+            createdCase.CaseId,
+            CancellationToken.None);
+
+        var readerUserId = Guid.NewGuid();
+        const string readerEmail = "family.task.reader@agency.pt";
+        await SeedUserAsync(dbContext, readerUserId, tenantId, readerEmail, "Family Reader");
+        await SeedAcceptedParticipantDirectAsync(dbContext, tenantId, createdCase.CaseId, readerUserId, readerEmail, CaseRole.Reader);
+        var step = await dbContext.WorkflowStepInstances
+            .SingleAsync(x => x.CaseId == createdCase.CaseId && x.StepKey == "collect-civil-records");
+
+        var act = () => service.UpdateWorkflowTaskStatusAsync(
+            tenantId,
+            readerUserId,
+            createdCase.CaseId,
+            step.Id,
+            new UpdateWorkflowTaskStatusRequest { TargetStatus = "Started" },
+            CancellationToken.None);
+
+        await act.Should().ThrowAsync<CaseAccessDeniedException>()
+            .Where(e => e.ReasonCode == "ROLE_INSUFFICIENT" && e.AttemptedAction == "UpdateWorkflowTaskStatus");
+        AssertAccessDeniedAudit(
+            dbContext,
+            readerUserId,
+            createdCase.CaseId,
+            "UpdateWorkflowTaskStatus",
+            "Editor",
+            "Reader",
+            "ROLE_INSUFFICIENT");
+    }
+
+    [Fact]
     public async Task GetCaseDetails_ShouldReturnDetails_WhenUserIsCaseManager()
     {
         var dbContext = CreateContext();
@@ -1124,6 +1336,7 @@ public sealed class CaseServiceTests
             new CreateCaseRequestValidator(),
             new SubmitCaseIntakeRequestValidator(),
             new OverrideWorkflowStepReadinessRequestValidator(),
+            new UpdateWorkflowTaskStatusRequestValidator(),
             new UpdateCaseDetailsRequestValidator(),
             new UpdateCaseLifecycleRequestValidator(),
             new InviteCaseParticipantRequestValidator(),
