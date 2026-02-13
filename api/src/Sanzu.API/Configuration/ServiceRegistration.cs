@@ -37,11 +37,27 @@ public static class ServiceRegistration
             });
 
         services.AddScoped<ITenantOnboardingService, TenantOnboardingService>();
+        services.AddScoped<ITenantSubscriptionService, TenantSubscriptionService>();
+        services.AddScoped<ITenantBillingService, TenantBillingService>();
+        services.AddScoped<ICaseService, CaseService>();
         services.AddScoped<IValidator<CreateAgencyAccountRequest>, CreateAgencyAccountRequestValidator>();
+        services.AddScoped<IValidator<CreateCaseRequest>, CreateCaseRequestValidator>();
+        services.AddScoped<IValidator<SubmitCaseIntakeRequest>, SubmitCaseIntakeRequestValidator>();
+        services.AddScoped<IValidator<UpdateCaseDetailsRequest>, UpdateCaseDetailsRequestValidator>();
+        services.AddScoped<IValidator<UpdateCaseLifecycleRequest>, UpdateCaseLifecycleRequestValidator>();
+        services.AddScoped<IValidator<InviteCaseParticipantRequest>, InviteCaseParticipantRequestValidator>();
+        services.AddScoped<IValidator<AcceptCaseParticipantInvitationRequest>, AcceptCaseParticipantInvitationRequestValidator>();
+        services.AddScoped<IValidator<UpdateCaseParticipantRoleRequest>, UpdateCaseParticipantRoleRequestValidator>();
         services.AddScoped<IValidator<UpdateTenantOnboardingProfileRequest>, UpdateTenantOnboardingProfileRequestValidator>();
         services.AddScoped<IValidator<UpdateTenantOnboardingDefaultsRequest>, UpdateTenantOnboardingDefaultsRequestValidator>();
         services.AddScoped<IValidator<CreateTenantInvitationRequest>, CreateTenantInvitationRequestValidator>();
         services.AddScoped<IValidator<CompleteTenantOnboardingRequest>, CompleteTenantOnboardingRequestValidator>();
+        services.AddScoped<IValidator<ActivateTenantBillingRequest>, ActivateTenantBillingRequestValidator>();
+        services.AddScoped<IValidator<PreviewPlanChangeRequest>, PreviewPlanChangeRequestValidator>();
+        services.AddScoped<IValidator<ChangePlanRequest>, ChangePlanRequestValidator>();
+        services.AddScoped<IValidator<CancelSubscriptionRequest>, CancelSubscriptionRequestValidator>();
+        services.AddScoped<IValidator<RegisterFailedPaymentRequest>, RegisterFailedPaymentRequestValidator>();
+        services.AddScoped<IValidator<ExecutePaymentRecoveryRequest>, ExecutePaymentRecoveryRequestValidator>();
 
         return services;
     }
