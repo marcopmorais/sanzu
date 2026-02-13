@@ -23,6 +23,7 @@ public sealed class CaseService : ICaseService
     private readonly IUnitOfWork _unitOfWork;
     private readonly IValidator<CreateCaseRequest> _createCaseValidator;
     private readonly IValidator<SubmitCaseIntakeRequest> _submitCaseIntakeValidator;
+    private readonly IValidator<GenerateOutboundTemplateRequest> _generateOutboundTemplateValidator;
     private readonly IValidator<UploadCaseDocumentRequest> _uploadCaseDocumentValidator;
     private readonly IValidator<UpdateCaseDocumentClassificationRequest> _updateCaseDocumentClassificationValidator;
     private readonly IValidator<OverrideWorkflowStepReadinessRequest> _overrideWorkflowStepReadinessValidator;
@@ -45,6 +46,7 @@ public sealed class CaseService : ICaseService
         IUnitOfWork unitOfWork,
         IValidator<CreateCaseRequest> createCaseValidator,
         IValidator<SubmitCaseIntakeRequest> submitCaseIntakeValidator,
+        IValidator<GenerateOutboundTemplateRequest> generateOutboundTemplateValidator,
         IValidator<UploadCaseDocumentRequest> uploadCaseDocumentValidator,
         IValidator<UpdateCaseDocumentClassificationRequest> updateCaseDocumentClassificationValidator,
         IValidator<OverrideWorkflowStepReadinessRequest> overrideWorkflowStepReadinessValidator,
@@ -66,6 +68,7 @@ public sealed class CaseService : ICaseService
         _unitOfWork = unitOfWork;
         _createCaseValidator = createCaseValidator;
         _submitCaseIntakeValidator = submitCaseIntakeValidator;
+        _generateOutboundTemplateValidator = generateOutboundTemplateValidator;
         _uploadCaseDocumentValidator = uploadCaseDocumentValidator;
         _updateCaseDocumentClassificationValidator = updateCaseDocumentClassificationValidator;
         _overrideWorkflowStepReadinessValidator = overrideWorkflowStepReadinessValidator;
@@ -727,6 +730,70 @@ public sealed class CaseService : ICaseService
                     caseForAccess.Id);
 
                 response = MapDocumentClassification(document);
+            },
+            cancellationToken);
+
+        return response!;
+    }
+
+    public async Task<GenerateOutboundTemplateResponse> GenerateOutboundTemplateAsync(
+        Guid tenantId,
+        Guid actorUserId,
+        Guid caseId,
+        GenerateOutboundTemplateRequest request,
+        CancellationToken cancellationToken)
+    {
+        var validationResult = await _generateOutboundTemplateValidator.ValidateAsync(request, cancellationToken);
+        if (!validationResult.IsValid)
+        {
+            throw new ValidationException(validationResult.Errors);
+        }
+
+        var caseForAccess = await LoadCaseForTenantAsync(tenantId, caseId, cancellationToken);
+        var effectiveRole = await ResolveEffectiveCaseRoleAsync(tenantId, actorUserId, caseForAccess, cancellationToken);
+        await EnsureCaseRoleAsync(effectiveRole, CaseRole.Manager, actorUserId, caseId, "GenerateOutboundTemplate", cancellationToken);
+
+        GenerateOutboundTemplateResponse? response = null;
+
+        await _unitOfWork.ExecuteInTransactionAsync(
+            async token =>
+            {
+                var caseEntity = await LoadCaseForTenantAsync(tenantId, caseId, token);
+                EnsureCaseHasCompletedIntake(caseEntity);
+
+                var templateKey = ParseOutboundTemplateKey(request.TemplateKey);
+                var generatedAt = DateTime.UtcNow;
+                var mappedFields = BuildOutboundTemplateFields(templateKey, caseEntity);
+                var templateContent = BuildOutboundTemplateContent(templateKey, mappedFields);
+                var fileName = $"{templateKey}-{caseEntity.CaseNumber}-{generatedAt:yyyyMMddHHmmss}.txt";
+                var contentBase64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(templateContent));
+
+                await WriteAuditEventAsync(
+                    actorUserId,
+                    "CaseOutboundTemplateGenerated",
+                    new
+                    {
+                        CaseId = caseEntity.Id,
+                        TemplateKey = templateKey,
+                        FileName = fileName,
+                        ContentType = "text/plain",
+                        GeneratedByUserId = actorUserId,
+                        GeneratedAt = generatedAt,
+                        MappedFields = mappedFields
+                    },
+                    token,
+                    caseEntity.Id);
+
+                response = new GenerateOutboundTemplateResponse
+                {
+                    CaseId = caseEntity.Id,
+                    TemplateKey = templateKey,
+                    FileName = fileName,
+                    ContentType = "text/plain",
+                    ContentBase64 = contentBase64,
+                    GeneratedAt = generatedAt,
+                    MappedFields = mappedFields
+                };
             },
             cancellationToken);
 
@@ -1736,6 +1803,93 @@ public sealed class CaseService : ICaseService
         }
 
         throw new CaseStateException("The requested document classification is not recognized.");
+    }
+
+    private static string ParseOutboundTemplateKey(string value)
+    {
+        return value.Trim().ToUpperInvariant() switch
+        {
+            "CASESUMMARYLETTER" => "CaseSummaryLetter",
+            "REQUIREDDOCUMENTSCHECKLIST" => "RequiredDocumentsChecklist",
+            _ => throw new CaseStateException("The requested outbound template is not recognized.")
+        };
+    }
+
+    private static IReadOnlyDictionary<string, string> BuildOutboundTemplateFields(string templateKey, Case caseEntity)
+    {
+        try
+        {
+            using var intakeDocument = JsonDocument.Parse(caseEntity.IntakeData!);
+            var intake = intakeDocument.RootElement;
+
+            var primaryContactName = ReadStringOrEmpty(intake, "PrimaryContactName");
+            var relationshipToDeceased = ReadStringOrEmpty(intake, "RelationshipToDeceased");
+            var hasWill = ReadBooleanOrDefault(intake, "HasWill");
+            var requiresLegalSupport = ReadBooleanOrDefault(intake, "RequiresLegalSupport");
+            var requiresFinancialSupport = ReadBooleanOrDefault(intake, "RequiresFinancialSupport");
+
+            if (string.IsNullOrWhiteSpace(primaryContactName) || string.IsNullOrWhiteSpace(relationshipToDeceased))
+            {
+                throw new CaseStateException(
+                    "Required intake fields are missing for outbound template generation.");
+            }
+
+            return templateKey switch
+            {
+                "CaseSummaryLetter" => new Dictionary<string, string>
+                {
+                    ["CaseNumber"] = caseEntity.CaseNumber,
+                    ["DeceasedFullName"] = caseEntity.DeceasedFullName,
+                    ["DateOfDeath"] = caseEntity.DateOfDeath.ToString("yyyy-MM-dd"),
+                    ["PrimaryContactName"] = primaryContactName,
+                    ["RelationshipToDeceased"] = relationshipToDeceased,
+                    ["CaseType"] = caseEntity.CaseType,
+                    ["Urgency"] = caseEntity.Urgency,
+                    ["CaseStatus"] = caseEntity.Status.ToString()
+                },
+                "RequiredDocumentsChecklist" => new Dictionary<string, string>
+                {
+                    ["CaseNumber"] = caseEntity.CaseNumber,
+                    ["DeceasedFullName"] = caseEntity.DeceasedFullName,
+                    ["PrimaryContactName"] = primaryContactName,
+                    ["HasWill"] = hasWill ? "Yes" : "No",
+                    ["RequiresLegalSupport"] = requiresLegalSupport ? "Yes" : "No",
+                    ["RequiresFinancialSupport"] = requiresFinancialSupport ? "Yes" : "No"
+                },
+                _ => throw new CaseStateException("The requested outbound template is not recognized.")
+            };
+        }
+        catch (JsonException)
+        {
+            throw new CaseStateException("Stored intake data is invalid and cannot be used for template generation.");
+        }
+    }
+
+    private static string BuildOutboundTemplateContent(string templateKey, IReadOnlyDictionary<string, string> mappedFields)
+    {
+        var lines = new List<string>
+        {
+            "Sanzu Outbound Template",
+            $"Template: {templateKey}",
+            string.Empty
+        };
+
+        foreach (var field in mappedFields)
+        {
+            lines.Add($"{field.Key}: {field.Value}");
+        }
+
+        return string.Join(Environment.NewLine, lines);
+    }
+
+    private static string ReadStringOrEmpty(JsonElement root, string propertyName)
+    {
+        if (!root.TryGetProperty(propertyName, out var value) || value.ValueKind != JsonValueKind.String)
+        {
+            return string.Empty;
+        }
+
+        return value.GetString()?.Trim() ?? string.Empty;
     }
 
     private static byte[] DecodeDocumentContent(string contentBase64)

@@ -1608,6 +1608,97 @@ public sealed class CaseServiceTests
     }
 
     [Fact]
+    public async Task GenerateOutboundTemplate_ShouldReturnMappedContentAndAudit_WhenIntakeIsCompleted()
+    {
+        var dbContext = CreateContext();
+        var (tenantId, actorUserId) = await SeedTenantWithAdminAsync(dbContext, TenantStatus.Active);
+        var service = CreateService(dbContext);
+        var createdCase = await CreateCaseAsync(service, tenantId, actorUserId, "Template Case");
+
+        await service.SubmitCaseIntakeAsync(
+            tenantId,
+            actorUserId,
+            createdCase.CaseId,
+            new SubmitCaseIntakeRequest
+            {
+                PrimaryContactName = "Ana Pereira",
+                PrimaryContactPhone = "+351919999999",
+                RelationshipToDeceased = "Daughter",
+                HasWill = true,
+                RequiresLegalSupport = false,
+                RequiresFinancialSupport = true,
+                ConfirmAccuracy = true
+            },
+            CancellationToken.None);
+
+        var generated = await service.GenerateOutboundTemplateAsync(
+            tenantId,
+            actorUserId,
+            createdCase.CaseId,
+            new GenerateOutboundTemplateRequest { TemplateKey = "CaseSummaryLetter" },
+            CancellationToken.None);
+
+        generated.CaseId.Should().Be(createdCase.CaseId);
+        generated.TemplateKey.Should().Be("CaseSummaryLetter");
+        generated.ContentType.Should().Be("text/plain");
+        var content = System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(generated.ContentBase64));
+        content.Should().Contain("CaseNumber: ");
+        content.Should().Contain("DeceasedFullName: Template Case");
+        dbContext.AuditEvents.Should().Contain(
+            x => x.EventType == "CaseOutboundTemplateGenerated" && x.CaseId == createdCase.CaseId && x.ActorUserId == actorUserId);
+    }
+
+    [Fact]
+    public async Task GenerateOutboundTemplate_ShouldThrowCaseStateException_WhenIntakeIsMissing()
+    {
+        var dbContext = CreateContext();
+        var (tenantId, actorUserId) = await SeedTenantWithAdminAsync(dbContext, TenantStatus.Active);
+        var service = CreateService(dbContext);
+        var createdCase = await CreateCaseAsync(service, tenantId, actorUserId, "Template Without Intake");
+
+        var act = () => service.GenerateOutboundTemplateAsync(
+            tenantId,
+            actorUserId,
+            createdCase.CaseId,
+            new GenerateOutboundTemplateRequest { TemplateKey = "CaseSummaryLetter" },
+            CancellationToken.None);
+
+        await act.Should().ThrowAsync<CaseStateException>()
+            .Where(e => e.Message.Contains("Structured intake must be completed"));
+    }
+
+    [Fact]
+    public async Task GenerateOutboundTemplate_ShouldThrowCaseAccessDeniedAndAudit_WhenUserIsEditor()
+    {
+        var dbContext = CreateContext();
+        var (tenantId, actorUserId) = await SeedTenantWithAdminAsync(dbContext, TenantStatus.Active);
+        var service = CreateService(dbContext);
+        var createdCase = await CreateCaseAsync(service, tenantId, actorUserId, "Template Access Case");
+        var editorUserId = Guid.NewGuid();
+        const string editorEmail = "family.template.editor@agency.pt";
+        await SeedUserAsync(dbContext, editorUserId, tenantId, editorEmail, "Template Editor");
+        await SeedAcceptedParticipantDirectAsync(dbContext, tenantId, createdCase.CaseId, editorUserId, editorEmail, CaseRole.Editor);
+
+        var act = () => service.GenerateOutboundTemplateAsync(
+            tenantId,
+            editorUserId,
+            createdCase.CaseId,
+            new GenerateOutboundTemplateRequest { TemplateKey = "CaseSummaryLetter" },
+            CancellationToken.None);
+
+        await act.Should().ThrowAsync<CaseAccessDeniedException>()
+            .Where(e => e.ReasonCode == "ROLE_INSUFFICIENT" && e.AttemptedAction == "GenerateOutboundTemplate");
+        AssertAccessDeniedAudit(
+            dbContext,
+            editorUserId,
+            createdCase.CaseId,
+            "GenerateOutboundTemplate",
+            "Manager",
+            "Editor",
+            "ROLE_INSUFFICIENT");
+    }
+
+    [Fact]
     public async Task GetCaseDetails_ShouldReturnDetails_WhenUserIsCaseManager()
     {
         var dbContext = CreateContext();
@@ -1774,6 +1865,7 @@ public sealed class CaseServiceTests
             new EfUnitOfWork(dbContext),
             new CreateCaseRequestValidator(),
             new SubmitCaseIntakeRequestValidator(),
+            new GenerateOutboundTemplateRequestValidator(),
             new UploadCaseDocumentRequestValidator(),
             new UpdateCaseDocumentClassificationRequestValidator(),
             new OverrideWorkflowStepReadinessRequestValidator(),

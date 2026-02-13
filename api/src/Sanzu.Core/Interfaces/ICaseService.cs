@@ -110,6 +110,13 @@ public interface ICaseService
         UpdateCaseDocumentClassificationRequest request,
         CancellationToken cancellationToken);
 
+    Task<GenerateOutboundTemplateResponse> GenerateOutboundTemplateAsync(
+        Guid tenantId,
+        Guid actorUserId,
+        Guid caseId,
+        GenerateOutboundTemplateRequest request,
+        CancellationToken cancellationToken);
+
     Task<GenerateCasePlanResponse> RecalculateCasePlanReadinessAsync(
         Guid tenantId,
         Guid actorUserId,

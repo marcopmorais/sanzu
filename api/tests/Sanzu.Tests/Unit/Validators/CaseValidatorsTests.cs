@@ -278,6 +278,30 @@ public sealed class CaseValidatorsTests
     }
 
     [Fact]
+    public void GenerateOutboundTemplateValidator_ShouldPass_WhenTemplateKeyIsProvided()
+    {
+        var validator = new GenerateOutboundTemplateRequestValidator();
+        var request = new GenerateOutboundTemplateRequest
+        {
+            TemplateKey = "CaseSummaryLetter"
+        };
+
+        var result = validator.Validate(request);
+        result.IsValid.Should().BeTrue();
+    }
+
+    [Fact]
+    public void GenerateOutboundTemplateValidator_ShouldFail_WhenTemplateKeyIsMissing()
+    {
+        var validator = new GenerateOutboundTemplateRequestValidator();
+        var request = new GenerateOutboundTemplateRequest();
+
+        var result = validator.Validate(request);
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(x => x.PropertyName == nameof(GenerateOutboundTemplateRequest.TemplateKey));
+    }
+
+    [Fact]
     public void UploadCaseDocumentValidator_ShouldPass_WhenPayloadIsValid()
     {
         var validator = new UploadCaseDocumentRequestValidator();
