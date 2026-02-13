@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Sanzu.Core.Entities;
+using Sanzu.Core.Enums;
 
 namespace Sanzu.Infrastructure.Data.EntityConfigurations;
 
@@ -35,10 +36,24 @@ public sealed class CaseDocumentConfiguration : IEntityTypeConfiguration<CaseDoc
             .HasColumnType("varbinary(max)")
             .IsRequired();
 
+        builder.Property(x => x.CurrentVersionNumber)
+            .IsRequired()
+            .HasDefaultValue(1);
+
+        builder.Property(x => x.Classification)
+            .HasConversion<string>()
+            .HasMaxLength(32)
+            .IsRequired()
+            .HasDefaultValue(CaseDocumentClassification.Optional);
+
         builder.Property(x => x.UploadedByUserId)
             .IsRequired();
 
         builder.Property(x => x.CreatedAt)
+            .HasColumnType("datetime2")
+            .HasDefaultValueSql("GETUTCDATE()");
+
+        builder.Property(x => x.UpdatedAt)
             .HasColumnType("datetime2")
             .HasDefaultValueSql("GETUTCDATE()");
 
@@ -49,5 +64,8 @@ public sealed class CaseDocumentConfiguration : IEntityTypeConfiguration<CaseDoc
 
         builder.HasIndex(x => new { x.TenantId, x.CaseId, x.CreatedAt })
             .HasDatabaseName("IX_CaseDocuments_TenantId_CaseId_CreatedAt");
+
+        builder.HasIndex(x => new { x.TenantId, x.CaseId, x.Classification })
+            .HasDatabaseName("IX_CaseDocuments_TenantId_CaseId_Classification");
     }
 }

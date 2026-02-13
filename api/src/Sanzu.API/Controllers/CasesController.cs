@@ -368,6 +368,138 @@ public sealed class CasesController : ControllerBase
     }
 
     [Authorize]
+    [HttpPost("{caseId:guid}/documents/{documentId:guid}/versions")]
+    [ProducesResponseType(typeof(ApiEnvelope<CaseDocumentUploadResponse>), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> UploadCaseDocumentVersion(
+        Guid tenantId,
+        Guid caseId,
+        Guid documentId,
+        [FromBody] UploadCaseDocumentRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (!TryGetActorUserId(out var actorUserId))
+        {
+            return Unauthorized();
+        }
+
+        try
+        {
+            var response = await _caseService.UploadCaseDocumentVersionAsync(
+                tenantId,
+                actorUserId,
+                caseId,
+                documentId,
+                request,
+                cancellationToken);
+
+            return Created(
+                $"/api/v1/tenants/{tenantId}/cases/{caseId}/documents/{documentId}/versions/{response.VersionNumber}",
+                ApiEnvelope<CaseDocumentUploadResponse>.Success(response, BuildMeta()));
+        }
+        catch (ValidationException validationException)
+        {
+            return BadRequest(BuildValidationProblem(validationException, "Invalid case document version upload request"));
+        }
+        catch (TenantAccessDeniedException)
+        {
+            return Forbid();
+        }
+        catch (CaseAccessDeniedException)
+        {
+            return Forbid();
+        }
+    }
+
+    [Authorize]
+    [HttpGet("{caseId:guid}/documents/{documentId:guid}/versions")]
+    [ProducesResponseType(typeof(ApiEnvelope<CaseDocumentVersionHistoryResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetCaseDocumentVersions(
+        Guid tenantId,
+        Guid caseId,
+        Guid documentId,
+        CancellationToken cancellationToken)
+    {
+        if (!TryGetActorUserId(out var actorUserId))
+        {
+            return Unauthorized();
+        }
+
+        try
+        {
+            var response = await _caseService.GetCaseDocumentVersionsAsync(
+                tenantId,
+                actorUserId,
+                caseId,
+                documentId,
+                cancellationToken);
+
+            return Ok(ApiEnvelope<CaseDocumentVersionHistoryResponse>.Success(response, BuildMeta()));
+        }
+        catch (TenantAccessDeniedException)
+        {
+            return Forbid();
+        }
+        catch (CaseAccessDeniedException)
+        {
+            return Forbid();
+        }
+    }
+
+    [Authorize]
+    [HttpPatch("{caseId:guid}/documents/{documentId:guid}/classification")]
+    [ProducesResponseType(typeof(ApiEnvelope<CaseDocumentClassificationResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> UpdateCaseDocumentClassification(
+        Guid tenantId,
+        Guid caseId,
+        Guid documentId,
+        [FromBody] UpdateCaseDocumentClassificationRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (!TryGetActorUserId(out var actorUserId))
+        {
+            return Unauthorized();
+        }
+
+        try
+        {
+            var response = await _caseService.UpdateCaseDocumentClassificationAsync(
+                tenantId,
+                actorUserId,
+                caseId,
+                documentId,
+                request,
+                cancellationToken);
+
+            return Ok(ApiEnvelope<CaseDocumentClassificationResponse>.Success(response, BuildMeta()));
+        }
+        catch (ValidationException validationException)
+        {
+            return BadRequest(BuildValidationProblem(validationException, "Invalid case document classification update request"));
+        }
+        catch (TenantAccessDeniedException)
+        {
+            return Forbid();
+        }
+        catch (CaseAccessDeniedException)
+        {
+            return Forbid();
+        }
+        catch (CaseStateException exception)
+        {
+            return Problem(
+                statusCode: StatusCodes.Status409Conflict,
+                title: "Case state conflict",
+                detail: exception.Message);
+        }
+    }
+
+    [Authorize]
     [HttpPost("{caseId:guid}/plan/readiness/recalculate")]
     [ProducesResponseType(typeof(ApiEnvelope<GenerateCasePlanResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]

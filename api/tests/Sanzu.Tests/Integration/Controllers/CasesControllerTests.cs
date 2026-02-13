@@ -1158,6 +1158,247 @@ public sealed class CasesControllerTests : IClassFixture<CustomWebApplicationFac
         response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
     }
 
+    [Fact]
+    public async Task UploadCaseDocumentVersion_ShouldReturn201AndIncrementVersion_WhenUserIsEditor()
+    {
+        var client = _factory.CreateClient();
+        var signup = await CreateTenantAsync(client, "cases-doc-version-editor@agency.pt");
+        await ActivateTenantAsync(client, signup);
+        var createdCase = await CreateCaseAsync(client, signup, "Document Version Integration Case");
+        var editorUserId = await SeedAcceptedParticipantAsync(
+            signup.OrganizationId,
+            createdCase.CaseId,
+            "family.docs.version.editor@agency.pt",
+            CaseRole.Editor);
+
+        Guid documentId;
+        using (var uploadRequest = BuildAuthorizedJsonRequest(
+                   HttpMethod.Post,
+                   $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/documents",
+                   new UploadCaseDocumentRequest
+                   {
+                       FileName = "statement.txt",
+                       ContentType = "text/plain",
+                       ContentBase64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("v1"))
+                   },
+                   signup.UserId,
+                   signup.OrganizationId,
+                   "AgencyAdmin"))
+        {
+            var uploadResponse = await client.SendAsync(uploadRequest);
+            uploadResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+            var uploadEnvelope = await uploadResponse.Content.ReadFromJsonAsync<ApiEnvelope<CaseDocumentUploadResponse>>();
+            uploadEnvelope.Should().NotBeNull();
+            uploadEnvelope!.Data.Should().NotBeNull();
+            documentId = uploadEnvelope.Data!.DocumentId;
+            uploadEnvelope.Data.VersionNumber.Should().Be(1);
+        }
+
+        using var versionRequest = BuildAuthorizedJsonRequest(
+            HttpMethod.Post,
+            $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/documents/{documentId}/versions",
+            new UploadCaseDocumentRequest
+            {
+                FileName = "statement-v2.txt",
+                ContentType = "text/plain",
+                ContentBase64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("v2"))
+            },
+            editorUserId,
+            signup.OrganizationId,
+            "Editor");
+
+        var response = await client.SendAsync(versionRequest);
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+
+        var envelope = await response.Content.ReadFromJsonAsync<ApiEnvelope<CaseDocumentUploadResponse>>();
+        envelope.Should().NotBeNull();
+        envelope!.Data.Should().NotBeNull();
+        envelope.Data!.DocumentId.Should().Be(documentId);
+        envelope.Data.VersionNumber.Should().Be(2);
+
+        using var scope = _factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<SanzuDbContext>();
+        dbContext.CaseDocumentVersions.Count(x => x.DocumentId == documentId).Should().Be(2);
+        dbContext.AuditEvents.Should().Contain(
+            x => x.EventType == "CaseDocumentVersionUploaded" && x.CaseId == createdCase.CaseId && x.ActorUserId == editorUserId);
+    }
+
+    [Fact]
+    public async Task GetCaseDocumentVersions_ShouldReturn200AndVersionHistory()
+    {
+        var client = _factory.CreateClient();
+        var signup = await CreateTenantAsync(client, "cases-doc-version-history@agency.pt");
+        await ActivateTenantAsync(client, signup);
+        var createdCase = await CreateCaseAsync(client, signup, "Document Version History Integration Case");
+
+        Guid documentId;
+        using (var uploadRequest = BuildAuthorizedJsonRequest(
+                   HttpMethod.Post,
+                   $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/documents",
+                   new UploadCaseDocumentRequest
+                   {
+                       FileName = "declaration.txt",
+                       ContentType = "text/plain",
+                       ContentBase64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("v1"))
+                   },
+                   signup.UserId,
+                   signup.OrganizationId,
+                   "AgencyAdmin"))
+        {
+            var uploadResponse = await client.SendAsync(uploadRequest);
+            uploadResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+            var uploadEnvelope = await uploadResponse.Content.ReadFromJsonAsync<ApiEnvelope<CaseDocumentUploadResponse>>();
+            uploadEnvelope.Should().NotBeNull();
+            uploadEnvelope!.Data.Should().NotBeNull();
+            documentId = uploadEnvelope.Data!.DocumentId;
+        }
+
+        using (var v2Request = BuildAuthorizedJsonRequest(
+                   HttpMethod.Post,
+                   $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/documents/{documentId}/versions",
+                   new UploadCaseDocumentRequest
+                   {
+                       FileName = "declaration-v2.txt",
+                       ContentType = "text/plain",
+                       ContentBase64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("v2"))
+                   },
+                   signup.UserId,
+                   signup.OrganizationId,
+                   "AgencyAdmin"))
+        {
+            var v2Response = await client.SendAsync(v2Request);
+            v2Response.StatusCode.Should().Be(HttpStatusCode.Created);
+        }
+
+        using var historyRequest = BuildAuthorizedRequest(
+            HttpMethod.Get,
+            $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/documents/{documentId}/versions",
+            signup.UserId,
+            signup.OrganizationId,
+            "AgencyAdmin");
+
+        var response = await client.SendAsync(historyRequest);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var envelope = await response.Content.ReadFromJsonAsync<ApiEnvelope<CaseDocumentVersionHistoryResponse>>();
+        envelope.Should().NotBeNull();
+        envelope!.Data.Should().NotBeNull();
+        envelope.Data!.DocumentId.Should().Be(documentId);
+        envelope.Data.LatestVersionNumber.Should().Be(2);
+        envelope.Data.Versions.Select(x => x.VersionNumber).Should().Equal(1, 2);
+    }
+
+    [Fact]
+    public async Task UpdateCaseDocumentClassification_ShouldReturn200_WhenUserIsManager()
+    {
+        var client = _factory.CreateClient();
+        var signup = await CreateTenantAsync(client, "cases-doc-classification-manager@agency.pt");
+        await ActivateTenantAsync(client, signup);
+        var createdCase = await CreateCaseAsync(client, signup, "Document Classification Integration Case");
+
+        Guid documentId;
+        using (var uploadRequest = BuildAuthorizedJsonRequest(
+                   HttpMethod.Post,
+                   $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/documents",
+                   new UploadCaseDocumentRequest
+                   {
+                       FileName = "classification.pdf",
+                       ContentType = "application/pdf",
+                       ContentBase64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("content"))
+                   },
+                   signup.UserId,
+                   signup.OrganizationId,
+                   "AgencyAdmin"))
+        {
+            var uploadResponse = await client.SendAsync(uploadRequest);
+            uploadResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+            var uploadEnvelope = await uploadResponse.Content.ReadFromJsonAsync<ApiEnvelope<CaseDocumentUploadResponse>>();
+            uploadEnvelope.Should().NotBeNull();
+            uploadEnvelope!.Data.Should().NotBeNull();
+            documentId = uploadEnvelope.Data!.DocumentId;
+        }
+
+        using var classificationRequest = BuildAuthorizedJsonRequest(
+            HttpMethod.Patch,
+            $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/documents/{documentId}/classification",
+            new UpdateCaseDocumentClassificationRequest { Classification = "Restricted" },
+            signup.UserId,
+            signup.OrganizationId,
+            "AgencyAdmin");
+
+        var response = await client.SendAsync(classificationRequest);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var envelope = await response.Content.ReadFromJsonAsync<ApiEnvelope<CaseDocumentClassificationResponse>>();
+        envelope.Should().NotBeNull();
+        envelope!.Data.Should().NotBeNull();
+        envelope.Data!.DocumentId.Should().Be(documentId);
+        envelope.Data.Classification.Should().Be("Restricted");
+
+        using var scope = _factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<SanzuDbContext>();
+        dbContext.AuditEvents.Should().Contain(
+            x => x.EventType == "CaseDocumentClassificationUpdated" && x.CaseId == createdCase.CaseId && x.ActorUserId == signup.UserId);
+    }
+
+    [Fact]
+    public async Task DownloadCaseDocument_ShouldReturn403_WhenDocumentIsRestrictedAndUserIsReader()
+    {
+        var client = _factory.CreateClient();
+        var signup = await CreateTenantAsync(client, "cases-doc-restricted-reader@agency.pt");
+        await ActivateTenantAsync(client, signup);
+        var createdCase = await CreateCaseAsync(client, signup, "Document Restricted Download Integration Case");
+        var readerUserId = await SeedAcceptedParticipantAsync(
+            signup.OrganizationId,
+            createdCase.CaseId,
+            "family.docs.restricted.reader@agency.pt",
+            CaseRole.Reader);
+
+        Guid documentId;
+        using (var uploadRequest = BuildAuthorizedJsonRequest(
+                   HttpMethod.Post,
+                   $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/documents",
+                   new UploadCaseDocumentRequest
+                   {
+                       FileName = "restricted.txt",
+                       ContentType = "text/plain",
+                       ContentBase64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("restricted"))
+                   },
+                   signup.UserId,
+                   signup.OrganizationId,
+                   "AgencyAdmin"))
+        {
+            var uploadResponse = await client.SendAsync(uploadRequest);
+            uploadResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+            var uploadEnvelope = await uploadResponse.Content.ReadFromJsonAsync<ApiEnvelope<CaseDocumentUploadResponse>>();
+            uploadEnvelope.Should().NotBeNull();
+            uploadEnvelope!.Data.Should().NotBeNull();
+            documentId = uploadEnvelope.Data!.DocumentId;
+        }
+
+        using (var classificationRequest = BuildAuthorizedJsonRequest(
+                   HttpMethod.Patch,
+                   $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/documents/{documentId}/classification",
+                   new UpdateCaseDocumentClassificationRequest { Classification = "Restricted" },
+                   signup.UserId,
+                   signup.OrganizationId,
+                   "AgencyAdmin"))
+        {
+            var classificationResponse = await client.SendAsync(classificationRequest);
+            classificationResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        }
+
+        using var downloadRequest = BuildAuthorizedRequest(
+            HttpMethod.Get,
+            $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/documents/{documentId}",
+            readerUserId,
+            signup.OrganizationId,
+            "Reader");
+
+        var response = await client.SendAsync(downloadRequest);
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
     private async Task ActivateTenantAsync(HttpClient client, CreateAgencyAccountResponse signup)
     {
         using var defaultsRequest = BuildAuthorizedJsonRequest(

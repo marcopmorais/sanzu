@@ -24,4 +24,20 @@ public sealed class CaseDocumentRepository : ICaseDocumentRepository
     {
         return _dbContext.CaseDocuments.FirstOrDefaultAsync(x => x.Id == documentId, cancellationToken);
     }
+
+    public async Task<IReadOnlyList<CaseDocumentVersion>> GetVersionsAsync(
+        Guid documentId,
+        CancellationToken cancellationToken)
+    {
+        return await _dbContext.CaseDocumentVersions
+            .Where(x => x.DocumentId == documentId)
+            .OrderBy(x => x.VersionNumber)
+            .ToListAsync(cancellationToken);
+    }
+
+    public Task CreateVersionAsync(CaseDocumentVersion version, CancellationToken cancellationToken)
+    {
+        _dbContext.CaseDocumentVersions.Add(version);
+        return Task.CompletedTask;
+    }
 }

@@ -1384,6 +1384,230 @@ public sealed class CaseServiceTests
     }
 
     [Fact]
+    public async Task UploadCaseDocumentVersion_ShouldIncrementVersionAndPersistLineage_WhenUserIsEditor()
+    {
+        var dbContext = CreateContext();
+        var (tenantId, actorUserId) = await SeedTenantWithAdminAsync(dbContext, TenantStatus.Active);
+        var service = CreateService(dbContext);
+        var createdCase = await CreateCaseAsync(service, tenantId, actorUserId, "Versioned Document Case");
+        var editorUserId = Guid.NewGuid();
+        const string editorEmail = "family.docs.version.editor@agency.pt";
+        await SeedUserAsync(dbContext, editorUserId, tenantId, editorEmail, "Family Editor");
+        await SeedAcceptedParticipantDirectAsync(dbContext, tenantId, createdCase.CaseId, editorUserId, editorEmail, CaseRole.Editor);
+
+        var initialPayload = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("v1-content"));
+        var uploaded = await service.UploadCaseDocumentAsync(
+            tenantId,
+            actorUserId,
+            createdCase.CaseId,
+            new UploadCaseDocumentRequest
+            {
+                FileName = "statement.txt",
+                ContentType = "text/plain",
+                ContentBase64 = initialPayload
+            },
+            CancellationToken.None);
+
+        var v2Payload = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("v2-content"));
+        var versioned = await service.UploadCaseDocumentVersionAsync(
+            tenantId,
+            editorUserId,
+            createdCase.CaseId,
+            uploaded.DocumentId,
+            new UploadCaseDocumentRequest
+            {
+                FileName = "statement-v2.txt",
+                ContentType = "text/plain",
+                ContentBase64 = v2Payload
+            },
+            CancellationToken.None);
+
+        versioned.DocumentId.Should().Be(uploaded.DocumentId);
+        versioned.VersionNumber.Should().Be(2);
+        var storedDocument = dbContext.CaseDocuments.Single(x => x.Id == uploaded.DocumentId);
+        storedDocument.CurrentVersionNumber.Should().Be(2);
+        storedDocument.FileName.Should().Be("statement-v2.txt");
+        dbContext.CaseDocumentVersions.Count(x => x.DocumentId == uploaded.DocumentId).Should().Be(2);
+        dbContext.CaseDocumentVersions
+            .Where(x => x.DocumentId == uploaded.DocumentId)
+            .OrderBy(x => x.VersionNumber)
+            .Select(x => x.VersionNumber)
+            .Should()
+            .Equal(1, 2);
+        dbContext.AuditEvents.Should().Contain(
+            x => x.EventType == "CaseDocumentVersionUploaded" && x.CaseId == createdCase.CaseId && x.ActorUserId == editorUserId);
+    }
+
+    [Fact]
+    public async Task DownloadCaseDocument_ShouldDenyReader_WhenDocumentIsRestricted()
+    {
+        var dbContext = CreateContext();
+        var (tenantId, actorUserId) = await SeedTenantWithAdminAsync(dbContext, TenantStatus.Active);
+        var service = CreateService(dbContext);
+        var createdCase = await CreateCaseAsync(service, tenantId, actorUserId, "Restricted Download Case");
+        var readerUserId = Guid.NewGuid();
+        const string readerEmail = "family.docs.restricted.reader@agency.pt";
+        await SeedUserAsync(dbContext, readerUserId, tenantId, readerEmail, "Family Reader");
+        await SeedAcceptedParticipantDirectAsync(dbContext, tenantId, createdCase.CaseId, readerUserId, readerEmail, CaseRole.Reader);
+
+        var uploaded = await service.UploadCaseDocumentAsync(
+            tenantId,
+            actorUserId,
+            createdCase.CaseId,
+            new UploadCaseDocumentRequest
+            {
+                FileName = "restricted.pdf",
+                ContentType = "application/pdf",
+                ContentBase64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("restricted-content"))
+            },
+            CancellationToken.None);
+
+        await service.UpdateCaseDocumentClassificationAsync(
+            tenantId,
+            actorUserId,
+            createdCase.CaseId,
+            uploaded.DocumentId,
+            new UpdateCaseDocumentClassificationRequest { Classification = "Restricted" },
+            CancellationToken.None);
+
+        var act = () => service.DownloadCaseDocumentAsync(
+            tenantId,
+            readerUserId,
+            createdCase.CaseId,
+            uploaded.DocumentId,
+            CancellationToken.None);
+
+        await act.Should().ThrowAsync<CaseAccessDeniedException>()
+            .Where(e => e.ReasonCode == "ROLE_INSUFFICIENT" && e.AttemptedAction == "DownloadCaseDocument");
+        AssertAccessDeniedAudit(
+            dbContext,
+            readerUserId,
+            createdCase.CaseId,
+            "DownloadCaseDocument",
+            "Manager",
+            "Reader",
+            "ROLE_INSUFFICIENT");
+    }
+
+    [Fact]
+    public async Task UploadCaseDocumentVersion_ShouldDenyEditor_WhenDocumentIsRestricted()
+    {
+        var dbContext = CreateContext();
+        var (tenantId, actorUserId) = await SeedTenantWithAdminAsync(dbContext, TenantStatus.Active);
+        var service = CreateService(dbContext);
+        var createdCase = await CreateCaseAsync(service, tenantId, actorUserId, "Restricted Version Case");
+        var editorUserId = Guid.NewGuid();
+        const string editorEmail = "family.docs.restricted.editor@agency.pt";
+        await SeedUserAsync(dbContext, editorUserId, tenantId, editorEmail, "Family Editor");
+        await SeedAcceptedParticipantDirectAsync(dbContext, tenantId, createdCase.CaseId, editorUserId, editorEmail, CaseRole.Editor);
+
+        var uploaded = await service.UploadCaseDocumentAsync(
+            tenantId,
+            actorUserId,
+            createdCase.CaseId,
+            new UploadCaseDocumentRequest
+            {
+                FileName = "protected.txt",
+                ContentType = "text/plain",
+                ContentBase64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("v1"))
+            },
+            CancellationToken.None);
+
+        var classification = await service.UpdateCaseDocumentClassificationAsync(
+            tenantId,
+            actorUserId,
+            createdCase.CaseId,
+            uploaded.DocumentId,
+            new UpdateCaseDocumentClassificationRequest { Classification = "Restricted" },
+            CancellationToken.None);
+
+        classification.Classification.Should().Be("Restricted");
+
+        var act = () => service.UploadCaseDocumentVersionAsync(
+            tenantId,
+            editorUserId,
+            createdCase.CaseId,
+            uploaded.DocumentId,
+            new UploadCaseDocumentRequest
+            {
+                FileName = "protected-v2.txt",
+                ContentType = "text/plain",
+                ContentBase64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("v2"))
+            },
+            CancellationToken.None);
+
+        await act.Should().ThrowAsync<CaseAccessDeniedException>()
+            .Where(e => e.ReasonCode == "ROLE_INSUFFICIENT" && e.AttemptedAction == "UploadCaseDocumentVersion");
+        AssertAccessDeniedAudit(
+            dbContext,
+            editorUserId,
+            createdCase.CaseId,
+            "UploadCaseDocumentVersion",
+            "Manager",
+            "Editor",
+            "ROLE_INSUFFICIENT");
+    }
+
+    [Fact]
+    public async Task GetCaseDocumentVersions_ShouldReturnOrderedVersionHistory()
+    {
+        var dbContext = CreateContext();
+        var (tenantId, actorUserId) = await SeedTenantWithAdminAsync(dbContext, TenantStatus.Active);
+        var service = CreateService(dbContext);
+        var createdCase = await CreateCaseAsync(service, tenantId, actorUserId, "Version History Case");
+
+        var uploaded = await service.UploadCaseDocumentAsync(
+            tenantId,
+            actorUserId,
+            createdCase.CaseId,
+            new UploadCaseDocumentRequest
+            {
+                FileName = "timeline.txt",
+                ContentType = "text/plain",
+                ContentBase64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("v1"))
+            },
+            CancellationToken.None);
+
+        await service.UploadCaseDocumentVersionAsync(
+            tenantId,
+            actorUserId,
+            createdCase.CaseId,
+            uploaded.DocumentId,
+            new UploadCaseDocumentRequest
+            {
+                FileName = "timeline-v2.txt",
+                ContentType = "text/plain",
+                ContentBase64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("v2"))
+            },
+            CancellationToken.None);
+
+        await service.UploadCaseDocumentVersionAsync(
+            tenantId,
+            actorUserId,
+            createdCase.CaseId,
+            uploaded.DocumentId,
+            new UploadCaseDocumentRequest
+            {
+                FileName = "timeline-v3.txt",
+                ContentType = "text/plain",
+                ContentBase64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("v3"))
+            },
+            CancellationToken.None);
+
+        var history = await service.GetCaseDocumentVersionsAsync(
+            tenantId,
+            actorUserId,
+            createdCase.CaseId,
+            uploaded.DocumentId,
+            CancellationToken.None);
+
+        history.DocumentId.Should().Be(uploaded.DocumentId);
+        history.LatestVersionNumber.Should().Be(3);
+        history.Classification.Should().Be("Optional");
+        history.Versions.Select(x => x.VersionNumber).Should().Equal(1, 2, 3);
+    }
+
+    [Fact]
     public async Task GetCaseDetails_ShouldReturnDetails_WhenUserIsCaseManager()
     {
         var dbContext = CreateContext();
@@ -1551,6 +1775,7 @@ public sealed class CaseServiceTests
             new CreateCaseRequestValidator(),
             new SubmitCaseIntakeRequestValidator(),
             new UploadCaseDocumentRequestValidator(),
+            new UpdateCaseDocumentClassificationRequestValidator(),
             new OverrideWorkflowStepReadinessRequestValidator(),
             new UpdateWorkflowTaskStatusRequestValidator(),
             new UpdateCaseDetailsRequestValidator(),

@@ -1,22 +1,18 @@
-using Sanzu.Core.Enums;
-
 namespace Sanzu.Core.Entities;
 
-public sealed class CaseDocument
+public sealed class CaseDocumentVersion
 {
     public Guid Id { get; set; }
     public Guid TenantId { get; set; }
     public Guid CaseId { get; set; }
+    public Guid DocumentId { get; set; }
+    public int VersionNumber { get; set; }
     public string FileName { get; set; } = string.Empty;
     public string ContentType { get; set; } = string.Empty;
     public long SizeBytes { get; set; }
     public byte[] Content { get; set; } = Array.Empty<byte>();
-    public int CurrentVersionNumber { get; set; } = 1;
-    public CaseDocumentClassification Classification { get; set; } = CaseDocumentClassification.Optional;
     public Guid UploadedByUserId { get; set; }
     public DateTime CreatedAt { get; set; }
-    public DateTime UpdatedAt { get; set; }
 
-    public Case? Case { get; set; }
-    public ICollection<CaseDocumentVersion> Versions { get; set; } = new List<CaseDocumentVersion>();
+    public CaseDocument? Document { get; set; }
 }

@@ -24,6 +24,7 @@ public sealed class CaseService : ICaseService
     private readonly IValidator<CreateCaseRequest> _createCaseValidator;
     private readonly IValidator<SubmitCaseIntakeRequest> _submitCaseIntakeValidator;
     private readonly IValidator<UploadCaseDocumentRequest> _uploadCaseDocumentValidator;
+    private readonly IValidator<UpdateCaseDocumentClassificationRequest> _updateCaseDocumentClassificationValidator;
     private readonly IValidator<OverrideWorkflowStepReadinessRequest> _overrideWorkflowStepReadinessValidator;
     private readonly IValidator<UpdateWorkflowTaskStatusRequest> _updateWorkflowTaskStatusValidator;
     private readonly IValidator<UpdateCaseDetailsRequest> _updateCaseDetailsValidator;
@@ -45,6 +46,7 @@ public sealed class CaseService : ICaseService
         IValidator<CreateCaseRequest> createCaseValidator,
         IValidator<SubmitCaseIntakeRequest> submitCaseIntakeValidator,
         IValidator<UploadCaseDocumentRequest> uploadCaseDocumentValidator,
+        IValidator<UpdateCaseDocumentClassificationRequest> updateCaseDocumentClassificationValidator,
         IValidator<OverrideWorkflowStepReadinessRequest> overrideWorkflowStepReadinessValidator,
         IValidator<UpdateWorkflowTaskStatusRequest> updateWorkflowTaskStatusValidator,
         IValidator<UpdateCaseDetailsRequest> updateCaseDetailsValidator,
@@ -65,6 +67,7 @@ public sealed class CaseService : ICaseService
         _createCaseValidator = createCaseValidator;
         _submitCaseIntakeValidator = submitCaseIntakeValidator;
         _uploadCaseDocumentValidator = uploadCaseDocumentValidator;
+        _updateCaseDocumentClassificationValidator = updateCaseDocumentClassificationValidator;
         _overrideWorkflowStepReadinessValidator = overrideWorkflowStepReadinessValidator;
         _updateWorkflowTaskStatusValidator = updateWorkflowTaskStatusValidator;
         _updateCaseDetailsValidator = updateCaseDetailsValidator;
@@ -438,32 +441,7 @@ public sealed class CaseService : ICaseService
             {
                 var caseEntity = await LoadCaseForTenantAsync(tenantId, caseId, token);
                 var nowUtc = DateTime.UtcNow;
-                byte[] contentBytes;
-                try
-                {
-                    contentBytes = Convert.FromBase64String(request.ContentBase64.Trim());
-                }
-                catch (FormatException)
-                {
-                    throw new ValidationException(
-                        new[]
-                        {
-                            new FluentValidation.Results.ValidationFailure(
-                                nameof(UploadCaseDocumentRequest.ContentBase64),
-                                "ContentBase64 must be valid Base64 data.")
-                        });
-                }
-
-                if (contentBytes.Length == 0)
-                {
-                    throw new ValidationException(
-                        new[]
-                        {
-                            new FluentValidation.Results.ValidationFailure(
-                                nameof(UploadCaseDocumentRequest.ContentBase64),
-                                "ContentBase64 must contain document bytes.")
-                        });
-                }
+                var contentBytes = DecodeDocumentContent(request.ContentBase64);
 
                 var document = new CaseDocument
                 {
@@ -474,11 +452,30 @@ public sealed class CaseService : ICaseService
                     ContentType = request.ContentType.Trim(),
                     SizeBytes = contentBytes.LongLength,
                     Content = contentBytes,
+                    CurrentVersionNumber = 1,
+                    Classification = CaseDocumentClassification.Optional,
+                    UploadedByUserId = actorUserId,
+                    CreatedAt = nowUtc,
+                    UpdatedAt = nowUtc
+                };
+
+                var initialVersion = new CaseDocumentVersion
+                {
+                    Id = Guid.NewGuid(),
+                    TenantId = tenantId,
+                    CaseId = caseEntity.Id,
+                    DocumentId = document.Id,
+                    VersionNumber = 1,
+                    FileName = document.FileName,
+                    ContentType = document.ContentType,
+                    SizeBytes = document.SizeBytes,
+                    Content = contentBytes,
                     UploadedByUserId = actorUserId,
                     CreatedAt = nowUtc
                 };
 
                 await _caseDocumentRepository.CreateAsync(document, token);
+                await _caseDocumentRepository.CreateVersionAsync(initialVersion, token);
 
                 await WriteAuditEventAsync(
                     actorUserId,
@@ -490,6 +487,8 @@ public sealed class CaseService : ICaseService
                         document.FileName,
                         document.ContentType,
                         document.SizeBytes,
+                        document.CurrentVersionNumber,
+                        Classification = document.Classification.ToString(),
                         document.UploadedByUserId,
                         UploadedAt = nowUtc
                     },
@@ -512,38 +511,222 @@ public sealed class CaseService : ICaseService
     {
         var caseForAccess = await LoadCaseForTenantAsync(tenantId, caseId, cancellationToken);
         var effectiveRole = await ResolveEffectiveCaseRoleAsync(tenantId, actorUserId, caseForAccess, cancellationToken);
-        await EnsureCaseRoleAsync(effectiveRole, CaseRole.Reader, actorUserId, caseId, "DownloadCaseDocument", cancellationToken);
+
+        var document = await _caseDocumentRepository.GetByIdAsync(documentId, cancellationToken);
+        if (document is null || document.CaseId != caseForAccess.Id || document.TenantId != tenantId)
+        {
+            throw new TenantAccessDeniedException();
+        }
+
+        var requiredRole = document.Classification == CaseDocumentClassification.Restricted
+            ? CaseRole.Manager
+            : CaseRole.Reader;
+        await EnsureCaseRoleAsync(effectiveRole, requiredRole, actorUserId, caseId, "DownloadCaseDocument", cancellationToken);
 
         CaseDocumentDownloadResponse? response = null;
 
         await _unitOfWork.ExecuteInTransactionAsync(
             async token =>
             {
-                var caseEntity = await LoadCaseForTenantAsync(tenantId, caseId, token);
-                var document = await _caseDocumentRepository.GetByIdAsync(documentId, token);
-                if (document is null || document.CaseId != caseEntity.Id || document.TenantId != tenantId)
-                {
-                    throw new TenantAccessDeniedException();
-                }
-
                 var downloadedAt = DateTime.UtcNow;
                 await WriteAuditEventAsync(
                     actorUserId,
                     "CaseDocumentDownloaded",
                     new
                     {
-                        CaseId = caseEntity.Id,
+                        CaseId = caseForAccess.Id,
                         DocumentId = document.Id,
                         document.FileName,
                         document.ContentType,
                         document.SizeBytes,
+                        document.CurrentVersionNumber,
+                        Classification = document.Classification.ToString(),
                         DownloadedByUserId = actorUserId,
                         DownloadedAt = downloadedAt
                     },
                     token,
-                    caseEntity.Id);
+                    caseForAccess.Id);
 
                 response = MapDocumentDownload(document);
+            },
+            cancellationToken);
+
+        return response!;
+    }
+
+    public async Task<CaseDocumentUploadResponse> UploadCaseDocumentVersionAsync(
+        Guid tenantId,
+        Guid actorUserId,
+        Guid caseId,
+        Guid documentId,
+        UploadCaseDocumentRequest request,
+        CancellationToken cancellationToken)
+    {
+        var validationResult = await _uploadCaseDocumentValidator.ValidateAsync(request, cancellationToken);
+        if (!validationResult.IsValid)
+        {
+            throw new ValidationException(validationResult.Errors);
+        }
+
+        var caseForAccess = await LoadCaseForTenantAsync(tenantId, caseId, cancellationToken);
+        var effectiveRole = await ResolveEffectiveCaseRoleAsync(tenantId, actorUserId, caseForAccess, cancellationToken);
+
+        var documentForAccess = await _caseDocumentRepository.GetByIdAsync(documentId, cancellationToken);
+        if (documentForAccess is null || documentForAccess.CaseId != caseForAccess.Id || documentForAccess.TenantId != tenantId)
+        {
+            throw new TenantAccessDeniedException();
+        }
+
+        var requiredRole = documentForAccess.Classification == CaseDocumentClassification.Restricted
+            ? CaseRole.Manager
+            : CaseRole.Editor;
+        await EnsureCaseRoleAsync(effectiveRole, requiredRole, actorUserId, caseId, "UploadCaseDocumentVersion", cancellationToken);
+
+        CaseDocumentUploadResponse? response = null;
+
+        await _unitOfWork.ExecuteInTransactionAsync(
+            async token =>
+            {
+                var nowUtc = DateTime.UtcNow;
+                var contentBytes = DecodeDocumentContent(request.ContentBase64);
+
+                var document = await _caseDocumentRepository.GetByIdAsync(documentId, token);
+                if (document is null || document.CaseId != caseForAccess.Id || document.TenantId != tenantId)
+                {
+                    throw new TenantAccessDeniedException();
+                }
+
+                var previousVersionNumber = document.CurrentVersionNumber;
+                var nextVersionNumber = previousVersionNumber + 1;
+
+                var version = new CaseDocumentVersion
+                {
+                    Id = Guid.NewGuid(),
+                    TenantId = tenantId,
+                    CaseId = caseForAccess.Id,
+                    DocumentId = document.Id,
+                    VersionNumber = nextVersionNumber,
+                    FileName = request.FileName.Trim(),
+                    ContentType = request.ContentType.Trim(),
+                    SizeBytes = contentBytes.LongLength,
+                    Content = contentBytes,
+                    UploadedByUserId = actorUserId,
+                    CreatedAt = nowUtc
+                };
+
+                document.FileName = version.FileName;
+                document.ContentType = version.ContentType;
+                document.SizeBytes = version.SizeBytes;
+                document.Content = version.Content;
+                document.CurrentVersionNumber = nextVersionNumber;
+                document.UploadedByUserId = actorUserId;
+                document.UpdatedAt = nowUtc;
+
+                await _caseDocumentRepository.CreateVersionAsync(version, token);
+
+                await WriteAuditEventAsync(
+                    actorUserId,
+                    "CaseDocumentVersionUploaded",
+                    new
+                    {
+                        CaseId = caseForAccess.Id,
+                        DocumentId = document.Id,
+                        VersionId = version.Id,
+                        PreviousVersionNumber = previousVersionNumber,
+                        NewVersionNumber = nextVersionNumber,
+                        version.FileName,
+                        version.ContentType,
+                        version.SizeBytes,
+                        Classification = document.Classification.ToString(),
+                        UploadedByUserId = actorUserId,
+                        UploadedAt = nowUtc
+                    },
+                    token,
+                    caseForAccess.Id);
+
+                response = MapDocumentUpload(document);
+            },
+            cancellationToken);
+
+        return response!;
+    }
+
+    public async Task<CaseDocumentVersionHistoryResponse> GetCaseDocumentVersionsAsync(
+        Guid tenantId,
+        Guid actorUserId,
+        Guid caseId,
+        Guid documentId,
+        CancellationToken cancellationToken)
+    {
+        var caseForAccess = await LoadCaseForTenantAsync(tenantId, caseId, cancellationToken);
+        var effectiveRole = await ResolveEffectiveCaseRoleAsync(tenantId, actorUserId, caseForAccess, cancellationToken);
+
+        var document = await _caseDocumentRepository.GetByIdAsync(documentId, cancellationToken);
+        if (document is null || document.CaseId != caseForAccess.Id || document.TenantId != tenantId)
+        {
+            throw new TenantAccessDeniedException();
+        }
+
+        var requiredRole = document.Classification == CaseDocumentClassification.Restricted
+            ? CaseRole.Manager
+            : CaseRole.Reader;
+        await EnsureCaseRoleAsync(effectiveRole, requiredRole, actorUserId, caseId, "GetCaseDocumentVersions", cancellationToken);
+
+        var versions = await _caseDocumentRepository.GetVersionsAsync(documentId, cancellationToken);
+        return MapDocumentVersionHistory(document, versions);
+    }
+
+    public async Task<CaseDocumentClassificationResponse> UpdateCaseDocumentClassificationAsync(
+        Guid tenantId,
+        Guid actorUserId,
+        Guid caseId,
+        Guid documentId,
+        UpdateCaseDocumentClassificationRequest request,
+        CancellationToken cancellationToken)
+    {
+        var validationResult = await _updateCaseDocumentClassificationValidator.ValidateAsync(request, cancellationToken);
+        if (!validationResult.IsValid)
+        {
+            throw new ValidationException(validationResult.Errors);
+        }
+
+        var caseForAccess = await LoadCaseForTenantAsync(tenantId, caseId, cancellationToken);
+        var effectiveRole = await ResolveEffectiveCaseRoleAsync(tenantId, actorUserId, caseForAccess, cancellationToken);
+        await EnsureCaseRoleAsync(effectiveRole, CaseRole.Manager, actorUserId, caseId, "UpdateCaseDocumentClassification", cancellationToken);
+
+        var targetClassification = ParseCaseDocumentClassification(request.Classification);
+        CaseDocumentClassificationResponse? response = null;
+
+        await _unitOfWork.ExecuteInTransactionAsync(
+            async token =>
+            {
+                var document = await _caseDocumentRepository.GetByIdAsync(documentId, token);
+                if (document is null || document.CaseId != caseForAccess.Id || document.TenantId != tenantId)
+                {
+                    throw new TenantAccessDeniedException();
+                }
+
+                var nowUtc = DateTime.UtcNow;
+                var previousClassification = document.Classification;
+                document.Classification = targetClassification;
+                document.UpdatedAt = nowUtc;
+
+                await WriteAuditEventAsync(
+                    actorUserId,
+                    "CaseDocumentClassificationUpdated",
+                    new
+                    {
+                        CaseId = caseForAccess.Id,
+                        DocumentId = document.Id,
+                        PreviousClassification = previousClassification.ToString(),
+                        NewClassification = targetClassification.ToString(),
+                        UpdatedByUserId = actorUserId,
+                        UpdatedAt = nowUtc
+                    },
+                    token,
+                    caseForAccess.Id);
+
+                response = MapDocumentClassification(document);
             },
             cancellationToken);
 
@@ -1545,6 +1728,46 @@ public sealed class CaseService : ICaseService
         throw new CaseStateException("The requested case role is not recognized.");
     }
 
+    private static CaseDocumentClassification ParseCaseDocumentClassification(string value)
+    {
+        if (Enum.TryParse<CaseDocumentClassification>(value.Trim(), ignoreCase: true, out var classification))
+        {
+            return classification;
+        }
+
+        throw new CaseStateException("The requested document classification is not recognized.");
+    }
+
+    private static byte[] DecodeDocumentContent(string contentBase64)
+    {
+        try
+        {
+            var contentBytes = Convert.FromBase64String(contentBase64.Trim());
+            if (contentBytes.Length == 0)
+            {
+                throw new ValidationException(
+                    new[]
+                    {
+                        new FluentValidation.Results.ValidationFailure(
+                            nameof(UploadCaseDocumentRequest.ContentBase64),
+                            "ContentBase64 must contain document bytes.")
+                    });
+            }
+
+            return contentBytes;
+        }
+        catch (FormatException)
+        {
+            throw new ValidationException(
+                new[]
+                {
+                    new FluentValidation.Results.ValidationFailure(
+                        nameof(UploadCaseDocumentRequest.ContentBase64),
+                        "ContentBase64 must be valid Base64 data.")
+                });
+        }
+    }
+
     private static WorkflowStepStatus ParseReadinessOverrideStatus(string value)
     {
         if (Enum.TryParse<WorkflowStepStatus>(value.Trim(), ignoreCase: true, out var status)
@@ -1736,11 +1959,13 @@ public sealed class CaseService : ICaseService
         {
             DocumentId = document.Id,
             CaseId = document.CaseId,
+            VersionNumber = document.CurrentVersionNumber,
+            Classification = document.Classification.ToString(),
             FileName = document.FileName,
             ContentType = document.ContentType,
             SizeBytes = document.SizeBytes,
             UploadedByUserId = document.UploadedByUserId,
-            UploadedAt = document.CreatedAt
+            UploadedAt = document.UpdatedAt
         };
     }
 
@@ -1750,11 +1975,53 @@ public sealed class CaseService : ICaseService
         {
             DocumentId = document.Id,
             CaseId = document.CaseId,
+            VersionNumber = document.CurrentVersionNumber,
+            Classification = document.Classification.ToString(),
             FileName = document.FileName,
             ContentType = document.ContentType,
             SizeBytes = document.SizeBytes,
             ContentBase64 = Convert.ToBase64String(document.Content),
             UploadedAt = document.CreatedAt
+        };
+    }
+
+    private static CaseDocumentVersionHistoryResponse MapDocumentVersionHistory(
+        CaseDocument document,
+        IReadOnlyList<CaseDocumentVersion> versions)
+    {
+        return new CaseDocumentVersionHistoryResponse
+        {
+            DocumentId = document.Id,
+            CaseId = document.CaseId,
+            Classification = document.Classification.ToString(),
+            LatestVersionNumber = document.CurrentVersionNumber,
+            Versions = versions.Select(MapDocumentVersion).ToList()
+        };
+    }
+
+    private static CaseDocumentVersionResponse MapDocumentVersion(CaseDocumentVersion version)
+    {
+        return new CaseDocumentVersionResponse
+        {
+            VersionId = version.Id,
+            DocumentId = version.DocumentId,
+            VersionNumber = version.VersionNumber,
+            FileName = version.FileName,
+            ContentType = version.ContentType,
+            SizeBytes = version.SizeBytes,
+            UploadedByUserId = version.UploadedByUserId,
+            UploadedAt = version.CreatedAt
+        };
+    }
+
+    private static CaseDocumentClassificationResponse MapDocumentClassification(CaseDocument document)
+    {
+        return new CaseDocumentClassificationResponse
+        {
+            DocumentId = document.Id,
+            CaseId = document.CaseId,
+            Classification = document.Classification.ToString(),
+            UpdatedAt = document.UpdatedAt
         };
     }
 

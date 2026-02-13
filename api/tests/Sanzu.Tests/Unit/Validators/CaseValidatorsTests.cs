@@ -307,4 +307,31 @@ public sealed class CaseValidatorsTests
         result.IsValid.Should().BeFalse();
         result.Errors.Should().Contain(x => x.PropertyName == nameof(UploadCaseDocumentRequest.ContentBase64));
     }
+
+    [Fact]
+    public void UpdateCaseDocumentClassificationValidator_ShouldPass_WhenClassificationIsSupported()
+    {
+        var validator = new UpdateCaseDocumentClassificationRequestValidator();
+        var request = new UpdateCaseDocumentClassificationRequest
+        {
+            Classification = "Restricted"
+        };
+
+        var result = validator.Validate(request);
+        result.IsValid.Should().BeTrue();
+    }
+
+    [Fact]
+    public void UpdateCaseDocumentClassificationValidator_ShouldFail_WhenClassificationIsUnsupported()
+    {
+        var validator = new UpdateCaseDocumentClassificationRequestValidator();
+        var request = new UpdateCaseDocumentClassificationRequest
+        {
+            Classification = "Confidential"
+        };
+
+        var result = validator.Validate(request);
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(x => x.PropertyName == nameof(UpdateCaseDocumentClassificationRequest.Classification));
+    }
 }
