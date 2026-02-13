@@ -34,11 +34,20 @@ public static class ServiceRegistration
                             .AddAuthenticationSchemes(HeaderAuthenticationHandler.SchemeName)
                             .RequireAuthenticatedUser()
                             .RequireRole(nameof(PlatformRole.AgencyAdmin)));
+
+                options.AddPolicy(
+                    "SanzuAdmin",
+                    policy =>
+                        policy
+                            .AddAuthenticationSchemes(HeaderAuthenticationHandler.SchemeName)
+                            .RequireAuthenticatedUser()
+                            .RequireRole(nameof(PlatformRole.SanzuAdmin)));
             });
 
         services.AddScoped<ITenantOnboardingService, TenantOnboardingService>();
         services.AddScoped<ITenantCaseDefaultsService, TenantCaseDefaultsService>();
         services.AddScoped<ITenantUsageIndicatorsService, TenantUsageIndicatorsService>();
+        services.AddScoped<ITenantLifecycleService, TenantLifecycleService>();
         services.AddScoped<ITenantSubscriptionService, TenantSubscriptionService>();
         services.AddScoped<ITenantBillingService, TenantBillingService>();
         services.AddScoped<ICaseService, CaseService>();
@@ -57,6 +66,7 @@ public static class ServiceRegistration
         services.AddScoped<IValidator<InviteCaseParticipantRequest>, InviteCaseParticipantRequestValidator>();
         services.AddScoped<IValidator<AcceptCaseParticipantInvitationRequest>, AcceptCaseParticipantInvitationRequestValidator>();
         services.AddScoped<IValidator<UpdateCaseParticipantRoleRequest>, UpdateCaseParticipantRoleRequestValidator>();
+        services.AddScoped<IValidator<UpdateTenantLifecycleStateRequest>, UpdateTenantLifecycleStateRequestValidator>();
         services.AddScoped<IValidator<UpdateTenantOnboardingProfileRequest>, UpdateTenantOnboardingProfileRequestValidator>();
         services.AddScoped<IValidator<UpdateTenantOnboardingDefaultsRequest>, UpdateTenantOnboardingDefaultsRequestValidator>();
         services.AddScoped<IValidator<UpdateTenantCaseDefaultsRequest>, UpdateTenantCaseDefaultsRequestValidator>();
