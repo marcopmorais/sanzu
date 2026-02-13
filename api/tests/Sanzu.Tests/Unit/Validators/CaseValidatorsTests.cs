@@ -302,6 +302,49 @@ public sealed class CaseValidatorsTests
     }
 
     [Fact]
+    public void ApplyExtractionDecisionsValidator_ShouldPass_WhenDecisionsAreValid()
+    {
+        var validator = new ApplyExtractionDecisionsRequestValidator();
+        var request = new ApplyExtractionDecisionsRequest
+        {
+            Decisions =
+            [
+                new ExtractionDecisionRequest
+                {
+                    CandidateId = Guid.NewGuid(),
+                    Action = "Edit",
+                    EditedValue = "Ana Pereira"
+                }
+            ]
+        };
+
+        var result = validator.Validate(request);
+        result.IsValid.Should().BeTrue();
+    }
+
+    [Fact]
+    public void ApplyExtractionDecisionsValidator_ShouldFail_WhenEditValueIsMissing()
+    {
+        var validator = new ApplyExtractionDecisionsRequestValidator();
+        var request = new ApplyExtractionDecisionsRequest
+        {
+            Decisions =
+            [
+                new ExtractionDecisionRequest
+                {
+                    CandidateId = Guid.NewGuid(),
+                    Action = "Edit",
+                    EditedValue = ""
+                }
+            ]
+        };
+
+        var result = validator.Validate(request);
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(x => x.PropertyName == "Decisions[0].EditedValue");
+    }
+
+    [Fact]
     public void UploadCaseDocumentValidator_ShouldPass_WhenPayloadIsValid()
     {
         var validator = new UploadCaseDocumentRequestValidator();

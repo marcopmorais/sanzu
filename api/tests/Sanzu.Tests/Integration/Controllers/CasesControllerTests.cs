@@ -1656,6 +1656,214 @@ public sealed class CasesControllerTests : IClassFixture<CustomWebApplicationFac
         response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
     }
 
+    [Fact]
+    public async Task ApplyExtractionDecisions_ShouldReturn200AndApplyOnlyApprovedValues()
+    {
+        var client = _factory.CreateClient();
+        var signup = await CreateTenantAsync(client, "cases-extraction-review-success@agency.pt");
+        await ActivateTenantAsync(client, signup);
+        var createdCase = await CreateCaseAsync(client, signup, "Extraction Review Integration Case");
+
+        Guid documentId;
+        using (var uploadRequest = BuildAuthorizedJsonRequest(
+                   HttpMethod.Post,
+                   $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/documents",
+                   new UploadCaseDocumentRequest
+                   {
+                       FileName = "review.txt",
+                       ContentType = "text/plain",
+                       ContentBase64 = Convert.ToBase64String(
+                           System.Text.Encoding.UTF8.GetBytes(
+                               "PrimaryContactName: Ana Pereira\nPrimaryContactPhone: +351910000000\nRelationshipToDeceased: Daughter"))
+                   },
+                   signup.UserId,
+                   signup.OrganizationId,
+                   "AgencyAdmin"))
+        {
+            var uploadResponse = await client.SendAsync(uploadRequest);
+            uploadResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+            var uploadEnvelope = await uploadResponse.Content.ReadFromJsonAsync<ApiEnvelope<CaseDocumentUploadResponse>>();
+            uploadEnvelope.Should().NotBeNull();
+            uploadEnvelope!.Data.Should().NotBeNull();
+            documentId = uploadEnvelope.Data!.DocumentId;
+        }
+
+        IReadOnlyList<ExtractionCandidateResponse> extractedCandidates;
+        using (var extractionRequest = BuildAuthorizedRequest(
+                   HttpMethod.Post,
+                   $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/documents/{documentId}/extraction/candidates",
+                   signup.UserId,
+                   signup.OrganizationId,
+                   "AgencyAdmin"))
+        {
+            var extractionResponse = await client.SendAsync(extractionRequest);
+            extractionResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+            var extractionEnvelope = await extractionResponse.Content.ReadFromJsonAsync<ApiEnvelope<ExtractDocumentCandidatesResponse>>();
+            extractionEnvelope.Should().NotBeNull();
+            extractionEnvelope!.Data.Should().NotBeNull();
+            extractedCandidates = extractionEnvelope.Data!.Candidates;
+        }
+
+        var nameCandidate = extractedCandidates.Single(x => x.FieldKey == "PrimaryContactName");
+        var phoneCandidate = extractedCandidates.Single(x => x.FieldKey == "PrimaryContactPhone");
+        var relationshipCandidate = extractedCandidates.Single(x => x.FieldKey == "RelationshipToDeceased");
+
+        using var reviewRequest = BuildAuthorizedJsonRequest(
+            HttpMethod.Post,
+            $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/documents/{documentId}/extraction/review",
+            new ApplyExtractionDecisionsRequest
+            {
+                Decisions =
+                [
+                    new ExtractionDecisionRequest { CandidateId = nameCandidate.CandidateId, Action = "Approve" },
+                    new ExtractionDecisionRequest { CandidateId = phoneCandidate.CandidateId, Action = "Edit", EditedValue = "+351911111111" },
+                    new ExtractionDecisionRequest { CandidateId = relationshipCandidate.CandidateId, Action = "Reject" }
+                ]
+            },
+            signup.UserId,
+            signup.OrganizationId,
+            "AgencyAdmin");
+
+        var response = await client.SendAsync(reviewRequest);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var envelope = await response.Content.ReadFromJsonAsync<ApiEnvelope<ApplyExtractionDecisionsResponse>>();
+        envelope.Should().NotBeNull();
+        envelope!.Data.Should().NotBeNull();
+        envelope.Data!.AppliedCount.Should().Be(2);
+        envelope.Data.RejectedCount.Should().Be(1);
+
+        using var scope = _factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<SanzuDbContext>();
+        dbContext.ExtractionCandidates.Should().Contain(x => x.Id == nameCandidate.CandidateId && x.Status == ExtractionCandidateStatus.Approved);
+        dbContext.ExtractionCandidates.Should().Contain(x => x.Id == phoneCandidate.CandidateId && x.Status == ExtractionCandidateStatus.Approved && x.CandidateValue == "+351911111111");
+        dbContext.ExtractionCandidates.Should().Contain(x => x.Id == relationshipCandidate.CandidateId && x.Status == ExtractionCandidateStatus.Rejected);
+        var persistedCase = dbContext.Cases.Single(x => x.Id == createdCase.CaseId);
+        using var intakeDoc = System.Text.Json.JsonDocument.Parse(persistedCase.IntakeData!);
+        intakeDoc.RootElement.GetProperty("PrimaryContactName").GetString().Should().Be("Ana Pereira");
+        intakeDoc.RootElement.GetProperty("PrimaryContactPhone").GetString().Should().Be("+351911111111");
+        intakeDoc.RootElement.TryGetProperty("RelationshipToDeceased", out _).Should().BeFalse();
+        dbContext.AuditEvents.Should().Contain(
+            x => x.EventType == "CaseExtractionDecisionsReviewed" && x.CaseId == createdCase.CaseId && x.ActorUserId == signup.UserId);
+    }
+
+    [Fact]
+    public async Task ApplyExtractionDecisions_ShouldReturn409_WhenNoPendingCandidatesExist()
+    {
+        var client = _factory.CreateClient();
+        var signup = await CreateTenantAsync(client, "cases-extraction-review-no-pending@agency.pt");
+        await ActivateTenantAsync(client, signup);
+        var createdCase = await CreateCaseAsync(client, signup, "Extraction Review No Pending Integration Case");
+
+        Guid documentId;
+        using (var uploadRequest = BuildAuthorizedJsonRequest(
+                   HttpMethod.Post,
+                   $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/documents",
+                   new UploadCaseDocumentRequest
+                   {
+                       FileName = "raw.txt",
+                       ContentType = "text/plain",
+                       ContentBase64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("PrimaryContactName: Ana"))
+                   },
+                   signup.UserId,
+                   signup.OrganizationId,
+                   "AgencyAdmin"))
+        {
+            var uploadResponse = await client.SendAsync(uploadRequest);
+            uploadResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+            var uploadEnvelope = await uploadResponse.Content.ReadFromJsonAsync<ApiEnvelope<CaseDocumentUploadResponse>>();
+            uploadEnvelope.Should().NotBeNull();
+            uploadEnvelope!.Data.Should().NotBeNull();
+            documentId = uploadEnvelope.Data!.DocumentId;
+        }
+
+        using var reviewRequest = BuildAuthorizedJsonRequest(
+            HttpMethod.Post,
+            $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/documents/{documentId}/extraction/review",
+            new ApplyExtractionDecisionsRequest
+            {
+                Decisions =
+                [
+                    new ExtractionDecisionRequest { CandidateId = Guid.NewGuid(), Action = "Approve" }
+                ]
+            },
+            signup.UserId,
+            signup.OrganizationId,
+            "AgencyAdmin");
+
+        var response = await client.SendAsync(reviewRequest);
+        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
+    }
+
+    [Fact]
+    public async Task ApplyExtractionDecisions_ShouldReturn403_WhenUserIsEditor()
+    {
+        var client = _factory.CreateClient();
+        var signup = await CreateTenantAsync(client, "cases-extraction-review-editor@agency.pt");
+        await ActivateTenantAsync(client, signup);
+        var createdCase = await CreateCaseAsync(client, signup, "Extraction Review Editor Integration Case");
+        var editorUserId = await SeedAcceptedParticipantAsync(
+            signup.OrganizationId,
+            createdCase.CaseId,
+            "family.extraction.review.editor@agency.pt",
+            CaseRole.Editor);
+
+        Guid documentId;
+        using (var uploadRequest = BuildAuthorizedJsonRequest(
+                   HttpMethod.Post,
+                   $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/documents",
+                   new UploadCaseDocumentRequest
+                   {
+                       FileName = "review-editor.txt",
+                       ContentType = "text/plain",
+                       ContentBase64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("PrimaryContactName: Ana"))
+                   },
+                   signup.UserId,
+                   signup.OrganizationId,
+                   "AgencyAdmin"))
+        {
+            var uploadResponse = await client.SendAsync(uploadRequest);
+            uploadResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+            var uploadEnvelope = await uploadResponse.Content.ReadFromJsonAsync<ApiEnvelope<CaseDocumentUploadResponse>>();
+            uploadEnvelope.Should().NotBeNull();
+            uploadEnvelope!.Data.Should().NotBeNull();
+            documentId = uploadEnvelope.Data!.DocumentId;
+        }
+
+        Guid candidateId;
+        using (var extractionRequest = BuildAuthorizedRequest(
+                   HttpMethod.Post,
+                   $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/documents/{documentId}/extraction/candidates",
+                   signup.UserId,
+                   signup.OrganizationId,
+                   "AgencyAdmin"))
+        {
+            var extractionResponse = await client.SendAsync(extractionRequest);
+            extractionResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+            var extractionEnvelope = await extractionResponse.Content.ReadFromJsonAsync<ApiEnvelope<ExtractDocumentCandidatesResponse>>();
+            extractionEnvelope.Should().NotBeNull();
+            extractionEnvelope!.Data.Should().NotBeNull();
+            candidateId = extractionEnvelope.Data!.Candidates.First().CandidateId;
+        }
+
+        using var reviewRequest = BuildAuthorizedJsonRequest(
+            HttpMethod.Post,
+            $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/documents/{documentId}/extraction/review",
+            new ApplyExtractionDecisionsRequest
+            {
+                Decisions =
+                [
+                    new ExtractionDecisionRequest { CandidateId = candidateId, Action = "Approve" }
+                ]
+            },
+            editorUserId,
+            signup.OrganizationId,
+            "Editor");
+
+        var response = await client.SendAsync(reviewRequest);
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
     private async Task ActivateTenantAsync(HttpClient client, CreateAgencyAccountResponse signup)
     {
         using var defaultsRequest = BuildAuthorizedJsonRequest(

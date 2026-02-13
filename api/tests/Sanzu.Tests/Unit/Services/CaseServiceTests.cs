@@ -1824,6 +1824,175 @@ public sealed class CaseServiceTests
     }
 
     [Fact]
+    public async Task ApplyExtractionDecisions_ShouldApplyOnlyApprovedValuesAndAudit()
+    {
+        var dbContext = CreateContext();
+        var (tenantId, actorUserId) = await SeedTenantWithAdminAsync(dbContext, TenantStatus.Active);
+        var service = CreateService(dbContext);
+        var createdCase = await CreateCaseAsync(service, tenantId, actorUserId, "Extraction Review Case");
+
+        var content = string.Join(
+            Environment.NewLine,
+            "PrimaryContactName: Ana Pereira",
+            "PrimaryContactPhone: +351910000000",
+            "RelationshipToDeceased: Daughter");
+        var uploaded = await service.UploadCaseDocumentAsync(
+            tenantId,
+            actorUserId,
+            createdCase.CaseId,
+            new UploadCaseDocumentRequest
+            {
+                FileName = "review.txt",
+                ContentType = "text/plain",
+                ContentBase64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(content))
+            },
+            CancellationToken.None);
+
+        var extracted = await service.ExtractDocumentCandidatesAsync(
+            tenantId,
+            actorUserId,
+            createdCase.CaseId,
+            uploaded.DocumentId,
+            CancellationToken.None);
+
+        var nameCandidate = extracted.Candidates.Single(x => x.FieldKey == "PrimaryContactName");
+        var phoneCandidate = extracted.Candidates.Single(x => x.FieldKey == "PrimaryContactPhone");
+        var relationshipCandidate = extracted.Candidates.Single(x => x.FieldKey == "RelationshipToDeceased");
+
+        var reviewed = await service.ApplyExtractionDecisionsAsync(
+            tenantId,
+            actorUserId,
+            createdCase.CaseId,
+            uploaded.DocumentId,
+            new ApplyExtractionDecisionsRequest
+            {
+                Decisions =
+                [
+                    new ExtractionDecisionRequest { CandidateId = nameCandidate.CandidateId, Action = "Approve" },
+                    new ExtractionDecisionRequest { CandidateId = phoneCandidate.CandidateId, Action = "Edit", EditedValue = "+351911111111" },
+                    new ExtractionDecisionRequest { CandidateId = relationshipCandidate.CandidateId, Action = "Reject" }
+                ]
+            },
+            CancellationToken.None);
+
+        reviewed.TotalDecisions.Should().Be(3);
+        reviewed.AppliedCount.Should().Be(2);
+        reviewed.RejectedCount.Should().Be(1);
+        reviewed.Candidates.Should().Contain(x => x.CandidateId == nameCandidate.CandidateId && x.Status == "Approved");
+        reviewed.Candidates.Should().Contain(x => x.CandidateId == phoneCandidate.CandidateId && x.Status == "Approved" && x.CandidateValue == "+351911111111");
+        reviewed.Candidates.Should().Contain(x => x.CandidateId == relationshipCandidate.CandidateId && x.Status == "Rejected");
+
+        var persistedCase = dbContext.Cases.Single(x => x.Id == createdCase.CaseId);
+        persistedCase.IntakeData.Should().NotBeNullOrWhiteSpace();
+        using var intakeDoc = JsonDocument.Parse(persistedCase.IntakeData!);
+        intakeDoc.RootElement.GetProperty("PrimaryContactName").GetString().Should().Be("Ana Pereira");
+        intakeDoc.RootElement.GetProperty("PrimaryContactPhone").GetString().Should().Be("+351911111111");
+        intakeDoc.RootElement.TryGetProperty("RelationshipToDeceased", out _).Should().BeFalse();
+
+        dbContext.AuditEvents.Should().Contain(
+            x => x.EventType == "CaseExtractionDecisionsReviewed" && x.CaseId == createdCase.CaseId && x.ActorUserId == actorUserId);
+    }
+
+    [Fact]
+    public async Task ApplyExtractionDecisions_ShouldThrowCaseStateException_WhenNoPendingCandidatesExist()
+    {
+        var dbContext = CreateContext();
+        var (tenantId, actorUserId) = await SeedTenantWithAdminAsync(dbContext, TenantStatus.Active);
+        var service = CreateService(dbContext);
+        var createdCase = await CreateCaseAsync(service, tenantId, actorUserId, "No Pending Candidates Case");
+
+        var uploaded = await service.UploadCaseDocumentAsync(
+            tenantId,
+            actorUserId,
+            createdCase.CaseId,
+            new UploadCaseDocumentRequest
+            {
+                FileName = "raw.txt",
+                ContentType = "text/plain",
+                ContentBase64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("PrimaryContactName: Ana"))
+            },
+            CancellationToken.None);
+
+        var act = () => service.ApplyExtractionDecisionsAsync(
+            tenantId,
+            actorUserId,
+            createdCase.CaseId,
+            uploaded.DocumentId,
+            new ApplyExtractionDecisionsRequest
+            {
+                Decisions =
+                [
+                    new ExtractionDecisionRequest { CandidateId = Guid.NewGuid(), Action = "Approve" }
+                ]
+            },
+            CancellationToken.None);
+
+        await act.Should().ThrowAsync<CaseStateException>()
+            .Where(e => e.Message.Contains("No pending extraction candidates"));
+    }
+
+    [Fact]
+    public async Task ApplyExtractionDecisions_ShouldThrowCaseAccessDeniedAndAudit_WhenUserIsEditor()
+    {
+        var dbContext = CreateContext();
+        var (tenantId, actorUserId) = await SeedTenantWithAdminAsync(dbContext, TenantStatus.Active);
+        var service = CreateService(dbContext);
+        var createdCase = await CreateCaseAsync(service, tenantId, actorUserId, "Extraction Review Access Case");
+        var editorUserId = Guid.NewGuid();
+        const string editorEmail = "family.extraction.review.editor@agency.pt";
+        await SeedUserAsync(dbContext, editorUserId, tenantId, editorEmail, "Extraction Review Editor");
+        await SeedAcceptedParticipantDirectAsync(dbContext, tenantId, createdCase.CaseId, editorUserId, editorEmail, CaseRole.Editor);
+
+        var uploaded = await service.UploadCaseDocumentAsync(
+            tenantId,
+            actorUserId,
+            createdCase.CaseId,
+            new UploadCaseDocumentRequest
+            {
+                FileName = "review-access.txt",
+                ContentType = "text/plain",
+                ContentBase64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("PrimaryContactName: Ana"))
+            },
+            CancellationToken.None);
+
+        var extracted = await service.ExtractDocumentCandidatesAsync(
+            tenantId,
+            actorUserId,
+            createdCase.CaseId,
+            uploaded.DocumentId,
+            CancellationToken.None);
+
+        var act = () => service.ApplyExtractionDecisionsAsync(
+            tenantId,
+            editorUserId,
+            createdCase.CaseId,
+            uploaded.DocumentId,
+            new ApplyExtractionDecisionsRequest
+            {
+                Decisions =
+                [
+                    new ExtractionDecisionRequest
+                    {
+                        CandidateId = extracted.Candidates.First().CandidateId,
+                        Action = "Approve"
+                    }
+                ]
+            },
+            CancellationToken.None);
+
+        await act.Should().ThrowAsync<CaseAccessDeniedException>()
+            .Where(e => e.ReasonCode == "ROLE_INSUFFICIENT" && e.AttemptedAction == "ApplyExtractionDecisions");
+        AssertAccessDeniedAudit(
+            dbContext,
+            editorUserId,
+            createdCase.CaseId,
+            "ApplyExtractionDecisions",
+            "Manager",
+            "Editor",
+            "ROLE_INSUFFICIENT");
+    }
+
+    [Fact]
     public async Task GetCaseDetails_ShouldReturnDetails_WhenUserIsCaseManager()
     {
         var dbContext = CreateContext();
@@ -1991,6 +2160,7 @@ public sealed class CaseServiceTests
             new EfUnitOfWork(dbContext),
             new CreateCaseRequestValidator(),
             new SubmitCaseIntakeRequestValidator(),
+            new ApplyExtractionDecisionsRequestValidator(),
             new GenerateOutboundTemplateRequestValidator(),
             new UploadCaseDocumentRequestValidator(),
             new UpdateCaseDocumentClassificationRequestValidator(),

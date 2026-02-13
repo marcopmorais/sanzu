@@ -124,6 +124,14 @@ public interface ICaseService
         Guid documentId,
         CancellationToken cancellationToken);
 
+    Task<ApplyExtractionDecisionsResponse> ApplyExtractionDecisionsAsync(
+        Guid tenantId,
+        Guid actorUserId,
+        Guid caseId,
+        Guid documentId,
+        ApplyExtractionDecisionsRequest request,
+        CancellationToken cancellationToken);
+
     Task<GenerateCasePlanResponse> RecalculateCasePlanReadinessAsync(
         Guid tenantId,
         Guid actorUserId,

@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using FluentValidation;
@@ -25,6 +26,7 @@ public sealed class CaseService : ICaseService
     private readonly IUnitOfWork _unitOfWork;
     private readonly IValidator<CreateCaseRequest> _createCaseValidator;
     private readonly IValidator<SubmitCaseIntakeRequest> _submitCaseIntakeValidator;
+    private readonly IValidator<ApplyExtractionDecisionsRequest> _applyExtractionDecisionsValidator;
     private readonly IValidator<GenerateOutboundTemplateRequest> _generateOutboundTemplateValidator;
     private readonly IValidator<UploadCaseDocumentRequest> _uploadCaseDocumentValidator;
     private readonly IValidator<UpdateCaseDocumentClassificationRequest> _updateCaseDocumentClassificationValidator;
@@ -49,6 +51,7 @@ public sealed class CaseService : ICaseService
         IUnitOfWork unitOfWork,
         IValidator<CreateCaseRequest> createCaseValidator,
         IValidator<SubmitCaseIntakeRequest> submitCaseIntakeValidator,
+        IValidator<ApplyExtractionDecisionsRequest> applyExtractionDecisionsValidator,
         IValidator<GenerateOutboundTemplateRequest> generateOutboundTemplateValidator,
         IValidator<UploadCaseDocumentRequest> uploadCaseDocumentValidator,
         IValidator<UpdateCaseDocumentClassificationRequest> updateCaseDocumentClassificationValidator,
@@ -72,6 +75,7 @@ public sealed class CaseService : ICaseService
         _unitOfWork = unitOfWork;
         _createCaseValidator = createCaseValidator;
         _submitCaseIntakeValidator = submitCaseIntakeValidator;
+        _applyExtractionDecisionsValidator = applyExtractionDecisionsValidator;
         _generateOutboundTemplateValidator = generateOutboundTemplateValidator;
         _uploadCaseDocumentValidator = uploadCaseDocumentValidator;
         _updateCaseDocumentClassificationValidator = updateCaseDocumentClassificationValidator;
@@ -872,6 +876,167 @@ public sealed class CaseService : ICaseService
             ExtractedAt = extractedAt,
             Candidates = candidates.Select(MapExtractionCandidate).ToList()
         };
+    }
+
+    public async Task<ApplyExtractionDecisionsResponse> ApplyExtractionDecisionsAsync(
+        Guid tenantId,
+        Guid actorUserId,
+        Guid caseId,
+        Guid documentId,
+        ApplyExtractionDecisionsRequest request,
+        CancellationToken cancellationToken)
+    {
+        var validationResult = await _applyExtractionDecisionsValidator.ValidateAsync(request, cancellationToken);
+        if (!validationResult.IsValid)
+        {
+            throw new ValidationException(validationResult.Errors);
+        }
+
+        var duplicateDecision = request.Decisions
+            .GroupBy(x => x.CandidateId)
+            .FirstOrDefault(group => group.Count() > 1);
+        if (duplicateDecision is not null)
+        {
+            throw new ValidationException(
+                new[]
+                {
+                    new FluentValidation.Results.ValidationFailure(
+                        nameof(ApplyExtractionDecisionsRequest.Decisions),
+                        $"Candidate {duplicateDecision.Key} appears more than once in the review payload.")
+                });
+        }
+
+        var caseForAccess = await LoadCaseForTenantAsync(tenantId, caseId, cancellationToken);
+        var effectiveRole = await ResolveEffectiveCaseRoleAsync(tenantId, actorUserId, caseForAccess, cancellationToken);
+        await EnsureCaseRoleAsync(effectiveRole, CaseRole.Manager, actorUserId, caseId, "ApplyExtractionDecisions", cancellationToken);
+
+        var document = await _caseDocumentRepository.GetByIdAsync(documentId, cancellationToken);
+        if (document is null || document.CaseId != caseForAccess.Id || document.TenantId != tenantId)
+        {
+            throw new TenantAccessDeniedException();
+        }
+
+        var candidates = await _extractionCandidateRepository.GetByDocumentIdAsync(documentId, cancellationToken);
+        var pendingById = candidates
+            .Where(x => x.Status == ExtractionCandidateStatus.Pending)
+            .ToDictionary(x => x.Id, x => x);
+        if (pendingById.Count == 0)
+        {
+            throw new CaseStateException("No pending extraction candidates are available for review.");
+        }
+
+        foreach (var decision in request.Decisions)
+        {
+            if (!pendingById.ContainsKey(decision.CandidateId))
+            {
+                throw new CaseStateException("One or more extraction candidates are not pending or do not exist.");
+            }
+        }
+
+        ApplyExtractionDecisionsResponse? response = null;
+
+        await _unitOfWork.ExecuteInTransactionAsync(
+            async token =>
+            {
+                var caseEntity = await LoadCaseForTenantAsync(tenantId, caseId, token);
+                var reviewCandidates = (await _extractionCandidateRepository.GetByDocumentIdAsync(documentId, token))
+                    .Where(x => x.Status == ExtractionCandidateStatus.Pending)
+                    .ToDictionary(x => x.Id, x => x);
+
+                var reviewedAt = DateTime.UtcNow;
+                var approvedValues = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                var decisionAuditItems = new List<object>();
+                var rejectedCount = 0;
+
+                foreach (var decision in request.Decisions)
+                {
+                    if (!reviewCandidates.TryGetValue(decision.CandidateId, out var candidate))
+                    {
+                        throw new CaseStateException("One or more extraction candidates are not pending or do not exist.");
+                    }
+
+                    var action = ParseExtractionDecisionAction(decision.Action);
+                    var previousValue = candidate.CandidateValue;
+                    var finalValue = previousValue;
+
+                    switch (action)
+                    {
+                        case ExtractionDecisionAction.Approve:
+                            candidate.Status = ExtractionCandidateStatus.Approved;
+                            approvedValues[candidate.FieldKey] = finalValue;
+                            break;
+                        case ExtractionDecisionAction.Edit:
+                            finalValue = decision.EditedValue!.Trim();
+                            candidate.CandidateValue = finalValue;
+                            candidate.Status = ExtractionCandidateStatus.Approved;
+                            approvedValues[candidate.FieldKey] = finalValue;
+                            break;
+                        case ExtractionDecisionAction.Reject:
+                            candidate.Status = ExtractionCandidateStatus.Rejected;
+                            rejectedCount++;
+                            break;
+                    }
+
+                    candidate.ReviewedByUserId = actorUserId;
+                    candidate.ReviewedAt = reviewedAt;
+
+                    decisionAuditItems.Add(
+                        new
+                        {
+                            CandidateId = candidate.Id,
+                            candidate.FieldKey,
+                            SourceVersionNumber = candidate.SourceVersionNumber,
+                            candidate.ConfidenceScore,
+                            Action = action.ToString(),
+                            PreviousValue = previousValue,
+                            FinalValue = candidate.CandidateValue,
+                            candidate.Status,
+                            ReviewerUserId = actorUserId,
+                            ReviewedAt = reviewedAt
+                        });
+                }
+
+                if (approvedValues.Count > 0)
+                {
+                    caseEntity.IntakeData = ApplyApprovedCandidateValues(caseEntity.IntakeData, approvedValues);
+                    caseEntity.UpdatedAt = reviewedAt;
+                }
+
+                await WriteAuditEventAsync(
+                    actorUserId,
+                    "CaseExtractionDecisionsReviewed",
+                    new
+                    {
+                        CaseId = caseEntity.Id,
+                        DocumentId = document.Id,
+                        ReviewedByUserId = actorUserId,
+                        ReviewedAt = reviewedAt,
+                        TotalDecisions = request.Decisions.Count,
+                        AppliedCount = approvedValues.Count,
+                        RejectedCount = rejectedCount,
+                        Decisions = decisionAuditItems
+                    },
+                    token,
+                    caseEntity.Id);
+
+                var orderedCandidates = request.Decisions
+                    .Select(decision => reviewCandidates[decision.CandidateId])
+                    .ToList();
+
+                response = new ApplyExtractionDecisionsResponse
+                {
+                    CaseId = caseEntity.Id,
+                    DocumentId = document.Id,
+                    ReviewedAt = reviewedAt,
+                    TotalDecisions = request.Decisions.Count,
+                    AppliedCount = approvedValues.Count,
+                    RejectedCount = rejectedCount,
+                    Candidates = orderedCandidates.Select(MapExtractionCandidate).ToList()
+                };
+            },
+            cancellationToken);
+
+        return response!;
     }
 
     public async Task<GenerateCasePlanResponse> RecalculateCasePlanReadinessAsync(
@@ -1889,6 +2054,16 @@ public sealed class CaseService : ICaseService
         };
     }
 
+    private static ExtractionDecisionAction ParseExtractionDecisionAction(string value)
+    {
+        if (Enum.TryParse<ExtractionDecisionAction>(value.Trim(), ignoreCase: true, out var action))
+        {
+            return action;
+        }
+
+        throw new CaseStateException("The requested extraction decision action is not recognized.");
+    }
+
     private static IReadOnlyDictionary<string, string> BuildOutboundTemplateFields(string templateKey, Case caseEntity)
     {
         try
@@ -1961,6 +2136,36 @@ public sealed class CaseService : ICaseService
         var normalized = contentType.Trim().ToLowerInvariant();
         return normalized.StartsWith("text/")
                || normalized is "application/json";
+    }
+
+    private static string ApplyApprovedCandidateValues(
+        string? existingIntakeData,
+        IReadOnlyDictionary<string, string> approvedValues)
+    {
+        JsonObject root;
+        if (string.IsNullOrWhiteSpace(existingIntakeData))
+        {
+            root = [];
+        }
+        else
+        {
+            try
+            {
+                root = JsonNode.Parse(existingIntakeData) as JsonObject
+                    ?? throw new CaseStateException("Stored intake data is invalid and cannot be updated from extraction review.");
+            }
+            catch (JsonException)
+            {
+                throw new CaseStateException("Stored intake data is invalid and cannot be updated from extraction review.");
+            }
+        }
+
+        foreach (var pair in approvedValues)
+        {
+            root[pair.Key] = pair.Value;
+        }
+
+        return root.ToJsonString();
     }
 
     private static List<ExtractionCandidate> BuildExtractionCandidates(
