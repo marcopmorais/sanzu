@@ -152,6 +152,36 @@ public interface ICaseService
         UpdateCaseHandoffStateRequest request,
         CancellationToken cancellationToken);
 
+    Task<ProcessAliasResponse> GetProcessAliasAsync(
+        Guid tenantId,
+        Guid actorUserId,
+        Guid caseId,
+        CancellationToken cancellationToken);
+
+    Task<ProcessAliasResponse> ProvisionProcessAliasAsync(
+        Guid tenantId,
+        Guid actorUserId,
+        Guid caseId,
+        CancellationToken cancellationToken);
+
+    Task<ProcessAliasResponse> RotateProcessAliasAsync(
+        Guid tenantId,
+        Guid actorUserId,
+        Guid caseId,
+        CancellationToken cancellationToken);
+
+    Task<ProcessAliasResponse> DeactivateProcessAliasAsync(
+        Guid tenantId,
+        Guid actorUserId,
+        Guid caseId,
+        CancellationToken cancellationToken);
+
+    Task<ProcessAliasResponse> ArchiveProcessAliasAsync(
+        Guid tenantId,
+        Guid actorUserId,
+        Guid caseId,
+        CancellationToken cancellationToken);
+
     Task<GenerateCasePlanResponse> RecalculateCasePlanReadinessAsync(
         Guid tenantId,
         Guid actorUserId,

@@ -779,6 +779,216 @@ public sealed class CasesController : ControllerBase
     }
 
     [Authorize]
+    [HttpGet("{caseId:guid}/process-alias")]
+    [ProducesResponseType(typeof(ApiEnvelope<ProcessAliasResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> GetProcessAlias(
+        Guid tenantId,
+        Guid caseId,
+        CancellationToken cancellationToken)
+    {
+        if (!TryGetActorUserId(out var actorUserId))
+        {
+            return Unauthorized();
+        }
+
+        try
+        {
+            var response = await _caseService.GetProcessAliasAsync(
+                tenantId,
+                actorUserId,
+                caseId,
+                cancellationToken);
+
+            return Ok(ApiEnvelope<ProcessAliasResponse>.Success(response, BuildMeta()));
+        }
+        catch (TenantAccessDeniedException)
+        {
+            return Forbid();
+        }
+        catch (CaseAccessDeniedException)
+        {
+            return Forbid();
+        }
+        catch (CaseStateException exception)
+        {
+            return Problem(
+                statusCode: StatusCodes.Status409Conflict,
+                title: "Case state conflict",
+                detail: exception.Message);
+        }
+    }
+
+    [Authorize]
+    [HttpPost("{caseId:guid}/process-alias/provision")]
+    [ProducesResponseType(typeof(ApiEnvelope<ProcessAliasResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> ProvisionProcessAlias(
+        Guid tenantId,
+        Guid caseId,
+        CancellationToken cancellationToken)
+    {
+        if (!TryGetActorUserId(out var actorUserId))
+        {
+            return Unauthorized();
+        }
+
+        try
+        {
+            var response = await _caseService.ProvisionProcessAliasAsync(
+                tenantId,
+                actorUserId,
+                caseId,
+                cancellationToken);
+
+            return Ok(ApiEnvelope<ProcessAliasResponse>.Success(response, BuildMeta()));
+        }
+        catch (TenantAccessDeniedException)
+        {
+            return Forbid();
+        }
+        catch (CaseAccessDeniedException)
+        {
+            return Forbid();
+        }
+        catch (CaseStateException exception)
+        {
+            return Problem(
+                statusCode: StatusCodes.Status409Conflict,
+                title: "Case state conflict",
+                detail: exception.Message);
+        }
+    }
+
+    [Authorize]
+    [HttpPost("{caseId:guid}/process-alias/rotate")]
+    [ProducesResponseType(typeof(ApiEnvelope<ProcessAliasResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> RotateProcessAlias(
+        Guid tenantId,
+        Guid caseId,
+        CancellationToken cancellationToken)
+    {
+        if (!TryGetActorUserId(out var actorUserId))
+        {
+            return Unauthorized();
+        }
+
+        try
+        {
+            var response = await _caseService.RotateProcessAliasAsync(
+                tenantId,
+                actorUserId,
+                caseId,
+                cancellationToken);
+
+            return Ok(ApiEnvelope<ProcessAliasResponse>.Success(response, BuildMeta()));
+        }
+        catch (TenantAccessDeniedException)
+        {
+            return Forbid();
+        }
+        catch (CaseAccessDeniedException)
+        {
+            return Forbid();
+        }
+        catch (CaseStateException exception)
+        {
+            return Problem(
+                statusCode: StatusCodes.Status409Conflict,
+                title: "Case state conflict",
+                detail: exception.Message);
+        }
+    }
+
+    [Authorize]
+    [HttpPost("{caseId:guid}/process-alias/deactivate")]
+    [ProducesResponseType(typeof(ApiEnvelope<ProcessAliasResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> DeactivateProcessAlias(
+        Guid tenantId,
+        Guid caseId,
+        CancellationToken cancellationToken)
+    {
+        if (!TryGetActorUserId(out var actorUserId))
+        {
+            return Unauthorized();
+        }
+
+        try
+        {
+            var response = await _caseService.DeactivateProcessAliasAsync(
+                tenantId,
+                actorUserId,
+                caseId,
+                cancellationToken);
+
+            return Ok(ApiEnvelope<ProcessAliasResponse>.Success(response, BuildMeta()));
+        }
+        catch (TenantAccessDeniedException)
+        {
+            return Forbid();
+        }
+        catch (CaseAccessDeniedException)
+        {
+            return Forbid();
+        }
+        catch (CaseStateException exception)
+        {
+            return Problem(
+                statusCode: StatusCodes.Status409Conflict,
+                title: "Case state conflict",
+                detail: exception.Message);
+        }
+    }
+
+    [Authorize]
+    [HttpPost("{caseId:guid}/process-alias/archive")]
+    [ProducesResponseType(typeof(ApiEnvelope<ProcessAliasResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> ArchiveProcessAlias(
+        Guid tenantId,
+        Guid caseId,
+        CancellationToken cancellationToken)
+    {
+        if (!TryGetActorUserId(out var actorUserId))
+        {
+            return Unauthorized();
+        }
+
+        try
+        {
+            var response = await _caseService.ArchiveProcessAliasAsync(
+                tenantId,
+                actorUserId,
+                caseId,
+                cancellationToken);
+
+            return Ok(ApiEnvelope<ProcessAliasResponse>.Success(response, BuildMeta()));
+        }
+        catch (TenantAccessDeniedException)
+        {
+            return Forbid();
+        }
+        catch (CaseAccessDeniedException)
+        {
+            return Forbid();
+        }
+        catch (CaseStateException exception)
+        {
+            return Problem(
+                statusCode: StatusCodes.Status409Conflict,
+                title: "Case state conflict",
+                detail: exception.Message);
+        }
+    }
+
+    [Authorize]
     [HttpPost("{caseId:guid}/plan/readiness/recalculate")]
     [ProducesResponseType(typeof(ApiEnvelope<GenerateCasePlanResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]

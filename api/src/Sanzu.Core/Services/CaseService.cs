@@ -20,6 +20,7 @@ public sealed class CaseService : ICaseService
     private readonly ICaseRepository _caseRepository;
     private readonly ICaseDocumentRepository _caseDocumentRepository;
     private readonly ICaseHandoffRepository _caseHandoffRepository;
+    private readonly IProcessAliasRepository _processAliasRepository;
     private readonly IExtractionCandidateRepository _extractionCandidateRepository;
     private readonly ICaseParticipantRepository _caseParticipantRepository;
     private readonly IWorkflowStepRepository _workflowStepRepository;
@@ -47,6 +48,7 @@ public sealed class CaseService : ICaseService
         ICaseRepository caseRepository,
         ICaseDocumentRepository caseDocumentRepository,
         ICaseHandoffRepository caseHandoffRepository,
+        IProcessAliasRepository processAliasRepository,
         IExtractionCandidateRepository extractionCandidateRepository,
         ICaseParticipantRepository caseParticipantRepository,
         IWorkflowStepRepository workflowStepRepository,
@@ -73,6 +75,7 @@ public sealed class CaseService : ICaseService
         _caseRepository = caseRepository;
         _caseDocumentRepository = caseDocumentRepository;
         _caseHandoffRepository = caseHandoffRepository;
+        _processAliasRepository = processAliasRepository;
         _extractionCandidateRepository = extractionCandidateRepository;
         _caseParticipantRepository = caseParticipantRepository;
         _workflowStepRepository = workflowStepRepository;
@@ -1233,6 +1236,257 @@ public sealed class CaseService : ICaseService
         return response!;
     }
 
+    public async Task<ProcessAliasResponse> GetProcessAliasAsync(
+        Guid tenantId,
+        Guid actorUserId,
+        Guid caseId,
+        CancellationToken cancellationToken)
+    {
+        var caseForAccess = await LoadCaseForTenantAsync(tenantId, caseId, cancellationToken);
+        var effectiveRole = await ResolveEffectiveCaseRoleAsync(tenantId, actorUserId, caseForAccess, cancellationToken);
+        await EnsureCaseRoleAsync(effectiveRole, CaseRole.Editor, actorUserId, caseId, "GetProcessAlias", cancellationToken);
+
+        var alias = await _processAliasRepository.GetLatestByCaseIdAsync(caseForAccess.Id, cancellationToken);
+        if (alias is null || alias.CaseId != caseForAccess.Id || alias.TenantId != tenantId)
+        {
+            throw new CaseStateException("No process alias has been provisioned for this case.");
+        }
+
+        return MapProcessAlias(alias);
+    }
+
+    public async Task<ProcessAliasResponse> ProvisionProcessAliasAsync(
+        Guid tenantId,
+        Guid actorUserId,
+        Guid caseId,
+        CancellationToken cancellationToken)
+    {
+        var caseForAccess = await LoadCaseForTenantAsync(tenantId, caseId, cancellationToken);
+        var effectiveRole = await ResolveEffectiveCaseRoleAsync(tenantId, actorUserId, caseForAccess, cancellationToken);
+        await EnsureCaseRoleAsync(effectiveRole, CaseRole.Manager, actorUserId, caseId, "ProvisionProcessAlias", cancellationToken);
+        EnsureCaseEligibleForProcessCommunications(caseForAccess);
+
+        ProcessAliasResponse? response = null;
+
+        await _unitOfWork.ExecuteInTransactionAsync(
+            async token =>
+            {
+                var latestAlias = await _processAliasRepository.GetLatestByCaseIdAsync(caseForAccess.Id, token);
+                if (latestAlias is not null)
+                {
+                    throw new CaseStateException("A process alias has already been provisioned for this case.");
+                }
+
+                var nowUtc = DateTime.UtcNow;
+                var aliasEmail = await GenerateUniqueProcessAliasAsync(caseForAccess, token);
+                var alias = new ProcessAlias
+                {
+                    Id = Guid.NewGuid(),
+                    TenantId = tenantId,
+                    CaseId = caseForAccess.Id,
+                    AliasEmail = aliasEmail,
+                    Status = ProcessAliasStatus.Active,
+                    LastUpdatedByUserId = actorUserId,
+                    CreatedAt = nowUtc,
+                    UpdatedAt = nowUtc
+                };
+
+                await _processAliasRepository.CreateAsync(alias, token);
+
+                await WriteAuditEventAsync(
+                    actorUserId,
+                    "ProcessAliasCreated",
+                    new
+                    {
+                        CaseId = caseForAccess.Id,
+                        ProcessAliasId = alias.Id,
+                        alias.AliasEmail,
+                        Status = alias.Status.ToString(),
+                        ProvisionedAt = nowUtc
+                    },
+                    token,
+                    caseForAccess.Id);
+
+                response = MapProcessAlias(alias);
+            },
+            cancellationToken);
+
+        return response!;
+    }
+
+    public async Task<ProcessAliasResponse> RotateProcessAliasAsync(
+        Guid tenantId,
+        Guid actorUserId,
+        Guid caseId,
+        CancellationToken cancellationToken)
+    {
+        var caseForAccess = await LoadCaseForTenantAsync(tenantId, caseId, cancellationToken);
+        var effectiveRole = await ResolveEffectiveCaseRoleAsync(tenantId, actorUserId, caseForAccess, cancellationToken);
+        await EnsureCaseRoleAsync(effectiveRole, CaseRole.Manager, actorUserId, caseId, "RotateProcessAlias", cancellationToken);
+        EnsureCaseEligibleForProcessCommunications(caseForAccess);
+
+        ProcessAliasResponse? response = null;
+
+        await _unitOfWork.ExecuteInTransactionAsync(
+            async token =>
+            {
+                var currentAlias = await _processAliasRepository.GetCurrentByCaseIdAsync(caseForAccess.Id, token);
+                if (currentAlias is null || currentAlias.CaseId != caseForAccess.Id || currentAlias.TenantId != tenantId)
+                {
+                    throw new CaseStateException("An active process alias is required before rotation.");
+                }
+
+                if (currentAlias.Status != ProcessAliasStatus.Active)
+                {
+                    throw new CaseStateException("Only active process aliases can be rotated.");
+                }
+
+                var nowUtc = DateTime.UtcNow;
+                var previousAliasEmail = currentAlias.AliasEmail;
+                currentAlias.Status = ProcessAliasStatus.Rotated;
+                currentAlias.LastUpdatedByUserId = actorUserId;
+                currentAlias.UpdatedAt = nowUtc;
+
+                var aliasEmail = await GenerateUniqueProcessAliasAsync(caseForAccess, token);
+                var rotatedAlias = new ProcessAlias
+                {
+                    Id = Guid.NewGuid(),
+                    TenantId = tenantId,
+                    CaseId = caseForAccess.Id,
+                    AliasEmail = aliasEmail,
+                    Status = ProcessAliasStatus.Active,
+                    RotatedFromAliasId = currentAlias.Id,
+                    LastUpdatedByUserId = actorUserId,
+                    CreatedAt = nowUtc,
+                    UpdatedAt = nowUtc
+                };
+
+                await _processAliasRepository.CreateAsync(rotatedAlias, token);
+
+                await WriteAuditEventAsync(
+                    actorUserId,
+                    "ProcessAliasRotated",
+                    new
+                    {
+                        CaseId = caseForAccess.Id,
+                        PreviousProcessAliasId = currentAlias.Id,
+                        PreviousAliasEmail = previousAliasEmail,
+                        NewProcessAliasId = rotatedAlias.Id,
+                        NewAliasEmail = rotatedAlias.AliasEmail,
+                        RotatedAt = nowUtc
+                    },
+                    token,
+                    caseForAccess.Id);
+
+                response = MapProcessAlias(rotatedAlias);
+            },
+            cancellationToken);
+
+        return response!;
+    }
+
+    public async Task<ProcessAliasResponse> DeactivateProcessAliasAsync(
+        Guid tenantId,
+        Guid actorUserId,
+        Guid caseId,
+        CancellationToken cancellationToken)
+    {
+        var caseForAccess = await LoadCaseForTenantAsync(tenantId, caseId, cancellationToken);
+        var effectiveRole = await ResolveEffectiveCaseRoleAsync(tenantId, actorUserId, caseForAccess, cancellationToken);
+        await EnsureCaseRoleAsync(effectiveRole, CaseRole.Manager, actorUserId, caseId, "DeactivateProcessAlias", cancellationToken);
+
+        ProcessAliasResponse? response = null;
+
+        await _unitOfWork.ExecuteInTransactionAsync(
+            async token =>
+            {
+                var currentAlias = await _processAliasRepository.GetCurrentByCaseIdAsync(caseForAccess.Id, token);
+                if (currentAlias is null || currentAlias.CaseId != caseForAccess.Id || currentAlias.TenantId != tenantId)
+                {
+                    throw new CaseStateException("No active process alias is available to deactivate.");
+                }
+
+                if (currentAlias.Status != ProcessAliasStatus.Active)
+                {
+                    throw new CaseStateException("Only active process aliases can be deactivated.");
+                }
+
+                var nowUtc = DateTime.UtcNow;
+                currentAlias.Status = ProcessAliasStatus.Deactivated;
+                currentAlias.LastUpdatedByUserId = actorUserId;
+                currentAlias.UpdatedAt = nowUtc;
+
+                await WriteAuditEventAsync(
+                    actorUserId,
+                    "ProcessAliasDeactivated",
+                    new
+                    {
+                        CaseId = caseForAccess.Id,
+                        ProcessAliasId = currentAlias.Id,
+                        currentAlias.AliasEmail,
+                        DeactivatedAt = nowUtc
+                    },
+                    token,
+                    caseForAccess.Id);
+
+                response = MapProcessAlias(currentAlias);
+            },
+            cancellationToken);
+
+        return response!;
+    }
+
+    public async Task<ProcessAliasResponse> ArchiveProcessAliasAsync(
+        Guid tenantId,
+        Guid actorUserId,
+        Guid caseId,
+        CancellationToken cancellationToken)
+    {
+        var caseForAccess = await LoadCaseForTenantAsync(tenantId, caseId, cancellationToken);
+        var effectiveRole = await ResolveEffectiveCaseRoleAsync(tenantId, actorUserId, caseForAccess, cancellationToken);
+        await EnsureCaseRoleAsync(effectiveRole, CaseRole.Manager, actorUserId, caseId, "ArchiveProcessAlias", cancellationToken);
+
+        ProcessAliasResponse? response = null;
+
+        await _unitOfWork.ExecuteInTransactionAsync(
+            async token =>
+            {
+                var latestAlias = await _processAliasRepository.GetLatestByCaseIdAsync(caseForAccess.Id, token);
+                if (latestAlias is null || latestAlias.CaseId != caseForAccess.Id || latestAlias.TenantId != tenantId)
+                {
+                    throw new CaseStateException("No process alias has been provisioned for this case.");
+                }
+
+                if (latestAlias.Status == ProcessAliasStatus.Archived)
+                {
+                    throw new CaseStateException("Process alias is already archived.");
+                }
+
+                var nowUtc = DateTime.UtcNow;
+                latestAlias.Status = ProcessAliasStatus.Archived;
+                latestAlias.LastUpdatedByUserId = actorUserId;
+                latestAlias.UpdatedAt = nowUtc;
+
+                await WriteAuditEventAsync(
+                    actorUserId,
+                    "ProcessAliasArchived",
+                    new
+                    {
+                        CaseId = caseForAccess.Id,
+                        ProcessAliasId = latestAlias.Id,
+                        latestAlias.AliasEmail,
+                        ArchivedAt = nowUtc
+                    },
+                    token,
+                    caseForAccess.Id);
+
+                response = MapProcessAlias(latestAlias);
+            },
+            cancellationToken);
+
+        return response!;
+    }
+
     public async Task<GenerateCasePlanResponse> RecalculateCasePlanReadinessAsync(
         Guid tenantId,
         Guid actorUserId,
@@ -2216,6 +2470,14 @@ public sealed class CaseService : ICaseService
         }
     }
 
+    private static void EnsureCaseEligibleForProcessCommunications(Case caseEntity)
+    {
+        if (caseEntity.Status is not CaseStatus.Active and not CaseStatus.Review)
+        {
+            throw new CaseStateException("Process alias lifecycle actions are only allowed for active or review cases.");
+        }
+    }
+
     private static CaseHandoffStatus ParseCaseHandoffStatus(string value)
     {
         if (Enum.TryParse<CaseHandoffStatus>(value.Trim(), ignoreCase: true, out var status))
@@ -2279,6 +2541,38 @@ public sealed class CaseService : ICaseService
         }
 
         throw new CaseStateException("The requested extraction decision action is not recognized.");
+    }
+
+    private async Task<string> GenerateUniqueProcessAliasAsync(Case caseEntity, CancellationToken cancellationToken)
+    {
+        var localPartBase = BuildProcessAliasLocalPart(caseEntity);
+
+        for (var attempt = 0; attempt < 10; attempt++)
+        {
+            var suffix = Guid.NewGuid().ToString("N")[..6];
+            var candidate = $"{localPartBase}-{suffix}@sanzy.ai";
+            if (!await _processAliasRepository.ExistsByAliasEmailAsync(candidate, cancellationToken))
+            {
+                return candidate;
+            }
+        }
+
+        throw new CaseStateException("Unable to provision a unique process alias. Please retry.");
+    }
+
+    private static string BuildProcessAliasLocalPart(Case caseEntity)
+    {
+        var source = string.IsNullOrWhiteSpace(caseEntity.CaseNumber)
+            ? caseEntity.Id.ToString("N")[..8]
+            : caseEntity.CaseNumber;
+        var normalized = Regex.Replace(source.Trim().ToLowerInvariant(), "[^a-z0-9]+", "-")
+            .Trim('-');
+        if (string.IsNullOrWhiteSpace(normalized))
+        {
+            normalized = caseEntity.Id.ToString("N")[..8];
+        }
+
+        return $"process-{normalized}";
     }
 
     private static IReadOnlyDictionary<string, string> BuildOutboundTemplateFields(string templateKey, Case caseEntity)
@@ -2837,6 +3131,20 @@ public sealed class CaseService : ICaseService
         };
     }
 
+    private static ProcessAliasResponse MapProcessAlias(ProcessAlias alias)
+    {
+        return new ProcessAliasResponse
+        {
+            AliasId = alias.Id,
+            CaseId = alias.CaseId,
+            AliasEmail = alias.AliasEmail,
+            Status = alias.Status.ToString(),
+            RotatedFromAliasId = alias.RotatedFromAliasId,
+            CreatedAt = alias.CreatedAt,
+            UpdatedAt = alias.UpdatedAt
+        };
+    }
+
     private static CaseParticipantResponse MapParticipant(CaseParticipant participant)
     {
         return new CaseParticipantResponse
@@ -3137,6 +3445,41 @@ public sealed class CaseService : ICaseService
                     ? newStatusValue.GetString()
                     : "Unknown";
                 return $"Advisor handoff state changed from {previousStatus} to {newStatus}";
+            }
+
+            if (auditEvent.EventType == "ProcessAliasCreated")
+            {
+                var aliasEmail = root.TryGetProperty("AliasEmail", out var aliasEmailValue)
+                    ? aliasEmailValue.GetString()
+                    : "unknown@sanzy.ai";
+                return $"Process alias provisioned: {aliasEmail}";
+            }
+
+            if (auditEvent.EventType == "ProcessAliasRotated")
+            {
+                var previousAliasEmail = root.TryGetProperty("PreviousAliasEmail", out var previousAliasEmailValue)
+                    ? previousAliasEmailValue.GetString()
+                    : "unknown@sanzy.ai";
+                var newAliasEmail = root.TryGetProperty("NewAliasEmail", out var newAliasEmailValue)
+                    ? newAliasEmailValue.GetString()
+                    : "unknown@sanzy.ai";
+                return $"Process alias rotated from {previousAliasEmail} to {newAliasEmail}";
+            }
+
+            if (auditEvent.EventType == "ProcessAliasDeactivated")
+            {
+                var aliasEmail = root.TryGetProperty("AliasEmail", out var aliasEmailValue)
+                    ? aliasEmailValue.GetString()
+                    : "unknown@sanzy.ai";
+                return $"Process alias deactivated: {aliasEmail}";
+            }
+
+            if (auditEvent.EventType == "ProcessAliasArchived")
+            {
+                var aliasEmail = root.TryGetProperty("AliasEmail", out var aliasEmailValue)
+                    ? aliasEmailValue.GetString()
+                    : "unknown@sanzy.ai";
+                return $"Process alias archived: {aliasEmail}";
             }
         }
         catch (JsonException)

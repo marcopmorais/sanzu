@@ -20,6 +20,7 @@ public sealed class SanzuDbContext : DbContext
     public DbSet<CaseDocument> CaseDocuments => Set<CaseDocument>();
     public DbSet<CaseDocumentVersion> CaseDocumentVersions => Set<CaseDocumentVersion>();
     public DbSet<CaseHandoff> CaseHandoffs => Set<CaseHandoff>();
+    public DbSet<ProcessAlias> ProcessAliases => Set<ProcessAlias>();
     public DbSet<ExtractionCandidate> ExtractionCandidates => Set<ExtractionCandidate>();
     public DbSet<CaseParticipant> CaseParticipants => Set<CaseParticipant>();
     public DbSet<WorkflowStepInstance> WorkflowStepInstances => Set<WorkflowStepInstance>();
@@ -53,6 +54,9 @@ public sealed class SanzuDbContext : DbContext
 
         modelBuilder.Entity<CaseHandoff>()
             .HasQueryFilter(handoff => CurrentOrganizationId == null || handoff.TenantId == CurrentOrganizationId);
+
+        modelBuilder.Entity<ProcessAlias>()
+            .HasQueryFilter(alias => CurrentOrganizationId == null || alias.TenantId == CurrentOrganizationId);
 
         modelBuilder.Entity<ExtractionCandidate>()
             .HasQueryFilter(candidate => CurrentOrganizationId == null || candidate.TenantId == CurrentOrganizationId);

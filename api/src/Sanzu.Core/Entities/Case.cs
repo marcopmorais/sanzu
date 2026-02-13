@@ -28,4 +28,5 @@ public sealed class Case
     public ICollection<WorkflowStepInstance> WorkflowSteps { get; set; } = new List<WorkflowStepInstance>();
     public ICollection<CaseDocument> Documents { get; set; } = new List<CaseDocument>();
     public ICollection<CaseHandoff> Handoffs { get; set; } = new List<CaseHandoff>();
+    public ICollection<ProcessAlias> ProcessAliases { get; set; } = new List<ProcessAlias>();
 }

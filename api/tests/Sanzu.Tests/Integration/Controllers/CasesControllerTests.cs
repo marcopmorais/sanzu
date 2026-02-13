@@ -2146,6 +2146,163 @@ public sealed class CasesControllerTests : IClassFixture<CustomWebApplicationFac
         response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
     }
 
+    [Fact]
+    public async Task ProvisionProcessAlias_ShouldReturn200AndCreateAlias_WhenCaseIsEligible()
+    {
+        var client = _factory.CreateClient();
+        var signup = await CreateTenantAsync(client, "cases-process-alias-provision@agency.pt");
+        await ActivateTenantAsync(client, signup);
+        var createdCase = await CreateCaseAsync(client, signup, "Process Alias Provision Integration");
+        await MoveCaseToActiveAsync(client, signup, createdCase.CaseId);
+
+        using var provisionRequest = BuildAuthorizedRequest(
+            HttpMethod.Post,
+            $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/process-alias/provision",
+            signup.UserId,
+            signup.OrganizationId,
+            "AgencyAdmin");
+
+        var response = await client.SendAsync(provisionRequest);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var envelope = await response.Content.ReadFromJsonAsync<ApiEnvelope<ProcessAliasResponse>>();
+        envelope.Should().NotBeNull();
+        envelope!.Data.Should().NotBeNull();
+        envelope.Data!.CaseId.Should().Be(createdCase.CaseId);
+        envelope.Data.Status.Should().Be(ProcessAliasStatus.Active.ToString());
+        envelope.Data.AliasEmail.Should().StartWith("process-");
+        envelope.Data.AliasEmail.Should().EndWith("@sanzy.ai");
+
+        using var scope = _factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<SanzuDbContext>();
+        dbContext.ProcessAliases.Should().Contain(x => x.Id == envelope.Data.AliasId && x.CaseId == createdCase.CaseId);
+        dbContext.AuditEvents.Should().Contain(
+            x => x.EventType == "ProcessAliasCreated" && x.CaseId == createdCase.CaseId && x.ActorUserId == signup.UserId);
+    }
+
+    [Fact]
+    public async Task RotateProcessAlias_ShouldReturn200AndRotateAlias_WhenActiveAliasExists()
+    {
+        var client = _factory.CreateClient();
+        var signup = await CreateTenantAsync(client, "cases-process-alias-rotate@agency.pt");
+        await ActivateTenantAsync(client, signup);
+        var createdCase = await CreateCaseAsync(client, signup, "Process Alias Rotate Integration");
+        await MoveCaseToActiveAsync(client, signup, createdCase.CaseId);
+
+        using (var provisionRequest = BuildAuthorizedRequest(
+                   HttpMethod.Post,
+                   $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/process-alias/provision",
+                   signup.UserId,
+                   signup.OrganizationId,
+                   "AgencyAdmin"))
+        {
+            var provisionResponse = await client.SendAsync(provisionRequest);
+            provisionResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        }
+
+        using var rotateRequest = BuildAuthorizedRequest(
+            HttpMethod.Post,
+            $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/process-alias/rotate",
+            signup.UserId,
+            signup.OrganizationId,
+            "AgencyAdmin");
+
+        var response = await client.SendAsync(rotateRequest);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var envelope = await response.Content.ReadFromJsonAsync<ApiEnvelope<ProcessAliasResponse>>();
+        envelope.Should().NotBeNull();
+        envelope!.Data.Should().NotBeNull();
+        envelope.Data!.Status.Should().Be(ProcessAliasStatus.Active.ToString());
+        envelope.Data.RotatedFromAliasId.Should().NotBeNull();
+
+        using var scope = _factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<SanzuDbContext>();
+        dbContext.ProcessAliases.Should().Contain(x => x.Id == envelope.Data.AliasId && x.Status == ProcessAliasStatus.Active);
+        dbContext.ProcessAliases.Should().Contain(x => x.Id == envelope.Data.RotatedFromAliasId && x.Status == ProcessAliasStatus.Rotated);
+        dbContext.AuditEvents.Should().Contain(
+            x => x.EventType == "ProcessAliasRotated" && x.CaseId == createdCase.CaseId && x.ActorUserId == signup.UserId);
+    }
+
+    [Fact]
+    public async Task DeactivateAndArchiveProcessAlias_ShouldReturn200AndPersistLifecycle()
+    {
+        var client = _factory.CreateClient();
+        var signup = await CreateTenantAsync(client, "cases-process-alias-lifecycle@agency.pt");
+        await ActivateTenantAsync(client, signup);
+        var createdCase = await CreateCaseAsync(client, signup, "Process Alias Lifecycle Integration");
+        await MoveCaseToActiveAsync(client, signup, createdCase.CaseId);
+
+        using (var provisionRequest = BuildAuthorizedRequest(
+                   HttpMethod.Post,
+                   $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/process-alias/provision",
+                   signup.UserId,
+                   signup.OrganizationId,
+                   "AgencyAdmin"))
+        {
+            var provisionResponse = await client.SendAsync(provisionRequest);
+            provisionResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        }
+
+        using var deactivateRequest = BuildAuthorizedRequest(
+            HttpMethod.Post,
+            $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/process-alias/deactivate",
+            signup.UserId,
+            signup.OrganizationId,
+            "AgencyAdmin");
+        var deactivateResponse = await client.SendAsync(deactivateRequest);
+        deactivateResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        var deactivateEnvelope = await deactivateResponse.Content.ReadFromJsonAsync<ApiEnvelope<ProcessAliasResponse>>();
+        deactivateEnvelope.Should().NotBeNull();
+        deactivateEnvelope!.Data.Should().NotBeNull();
+        deactivateEnvelope.Data!.Status.Should().Be(ProcessAliasStatus.Deactivated.ToString());
+
+        using var archiveRequest = BuildAuthorizedRequest(
+            HttpMethod.Post,
+            $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/process-alias/archive",
+            signup.UserId,
+            signup.OrganizationId,
+            "AgencyAdmin");
+        var archiveResponse = await client.SendAsync(archiveRequest);
+        archiveResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        var archiveEnvelope = await archiveResponse.Content.ReadFromJsonAsync<ApiEnvelope<ProcessAliasResponse>>();
+        archiveEnvelope.Should().NotBeNull();
+        archiveEnvelope!.Data.Should().NotBeNull();
+        archiveEnvelope.Data!.Status.Should().Be(ProcessAliasStatus.Archived.ToString());
+
+        using var scope = _factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<SanzuDbContext>();
+        dbContext.AuditEvents.Should().Contain(
+            x => x.EventType == "ProcessAliasDeactivated" && x.CaseId == createdCase.CaseId && x.ActorUserId == signup.UserId);
+        dbContext.AuditEvents.Should().Contain(
+            x => x.EventType == "ProcessAliasArchived" && x.CaseId == createdCase.CaseId && x.ActorUserId == signup.UserId);
+    }
+
+    [Fact]
+    public async Task ProvisionProcessAlias_ShouldReturn403_WhenUserIsReader()
+    {
+        var client = _factory.CreateClient();
+        var signup = await CreateTenantAsync(client, "cases-process-alias-reader@agency.pt");
+        await ActivateTenantAsync(client, signup);
+        var createdCase = await CreateCaseAsync(client, signup, "Process Alias Reader Integration");
+        await MoveCaseToActiveAsync(client, signup, createdCase.CaseId);
+        var readerUserId = await SeedAcceptedParticipantAsync(
+            signup.OrganizationId,
+            createdCase.CaseId,
+            "family.process.alias.reader@agency.pt",
+            CaseRole.Reader);
+
+        using var provisionRequest = BuildAuthorizedRequest(
+            HttpMethod.Post,
+            $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/process-alias/provision",
+            readerUserId,
+            signup.OrganizationId,
+            "Reader");
+
+        var response = await client.SendAsync(provisionRequest);
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
     private async Task ActivateTenantAsync(HttpClient client, CreateAgencyAccountResponse signup)
     {
         using var defaultsRequest = BuildAuthorizedJsonRequest(
@@ -2219,6 +2376,43 @@ public sealed class CasesControllerTests : IClassFixture<CustomWebApplicationFac
         envelope.Should().NotBeNull();
         envelope!.Data.Should().NotBeNull();
         return envelope.Data!;
+    }
+
+    private static async Task MoveCaseToActiveAsync(
+        HttpClient client,
+        CreateAgencyAccountResponse signup,
+        Guid caseId)
+    {
+        using (var intakeRequest = BuildAuthorizedJsonRequest(
+                   HttpMethod.Put,
+                   $"/api/v1/tenants/{signup.OrganizationId}/cases/{caseId}/intake",
+                   new SubmitCaseIntakeRequest
+                   {
+                       PrimaryContactName = "Ana Pereira",
+                       PrimaryContactPhone = "+351910000000",
+                       RelationshipToDeceased = "Daughter",
+                       HasWill = true,
+                       RequiresLegalSupport = false,
+                       RequiresFinancialSupport = true,
+                       ConfirmAccuracy = true
+                   },
+                   signup.UserId,
+                   signup.OrganizationId,
+                   "AgencyAdmin"))
+        {
+            var intakeResponse = await client.SendAsync(intakeRequest);
+            intakeResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        }
+
+        using var activateRequest = BuildAuthorizedJsonRequest(
+            HttpMethod.Patch,
+            $"/api/v1/tenants/{signup.OrganizationId}/cases/{caseId}/lifecycle",
+            new UpdateCaseLifecycleRequest { TargetStatus = "Active" },
+            signup.UserId,
+            signup.OrganizationId,
+            "AgencyAdmin");
+        var activateResponse = await client.SendAsync(activateRequest);
+        activateResponse.StatusCode.Should().Be(HttpStatusCode.OK);
     }
 
     private static async Task<GenerateCaseHandoffPacketResponse> GenerateHandoffPacketForCaseAsync(

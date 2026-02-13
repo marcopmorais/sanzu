@@ -2362,6 +2362,137 @@ public sealed class CaseServiceTests
     }
 
     [Fact]
+    public async Task ProvisionProcessAlias_ShouldCreateUniqueAliasAndAudit_WhenCaseIsEligible()
+    {
+        var dbContext = CreateContext();
+        var (tenantId, actorUserId) = await SeedTenantWithAdminAsync(dbContext, TenantStatus.Active);
+        var service = CreateService(dbContext);
+        var createdCase = await CreateCaseAsync(service, tenantId, actorUserId, "Process Alias Provision Case");
+        await MoveCaseToActiveAsync(service, tenantId, actorUserId, createdCase.CaseId);
+
+        var alias = await service.ProvisionProcessAliasAsync(
+            tenantId,
+            actorUserId,
+            createdCase.CaseId,
+            CancellationToken.None);
+
+        alias.CaseId.Should().Be(createdCase.CaseId);
+        alias.Status.Should().Be(ProcessAliasStatus.Active.ToString());
+        alias.AliasEmail.Should().StartWith("process-");
+        alias.AliasEmail.Should().EndWith("@sanzy.ai");
+
+        var persisted = await dbContext.ProcessAliases.SingleAsync(x => x.Id == alias.AliasId);
+        persisted.Status.Should().Be(ProcessAliasStatus.Active);
+        dbContext.AuditEvents.Should().Contain(
+            x => x.EventType == "ProcessAliasCreated" && x.CaseId == createdCase.CaseId && x.ActorUserId == actorUserId);
+    }
+
+    [Fact]
+    public async Task RotateProcessAlias_ShouldMarkPreviousAsRotatedAndCreateNewActiveAlias()
+    {
+        var dbContext = CreateContext();
+        var (tenantId, actorUserId) = await SeedTenantWithAdminAsync(dbContext, TenantStatus.Active);
+        var service = CreateService(dbContext);
+        var createdCase = await CreateCaseAsync(service, tenantId, actorUserId, "Process Alias Rotate Case");
+        await MoveCaseToActiveAsync(service, tenantId, actorUserId, createdCase.CaseId);
+
+        var initialAlias = await service.ProvisionProcessAliasAsync(
+            tenantId,
+            actorUserId,
+            createdCase.CaseId,
+            CancellationToken.None);
+
+        var rotatedAlias = await service.RotateProcessAliasAsync(
+            tenantId,
+            actorUserId,
+            createdCase.CaseId,
+            CancellationToken.None);
+
+        rotatedAlias.Status.Should().Be(ProcessAliasStatus.Active.ToString());
+        rotatedAlias.AliasId.Should().NotBe(initialAlias.AliasId);
+        rotatedAlias.RotatedFromAliasId.Should().Be(initialAlias.AliasId);
+        rotatedAlias.AliasEmail.Should().NotBe(initialAlias.AliasEmail);
+
+        var previous = await dbContext.ProcessAliases.SingleAsync(x => x.Id == initialAlias.AliasId);
+        previous.Status.Should().Be(ProcessAliasStatus.Rotated);
+        var current = await dbContext.ProcessAliases.SingleAsync(x => x.Id == rotatedAlias.AliasId);
+        current.Status.Should().Be(ProcessAliasStatus.Active);
+        dbContext.AuditEvents.Should().Contain(
+            x => x.EventType == "ProcessAliasRotated" && x.CaseId == createdCase.CaseId && x.ActorUserId == actorUserId);
+    }
+
+    [Fact]
+    public async Task DeactivateAndArchiveProcessAlias_ShouldPersistLifecycleAndAudit()
+    {
+        var dbContext = CreateContext();
+        var (tenantId, actorUserId) = await SeedTenantWithAdminAsync(dbContext, TenantStatus.Active);
+        var service = CreateService(dbContext);
+        var createdCase = await CreateCaseAsync(service, tenantId, actorUserId, "Process Alias Lifecycle Case");
+        await MoveCaseToActiveAsync(service, tenantId, actorUserId, createdCase.CaseId);
+
+        var provisioned = await service.ProvisionProcessAliasAsync(
+            tenantId,
+            actorUserId,
+            createdCase.CaseId,
+            CancellationToken.None);
+
+        var deactivated = await service.DeactivateProcessAliasAsync(
+            tenantId,
+            actorUserId,
+            createdCase.CaseId,
+            CancellationToken.None);
+
+        deactivated.AliasId.Should().Be(provisioned.AliasId);
+        deactivated.Status.Should().Be(ProcessAliasStatus.Deactivated.ToString());
+
+        var archived = await service.ArchiveProcessAliasAsync(
+            tenantId,
+            actorUserId,
+            createdCase.CaseId,
+            CancellationToken.None);
+
+        archived.AliasId.Should().Be(provisioned.AliasId);
+        archived.Status.Should().Be(ProcessAliasStatus.Archived.ToString());
+
+        dbContext.AuditEvents.Should().Contain(
+            x => x.EventType == "ProcessAliasDeactivated" && x.CaseId == createdCase.CaseId && x.ActorUserId == actorUserId);
+        dbContext.AuditEvents.Should().Contain(
+            x => x.EventType == "ProcessAliasArchived" && x.CaseId == createdCase.CaseId && x.ActorUserId == actorUserId);
+    }
+
+    [Fact]
+    public async Task ProvisionProcessAlias_ShouldThrowCaseAccessDeniedAndAudit_WhenUserIsReader()
+    {
+        var dbContext = CreateContext();
+        var (tenantId, actorUserId) = await SeedTenantWithAdminAsync(dbContext, TenantStatus.Active);
+        var service = CreateService(dbContext);
+        var createdCase = await CreateCaseAsync(service, tenantId, actorUserId, "Process Alias Access Case");
+        await MoveCaseToActiveAsync(service, tenantId, actorUserId, createdCase.CaseId);
+
+        var readerUserId = Guid.NewGuid();
+        const string readerEmail = "family.process.alias.reader@agency.pt";
+        await SeedUserAsync(dbContext, readerUserId, tenantId, readerEmail, "Alias Reader");
+        await SeedAcceptedParticipantDirectAsync(dbContext, tenantId, createdCase.CaseId, readerUserId, readerEmail, CaseRole.Reader);
+
+        var act = () => service.ProvisionProcessAliasAsync(
+            tenantId,
+            readerUserId,
+            createdCase.CaseId,
+            CancellationToken.None);
+
+        await act.Should().ThrowAsync<CaseAccessDeniedException>()
+            .Where(e => e.ReasonCode == "ROLE_INSUFFICIENT" && e.AttemptedAction == "ProvisionProcessAlias");
+        AssertAccessDeniedAudit(
+            dbContext,
+            readerUserId,
+            createdCase.CaseId,
+            "ProvisionProcessAlias",
+            "Manager",
+            "Reader",
+            "ROLE_INSUFFICIENT");
+    }
+
+    [Fact]
     public async Task GetCaseDetails_ShouldReturnDetails_WhenUserIsCaseManager()
     {
         var dbContext = CreateContext();
@@ -2523,6 +2654,7 @@ public sealed class CaseServiceTests
             new CaseRepository(dbContext),
             new CaseDocumentRepository(dbContext),
             new CaseHandoffRepository(dbContext),
+            new ProcessAliasRepository(dbContext),
             new ExtractionCandidateRepository(dbContext),
             new CaseParticipantRepository(dbContext),
             new WorkflowStepRepository(dbContext),

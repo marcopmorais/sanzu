@@ -28,6 +28,7 @@ public static class ServiceRegistration
         services.AddScoped<ICaseRepository, CaseRepository>();
         services.AddScoped<ICaseDocumentRepository, CaseDocumentRepository>();
         services.AddScoped<ICaseHandoffRepository, CaseHandoffRepository>();
+        services.AddScoped<IProcessAliasRepository, ProcessAliasRepository>();
         services.AddScoped<IExtractionCandidateRepository, ExtractionCandidateRepository>();
         services.AddScoped<ICaseParticipantRepository, CaseParticipantRepository>();
         services.AddScoped<IWorkflowStepRepository, WorkflowStepRepository>();
