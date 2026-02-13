@@ -205,6 +205,96 @@ public sealed class AdminControllerTests : IClassFixture<CustomWebApplicationFac
         response.StatusCode.Should().Be(HttpStatusCode.Conflict);
     }
 
+    [Fact]
+    public async Task ApplyTenantPolicyControl_ShouldReturn200AndPersistControl_WhenActorIsSanzuAdmin()
+    {
+        var client = _factory.CreateClient();
+        var signup = await CreateTenantAsync(client, "admin-policy-control@agency.pt");
+        var sanzuAdminUserId = await SeedSanzuAdminAsync(signup.OrganizationId);
+
+        using var request = BuildAuthorizedJsonRequest(
+            HttpMethod.Put,
+            $"/api/v1/admin/tenants/{signup.OrganizationId}/policy-controls",
+            new ApplyTenantPolicyControlRequest
+            {
+                ControlType = "RiskHold",
+                IsEnabled = true,
+                ReasonCode = "RISK_ESCALATION"
+            },
+            sanzuAdminUserId,
+            signup.OrganizationId,
+            "SanzuAdmin");
+
+        var response = await client.SendAsync(request);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var envelope = await response.Content.ReadFromJsonAsync<ApiEnvelope<TenantPolicyControlResponse>>();
+        envelope.Should().NotBeNull();
+        envelope!.Data.Should().NotBeNull();
+        envelope.Data!.TenantId.Should().Be(signup.OrganizationId);
+        envelope.Data.ControlType.Should().Be(TenantPolicyControlType.RiskHold);
+        envelope.Data.IsEnabled.Should().BeTrue();
+        envelope.Data.ReasonCode.Should().Be("RISK_ESCALATION");
+        envelope.Data.AppliedByUserId.Should().Be(sanzuAdminUserId);
+
+        using var scope = _factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<SanzuDbContext>();
+        dbContext.TenantPolicyControls.Should().Contain(
+            x => x.TenantId == signup.OrganizationId
+                 && x.ControlType == TenantPolicyControlType.RiskHold
+                 && x.IsEnabled
+                 && x.ReasonCode == "RISK_ESCALATION");
+        dbContext.AuditEvents.Should().Contain(x => x.EventType == "TenantPolicyControlApplied");
+    }
+
+    [Fact]
+    public async Task CreateCase_ShouldReturn409_WhenRiskHoldPolicyControlIsActive()
+    {
+        var client = _factory.CreateClient();
+        var signup = await CreateTenantAsync(client, "admin-policy-risk-hold@agency.pt");
+        await SetTenantStatusAsync(signup.OrganizationId, TenantStatus.Active);
+        var sanzuAdminUserId = await SeedSanzuAdminAsync(signup.OrganizationId);
+
+        using (var policyRequest = BuildAuthorizedJsonRequest(
+                   HttpMethod.Put,
+                   $"/api/v1/admin/tenants/{signup.OrganizationId}/policy-controls",
+                   new ApplyTenantPolicyControlRequest
+                   {
+                       ControlType = "RiskHold",
+                       IsEnabled = true,
+                       ReasonCode = "RISK_ESCALATION"
+                   },
+                   sanzuAdminUserId,
+                   signup.OrganizationId,
+                   "SanzuAdmin"))
+        {
+            var policyResponse = await client.SendAsync(policyRequest);
+            policyResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        }
+
+        using var createCaseRequest = BuildAuthorizedJsonRequest(
+            HttpMethod.Post,
+            $"/api/v1/tenants/{signup.OrganizationId}/cases",
+            new CreateCaseRequest
+            {
+                DeceasedFullName = "Blocked by Risk Hold",
+                DateOfDeath = DateTime.UtcNow.AddDays(-4),
+                CaseType = "General",
+                Urgency = "Normal",
+                Notes = "Should be blocked by policy control."
+            },
+            signup.UserId,
+            signup.OrganizationId,
+            "AgencyAdmin");
+
+        var createCaseResponse = await client.SendAsync(createCaseRequest);
+        createCaseResponse.StatusCode.Should().Be(HttpStatusCode.Conflict);
+
+        using var scope = _factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<SanzuDbContext>();
+        dbContext.Cases.Should().NotContain(x => x.TenantId == signup.OrganizationId);
+    }
+
     private async Task<Guid> SeedSanzuAdminAsync(Guid tenantId)
     {
         using var scope = _factory.Services.CreateScope();
@@ -257,6 +347,17 @@ public sealed class AdminControllerTests : IClassFixture<CustomWebApplicationFac
 
         await dbContext.SaveChangesAsync();
         return sessionId;
+    }
+
+    private async Task SetTenantStatusAsync(Guid tenantId, TenantStatus status)
+    {
+        using var scope = _factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<SanzuDbContext>();
+        var tenant = await dbContext.Organizations.FindAsync(tenantId);
+        tenant.Should().NotBeNull();
+        tenant!.Status = status;
+        tenant.UpdatedAt = DateTime.UtcNow;
+        await dbContext.SaveChangesAsync();
     }
 
     private static HttpRequestMessage BuildAuthorizedJsonRequest(

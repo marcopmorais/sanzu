@@ -34,6 +34,7 @@ public static class ServiceRegistration
         services.AddScoped<ICaseParticipantRepository, CaseParticipantRepository>();
         services.AddScoped<IWorkflowStepRepository, WorkflowStepRepository>();
         services.AddScoped<ISupportDiagnosticSessionRepository, SupportDiagnosticSessionRepository>();
+        services.AddScoped<ITenantPolicyControlRepository, TenantPolicyControlRepository>();
         services.AddScoped<ITenantInvitationNotificationSender, NoOpTenantInvitationNotificationSender>();
         services.AddScoped<IUnitOfWork, EfUnitOfWork>();
 

@@ -25,6 +25,7 @@ public sealed class CaseService : ICaseService
     private readonly IExtractionCandidateRepository _extractionCandidateRepository;
     private readonly ICaseParticipantRepository _caseParticipantRepository;
     private readonly IWorkflowStepRepository _workflowStepRepository;
+    private readonly ITenantPolicyControlRepository _tenantPolicyControlRepository;
     private readonly IAuditRepository _auditRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IValidator<CreateCaseRequest> _createCaseValidator;
@@ -54,6 +55,7 @@ public sealed class CaseService : ICaseService
         IExtractionCandidateRepository extractionCandidateRepository,
         ICaseParticipantRepository caseParticipantRepository,
         IWorkflowStepRepository workflowStepRepository,
+        ITenantPolicyControlRepository tenantPolicyControlRepository,
         IAuditRepository auditRepository,
         IUnitOfWork unitOfWork,
         IValidator<CreateCaseRequest> createCaseValidator,
@@ -82,6 +84,7 @@ public sealed class CaseService : ICaseService
         _extractionCandidateRepository = extractionCandidateRepository;
         _caseParticipantRepository = caseParticipantRepository;
         _workflowStepRepository = workflowStepRepository;
+        _tenantPolicyControlRepository = tenantPolicyControlRepository;
         _auditRepository = auditRepository;
         _unitOfWork = unitOfWork;
         _createCaseValidator = createCaseValidator;
@@ -120,6 +123,7 @@ public sealed class CaseService : ICaseService
                 var tenant = await LoadAuthorizedTenantAsync(tenantId, actorUserId, token);
 
                 EnsureCaseCreationState(tenant);
+                await EnsureTenantPolicyAllowsCaseCreationAsync(tenantId, token);
 
                 var nextSequence = await _caseRepository.GetNextCaseSequenceAsync(tenantId, token);
                 var nowUtc = DateTime.UtcNow;
@@ -2564,6 +2568,20 @@ public sealed class CaseService : ICaseService
         {
             throw new CaseStateException(
                 "Cases can only be created for tenants with an active subscription.");
+        }
+    }
+
+    private async Task EnsureTenantPolicyAllowsCaseCreationAsync(Guid tenantId, CancellationToken cancellationToken)
+    {
+        var riskHoldEnabled = await _tenantPolicyControlRepository.IsControlEnabledAsync(
+            tenantId,
+            TenantPolicyControlType.RiskHold,
+            cancellationToken);
+
+        if (riskHoldEnabled)
+        {
+            throw new CaseStateException(
+                "Case creation is restricted while tenant risk hold policy control is active.");
         }
     }
 

@@ -15,13 +15,16 @@ public sealed class AdminController : ControllerBase
 {
     private readonly ITenantLifecycleService _tenantLifecycleService;
     private readonly ISupportDiagnosticsService _supportDiagnosticsService;
+    private readonly ITenantPolicyControlService _tenantPolicyControlService;
 
     public AdminController(
         ITenantLifecycleService tenantLifecycleService,
-        ISupportDiagnosticsService supportDiagnosticsService)
+        ISupportDiagnosticsService supportDiagnosticsService,
+        ITenantPolicyControlService tenantPolicyControlService)
     {
         _tenantLifecycleService = tenantLifecycleService;
         _supportDiagnosticsService = supportDiagnosticsService;
+        _tenantPolicyControlService = tenantPolicyControlService;
     }
 
     [Authorize(Policy = "SanzuAdmin")]
@@ -147,6 +150,41 @@ public sealed class AdminController : ControllerBase
                 statusCode: StatusCodes.Status409Conflict,
                 title: "Support diagnostics conflict",
                 detail: exception.Message);
+        }
+    }
+
+    [Authorize(Policy = "SanzuAdmin")]
+    [HttpPut("tenants/{tenantId:guid}/policy-controls")]
+    [ProducesResponseType(typeof(ApiEnvelope<TenantPolicyControlResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> ApplyTenantPolicyControl(
+        Guid tenantId,
+        [FromBody] ApplyTenantPolicyControlRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (!TryGetActorUserId(out var actorUserId))
+        {
+            return Unauthorized();
+        }
+
+        try
+        {
+            var response = await _tenantPolicyControlService.ApplyTenantPolicyControlAsync(
+                tenantId,
+                actorUserId,
+                request,
+                cancellationToken);
+
+            return Ok(ApiEnvelope<TenantPolicyControlResponse>.Success(response, BuildMeta()));
+        }
+        catch (ValidationException validationException)
+        {
+            return BadRequest(BuildValidationProblem(validationException, "Invalid tenant policy control request"));
+        }
+        catch (TenantAccessDeniedException)
+        {
+            return Forbid();
         }
     }
 

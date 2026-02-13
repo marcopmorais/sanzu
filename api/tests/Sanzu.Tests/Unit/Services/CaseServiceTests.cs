@@ -101,6 +101,40 @@ public sealed class CaseServiceTests
     }
 
     [Fact]
+    public async Task CreateCase_ShouldThrowCaseStateException_WhenRiskHoldPolicyControlIsEnabled()
+    {
+        var dbContext = CreateContext();
+        var (tenantId, actorUserId) = await SeedTenantWithAdminAsync(dbContext, TenantStatus.Active);
+        dbContext.TenantPolicyControls.Add(
+            new TenantPolicyControl
+            {
+                Id = Guid.NewGuid(),
+                TenantId = tenantId,
+                ControlType = TenantPolicyControlType.RiskHold,
+                IsEnabled = true,
+                ReasonCode = "RISK_ESCALATION",
+                AppliedByUserId = actorUserId,
+                AppliedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            });
+        await dbContext.SaveChangesAsync();
+        var service = CreateService(dbContext);
+
+        var act = () => service.CreateCaseAsync(
+            tenantId,
+            actorUserId,
+            new CreateCaseRequest
+            {
+                DeceasedFullName = "Blocked Case",
+                DateOfDeath = DateTime.UtcNow.AddDays(-3)
+            },
+            CancellationToken.None);
+
+        await act.Should().ThrowAsync<CaseStateException>()
+            .WithMessage("*risk hold policy control is active*");
+    }
+
+    [Fact]
     public async Task CreateCase_ShouldIncrementCaseSequence_ForSameTenant()
     {
         var dbContext = CreateContext();
@@ -2996,6 +3030,7 @@ public sealed class CaseServiceTests
             new ExtractionCandidateRepository(dbContext),
             new CaseParticipantRepository(dbContext),
             new WorkflowStepRepository(dbContext),
+            new TenantPolicyControlRepository(dbContext),
             new AuditRepository(dbContext),
             new EfUnitOfWork(dbContext),
             new CreateCaseRequestValidator(),

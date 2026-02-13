@@ -49,6 +49,7 @@ public static class ServiceRegistration
         services.AddScoped<ITenantUsageIndicatorsService, TenantUsageIndicatorsService>();
         services.AddScoped<ITenantLifecycleService, TenantLifecycleService>();
         services.AddScoped<ISupportDiagnosticsService, SupportDiagnosticsService>();
+        services.AddScoped<ITenantPolicyControlService, TenantPolicyControlService>();
         services.AddScoped<ITenantSubscriptionService, TenantSubscriptionService>();
         services.AddScoped<ITenantBillingService, TenantBillingService>();
         services.AddScoped<ICaseService, CaseService>();
@@ -69,6 +70,7 @@ public static class ServiceRegistration
         services.AddScoped<IValidator<UpdateCaseParticipantRoleRequest>, UpdateCaseParticipantRoleRequestValidator>();
         services.AddScoped<IValidator<UpdateTenantLifecycleStateRequest>, UpdateTenantLifecycleStateRequestValidator>();
         services.AddScoped<IValidator<StartSupportDiagnosticSessionRequest>, StartSupportDiagnosticSessionRequestValidator>();
+        services.AddScoped<IValidator<ApplyTenantPolicyControlRequest>, ApplyTenantPolicyControlRequestValidator>();
         services.AddScoped<IValidator<UpdateTenantOnboardingProfileRequest>, UpdateTenantOnboardingProfileRequestValidator>();
         services.AddScoped<IValidator<UpdateTenantOnboardingDefaultsRequest>, UpdateTenantOnboardingDefaultsRequestValidator>();
         services.AddScoped<IValidator<UpdateTenantCaseDefaultsRequest>, UpdateTenantCaseDefaultsRequestValidator>();

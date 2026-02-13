@@ -29,6 +29,7 @@ public sealed class SanzuDbContext : DbContext
     public DbSet<TenantInvitation> TenantInvitations => Set<TenantInvitation>();
     public DbSet<BillingRecord> BillingRecords => Set<BillingRecord>();
     public DbSet<SupportDiagnosticSession> SupportDiagnosticSessions => Set<SupportDiagnosticSession>();
+    public DbSet<TenantPolicyControl> TenantPolicyControls => Set<TenantPolicyControl>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -83,5 +84,8 @@ public sealed class SanzuDbContext : DbContext
 
         modelBuilder.Entity<SupportDiagnosticSession>()
             .HasQueryFilter(session => CurrentOrganizationId == null || session.TenantId == CurrentOrganizationId);
+
+        modelBuilder.Entity<TenantPolicyControl>()
+            .HasQueryFilter(control => CurrentOrganizationId == null || control.TenantId == CurrentOrganizationId);
     }
 }
