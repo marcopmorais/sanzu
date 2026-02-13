@@ -2046,6 +2046,106 @@ public sealed class CasesControllerTests : IClassFixture<CustomWebApplicationFac
         response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
     }
 
+    [Fact]
+    public async Task GetCaseHandoffState_ShouldReturn200AndLatestState_WhenHandoffExists()
+    {
+        var client = _factory.CreateClient();
+        var signup = await CreateTenantAsync(client, "cases-handoff-state-get@agency.pt");
+        await ActivateTenantAsync(client, signup);
+        var createdCase = await CreateCaseAsync(client, signup, "Handoff State Get Case");
+        var packet = await GenerateHandoffPacketForCaseAsync(client, signup, createdCase);
+
+        using var stateRequest = BuildAuthorizedRequest(
+            HttpMethod.Get,
+            $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/handoffs/state",
+            signup.UserId,
+            signup.OrganizationId,
+            "AgencyAdmin");
+
+        var response = await client.SendAsync(stateRequest);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var envelope = await response.Content.ReadFromJsonAsync<ApiEnvelope<CaseHandoffStateResponse>>();
+        envelope.Should().NotBeNull();
+        envelope!.Data.Should().NotBeNull();
+        envelope.Data!.CaseId.Should().Be(createdCase.CaseId);
+        envelope.Data.HandoffId.Should().Be(packet.HandoffId);
+        envelope.Data.Status.Should().Be(CaseHandoffStatus.PendingAdvisor.ToString());
+        envelope.Data.FollowUpRequired.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task UpdateCaseHandoffState_ShouldReturn200AndPersist_WhenRequestIsValid()
+    {
+        var client = _factory.CreateClient();
+        var signup = await CreateTenantAsync(client, "cases-handoff-state-update@agency.pt");
+        await ActivateTenantAsync(client, signup);
+        var createdCase = await CreateCaseAsync(client, signup, "Handoff State Update Case");
+        var packet = await GenerateHandoffPacketForCaseAsync(client, signup, createdCase);
+
+        using var updateRequest = BuildAuthorizedJsonRequest(
+            HttpMethod.Patch,
+            $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/handoffs/{packet.HandoffId}/state",
+            new UpdateCaseHandoffStateRequest
+            {
+                Status = "Completed",
+                Notes = "Advisor confirmed completion."
+            },
+            signup.UserId,
+            signup.OrganizationId,
+            "AgencyAdmin");
+
+        var response = await client.SendAsync(updateRequest);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var envelope = await response.Content.ReadFromJsonAsync<ApiEnvelope<CaseHandoffStateResponse>>();
+        envelope.Should().NotBeNull();
+        envelope!.Data.Should().NotBeNull();
+        envelope.Data!.HandoffId.Should().Be(packet.HandoffId);
+        envelope.Data.Status.Should().Be(CaseHandoffStatus.Completed.ToString());
+        envelope.Data.FollowUpRequired.Should().BeFalse();
+        envelope.Data.StatusNotes.Should().Be("Advisor confirmed completion.");
+
+        using var scope = _factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<SanzuDbContext>();
+        dbContext.CaseHandoffs.Should().Contain(
+            x => x.Id == packet.HandoffId
+                 && x.Status == CaseHandoffStatus.Completed
+                 && x.FollowUpRequired == false
+                 && x.StatusNotes == "Advisor confirmed completion.");
+        dbContext.AuditEvents.Should().Contain(
+            x => x.EventType == "CaseHandoffStateUpdated" && x.CaseId == createdCase.CaseId && x.ActorUserId == signup.UserId);
+    }
+
+    [Fact]
+    public async Task UpdateCaseHandoffState_ShouldReturn403_WhenUserIsReader()
+    {
+        var client = _factory.CreateClient();
+        var signup = await CreateTenantAsync(client, "cases-handoff-state-reader@agency.pt");
+        await ActivateTenantAsync(client, signup);
+        var createdCase = await CreateCaseAsync(client, signup, "Handoff State Reader Case");
+        var packet = await GenerateHandoffPacketForCaseAsync(client, signup, createdCase);
+        var readerUserId = await SeedAcceptedParticipantAsync(
+            signup.OrganizationId,
+            createdCase.CaseId,
+            "family.handoff.reader@agency.pt",
+            CaseRole.Reader);
+
+        using var updateRequest = BuildAuthorizedJsonRequest(
+            HttpMethod.Patch,
+            $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/handoffs/{packet.HandoffId}/state",
+            new UpdateCaseHandoffStateRequest
+            {
+                Status = "Completed"
+            },
+            readerUserId,
+            signup.OrganizationId,
+            "Reader");
+
+        var response = await client.SendAsync(updateRequest);
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
     private async Task ActivateTenantAsync(HttpClient client, CreateAgencyAccountResponse signup)
     {
         using var defaultsRequest = BuildAuthorizedJsonRequest(
@@ -2116,6 +2216,88 @@ public sealed class CasesControllerTests : IClassFixture<CustomWebApplicationFac
         var response = await client.SendAsync(request);
         response.StatusCode.Should().Be(HttpStatusCode.Created);
         var envelope = await response.Content.ReadFromJsonAsync<ApiEnvelope<CreateCaseResponse>>();
+        envelope.Should().NotBeNull();
+        envelope!.Data.Should().NotBeNull();
+        return envelope.Data!;
+    }
+
+    private static async Task<GenerateCaseHandoffPacketResponse> GenerateHandoffPacketForCaseAsync(
+        HttpClient client,
+        CreateAgencyAccountResponse signup,
+        CreateCaseResponse createdCase)
+    {
+        using (var intakeRequest = BuildAuthorizedJsonRequest(
+                   HttpMethod.Put,
+                   $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/intake",
+                   new SubmitCaseIntakeRequest
+                   {
+                       PrimaryContactName = "Ana Pereira",
+                       PrimaryContactPhone = "+351910000000",
+                       RelationshipToDeceased = "Daughter",
+                       HasWill = true,
+                       RequiresLegalSupport = false,
+                       RequiresFinancialSupport = true,
+                       ConfirmAccuracy = true
+                   },
+                   signup.UserId,
+                   signup.OrganizationId,
+                   "AgencyAdmin"))
+        {
+            var intakeResponse = await client.SendAsync(intakeRequest);
+            intakeResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        }
+
+        using (var activateRequest = BuildAuthorizedJsonRequest(
+                   HttpMethod.Patch,
+                   $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/lifecycle",
+                   new UpdateCaseLifecycleRequest { TargetStatus = "Active" },
+                   signup.UserId,
+                   signup.OrganizationId,
+                   "AgencyAdmin"))
+        {
+            var activateResponse = await client.SendAsync(activateRequest);
+            activateResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        }
+
+        using (var generatePlanRequest = BuildAuthorizedRequest(
+                   HttpMethod.Post,
+                   $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/plan/generate",
+                   signup.UserId,
+                   signup.OrganizationId,
+                   "AgencyAdmin"))
+        {
+            var planResponse = await client.SendAsync(generatePlanRequest);
+            planResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        }
+
+        using (var uploadRequest = BuildAuthorizedJsonRequest(
+                   HttpMethod.Post,
+                   $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/documents",
+                   new UploadCaseDocumentRequest
+                   {
+                       FileName = "evidence.txt",
+                       ContentType = "text/plain",
+                       ContentBase64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("evidence-content"))
+                   },
+                   signup.UserId,
+                   signup.OrganizationId,
+                   "AgencyAdmin"))
+        {
+            var uploadResponse = await client.SendAsync(uploadRequest);
+            uploadResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+        }
+
+        using var handoffRequest = BuildAuthorizedRequest(
+            HttpMethod.Post,
+            $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/handoffs/packet",
+            signup.UserId,
+            signup.OrganizationId,
+            "AgencyAdmin");
+
+        var handoffResponse = await client.SendAsync(handoffRequest);
+        handoffResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var envelope = await handoffResponse.Content.ReadFromJsonAsync<ApiEnvelope<GenerateCaseHandoffPacketResponse>>();
         envelope.Should().NotBeNull();
         envelope!.Data.Should().NotBeNull();
         return envelope.Data!;

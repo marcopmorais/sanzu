@@ -686,6 +686,99 @@ public sealed class CasesController : ControllerBase
     }
 
     [Authorize]
+    [HttpGet("{caseId:guid}/handoffs/state")]
+    [ProducesResponseType(typeof(ApiEnvelope<CaseHandoffStateResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> GetCaseHandoffState(
+        Guid tenantId,
+        Guid caseId,
+        CancellationToken cancellationToken)
+    {
+        if (!TryGetActorUserId(out var actorUserId))
+        {
+            return Unauthorized();
+        }
+
+        try
+        {
+            var response = await _caseService.GetCaseHandoffStateAsync(
+                tenantId,
+                actorUserId,
+                caseId,
+                cancellationToken);
+
+            return Ok(ApiEnvelope<CaseHandoffStateResponse>.Success(response, BuildMeta()));
+        }
+        catch (TenantAccessDeniedException)
+        {
+            return Forbid();
+        }
+        catch (CaseAccessDeniedException)
+        {
+            return Forbid();
+        }
+        catch (CaseStateException exception)
+        {
+            return Problem(
+                statusCode: StatusCodes.Status409Conflict,
+                title: "Case state conflict",
+                detail: exception.Message);
+        }
+    }
+
+    [Authorize]
+    [HttpPatch("{caseId:guid}/handoffs/{handoffId:guid}/state")]
+    [ProducesResponseType(typeof(ApiEnvelope<CaseHandoffStateResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> UpdateCaseHandoffState(
+        Guid tenantId,
+        Guid caseId,
+        Guid handoffId,
+        [FromBody] UpdateCaseHandoffStateRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (!TryGetActorUserId(out var actorUserId))
+        {
+            return Unauthorized();
+        }
+
+        try
+        {
+            var response = await _caseService.UpdateCaseHandoffStateAsync(
+                tenantId,
+                actorUserId,
+                caseId,
+                handoffId,
+                request,
+                cancellationToken);
+
+            return Ok(ApiEnvelope<CaseHandoffStateResponse>.Success(response, BuildMeta()));
+        }
+        catch (ValidationException validationException)
+        {
+            return BadRequest(BuildValidationProblem(validationException, "Invalid handoff state update request"));
+        }
+        catch (TenantAccessDeniedException)
+        {
+            return Forbid();
+        }
+        catch (CaseAccessDeniedException)
+        {
+            return Forbid();
+        }
+        catch (CaseStateException exception)
+        {
+            return Problem(
+                statusCode: StatusCodes.Status409Conflict,
+                title: "Case state conflict",
+                detail: exception.Message);
+        }
+    }
+
+    [Authorize]
     [HttpPost("{caseId:guid}/plan/readiness/recalculate")]
     [ProducesResponseType(typeof(ApiEnvelope<GenerateCasePlanResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]

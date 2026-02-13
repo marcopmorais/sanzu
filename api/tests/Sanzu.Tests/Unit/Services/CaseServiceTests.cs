@@ -2145,6 +2145,223 @@ public sealed class CaseServiceTests
     }
 
     [Fact]
+    public async Task GetCaseHandoffState_ShouldReturnLatestState_WhenHandoffExists()
+    {
+        var dbContext = CreateContext();
+        var (tenantId, actorUserId) = await SeedTenantWithAdminAsync(dbContext, TenantStatus.Active);
+        var service = CreateService(dbContext);
+        var createdCase = await CreateCaseAsync(service, tenantId, actorUserId, "Handoff State Case");
+
+        await service.SubmitCaseIntakeAsync(
+            tenantId,
+            actorUserId,
+            createdCase.CaseId,
+            new SubmitCaseIntakeRequest
+            {
+                PrimaryContactName = "Ana Pereira",
+                PrimaryContactPhone = "+351910000000",
+                RelationshipToDeceased = "Daughter",
+                HasWill = true,
+                RequiresLegalSupport = false,
+                RequiresFinancialSupport = true,
+                ConfirmAccuracy = true
+            },
+            CancellationToken.None);
+
+        await service.UpdateCaseLifecycleAsync(
+            tenantId,
+            actorUserId,
+            createdCase.CaseId,
+            new UpdateCaseLifecycleRequest { TargetStatus = "Active" },
+            CancellationToken.None);
+
+        await service.GenerateCasePlanAsync(tenantId, actorUserId, createdCase.CaseId, CancellationToken.None);
+
+        await service.UploadCaseDocumentAsync(
+            tenantId,
+            actorUserId,
+            createdCase.CaseId,
+            new UploadCaseDocumentRequest
+            {
+                FileName = "handoff-state-evidence.txt",
+                ContentType = "text/plain",
+                ContentBase64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("evidence-data"))
+            },
+            CancellationToken.None);
+
+        var packet = await service.GenerateCaseHandoffPacketAsync(
+            tenantId,
+            actorUserId,
+            createdCase.CaseId,
+            CancellationToken.None);
+
+        var state = await service.GetCaseHandoffStateAsync(
+            tenantId,
+            actorUserId,
+            createdCase.CaseId,
+            CancellationToken.None);
+
+        state.CaseId.Should().Be(createdCase.CaseId);
+        state.HandoffId.Should().Be(packet.HandoffId);
+        state.Status.Should().Be(CaseHandoffStatus.PendingAdvisor.ToString());
+        state.FollowUpRequired.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task UpdateCaseHandoffState_ShouldPersistChangesAndAudit_WhenRequestIsValid()
+    {
+        var dbContext = CreateContext();
+        var (tenantId, actorUserId) = await SeedTenantWithAdminAsync(dbContext, TenantStatus.Active);
+        var service = CreateService(dbContext);
+        var createdCase = await CreateCaseAsync(service, tenantId, actorUserId, "Handoff Update Case");
+
+        await service.SubmitCaseIntakeAsync(
+            tenantId,
+            actorUserId,
+            createdCase.CaseId,
+            new SubmitCaseIntakeRequest
+            {
+                PrimaryContactName = "Ana Pereira",
+                PrimaryContactPhone = "+351910000000",
+                RelationshipToDeceased = "Daughter",
+                HasWill = true,
+                RequiresLegalSupport = false,
+                RequiresFinancialSupport = true,
+                ConfirmAccuracy = true
+            },
+            CancellationToken.None);
+
+        await service.UpdateCaseLifecycleAsync(
+            tenantId,
+            actorUserId,
+            createdCase.CaseId,
+            new UpdateCaseLifecycleRequest { TargetStatus = "Active" },
+            CancellationToken.None);
+
+        await service.GenerateCasePlanAsync(tenantId, actorUserId, createdCase.CaseId, CancellationToken.None);
+
+        await service.UploadCaseDocumentAsync(
+            tenantId,
+            actorUserId,
+            createdCase.CaseId,
+            new UploadCaseDocumentRequest
+            {
+                FileName = "handoff-update-evidence.txt",
+                ContentType = "text/plain",
+                ContentBase64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("evidence-data"))
+            },
+            CancellationToken.None);
+
+        var packet = await service.GenerateCaseHandoffPacketAsync(
+            tenantId,
+            actorUserId,
+            createdCase.CaseId,
+            CancellationToken.None);
+
+        var result = await service.UpdateCaseHandoffStateAsync(
+            tenantId,
+            actorUserId,
+            createdCase.CaseId,
+            packet.HandoffId,
+            new UpdateCaseHandoffStateRequest
+            {
+                Status = "Completed",
+                Notes = "Advisor confirmed completion."
+            },
+            CancellationToken.None);
+
+        result.HandoffId.Should().Be(packet.HandoffId);
+        result.Status.Should().Be(CaseHandoffStatus.Completed.ToString());
+        result.FollowUpRequired.Should().BeFalse();
+        result.StatusNotes.Should().Be("Advisor confirmed completion.");
+
+        var persistedHandoff = await dbContext.CaseHandoffs.SingleAsync(x => x.Id == packet.HandoffId);
+        persistedHandoff.Status.Should().Be(CaseHandoffStatus.Completed);
+        persistedHandoff.FollowUpRequired.Should().BeFalse();
+        persistedHandoff.StatusNotes.Should().Be("Advisor confirmed completion.");
+        dbContext.AuditEvents.Should().Contain(
+            x => x.EventType == "CaseHandoffStateUpdated" && x.CaseId == createdCase.CaseId && x.ActorUserId == actorUserId);
+    }
+
+    [Fact]
+    public async Task UpdateCaseHandoffState_ShouldThrowCaseAccessDeniedAndAudit_WhenUserIsReader()
+    {
+        var dbContext = CreateContext();
+        var (tenantId, actorUserId) = await SeedTenantWithAdminAsync(dbContext, TenantStatus.Active);
+        var service = CreateService(dbContext);
+        var createdCase = await CreateCaseAsync(service, tenantId, actorUserId, "Handoff Reader Access Case");
+        var readerUserId = Guid.NewGuid();
+        const string readerEmail = "family.handoff.reader@agency.pt";
+        await SeedUserAsync(dbContext, readerUserId, tenantId, readerEmail, "Handoff Reader");
+        await SeedAcceptedParticipantDirectAsync(dbContext, tenantId, createdCase.CaseId, readerUserId, readerEmail, CaseRole.Reader);
+
+        await service.SubmitCaseIntakeAsync(
+            tenantId,
+            actorUserId,
+            createdCase.CaseId,
+            new SubmitCaseIntakeRequest
+            {
+                PrimaryContactName = "Ana Pereira",
+                PrimaryContactPhone = "+351910000000",
+                RelationshipToDeceased = "Daughter",
+                HasWill = true,
+                RequiresLegalSupport = false,
+                RequiresFinancialSupport = true,
+                ConfirmAccuracy = true
+            },
+            CancellationToken.None);
+
+        await service.UpdateCaseLifecycleAsync(
+            tenantId,
+            actorUserId,
+            createdCase.CaseId,
+            new UpdateCaseLifecycleRequest { TargetStatus = "Active" },
+            CancellationToken.None);
+
+        await service.GenerateCasePlanAsync(tenantId, actorUserId, createdCase.CaseId, CancellationToken.None);
+
+        await service.UploadCaseDocumentAsync(
+            tenantId,
+            actorUserId,
+            createdCase.CaseId,
+            new UploadCaseDocumentRequest
+            {
+                FileName = "handoff-reader-evidence.txt",
+                ContentType = "text/plain",
+                ContentBase64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("evidence-data"))
+            },
+            CancellationToken.None);
+
+        var packet = await service.GenerateCaseHandoffPacketAsync(
+            tenantId,
+            actorUserId,
+            createdCase.CaseId,
+            CancellationToken.None);
+
+        var act = () => service.UpdateCaseHandoffStateAsync(
+            tenantId,
+            readerUserId,
+            createdCase.CaseId,
+            packet.HandoffId,
+            new UpdateCaseHandoffStateRequest
+            {
+                Status = "Completed"
+            },
+            CancellationToken.None);
+
+        await act.Should().ThrowAsync<CaseAccessDeniedException>()
+            .Where(e => e.ReasonCode == "ROLE_INSUFFICIENT" && e.AttemptedAction == "UpdateCaseHandoffState");
+        AssertAccessDeniedAudit(
+            dbContext,
+            readerUserId,
+            createdCase.CaseId,
+            "UpdateCaseHandoffState",
+            "Manager",
+            "Reader",
+            "ROLE_INSUFFICIENT");
+    }
+
+    [Fact]
     public async Task GetCaseDetails_ShouldReturnDetails_WhenUserIsCaseManager()
     {
         var dbContext = CreateContext();
@@ -2305,6 +2522,7 @@ public sealed class CaseServiceTests
             new UserRepository(dbContext),
             new CaseRepository(dbContext),
             new CaseDocumentRepository(dbContext),
+            new CaseHandoffRepository(dbContext),
             new ExtractionCandidateRepository(dbContext),
             new CaseParticipantRepository(dbContext),
             new WorkflowStepRepository(dbContext),
@@ -2314,6 +2532,7 @@ public sealed class CaseServiceTests
             new SubmitCaseIntakeRequestValidator(),
             new ApplyExtractionDecisionsRequestValidator(),
             new GenerateOutboundTemplateRequestValidator(),
+            new UpdateCaseHandoffStateRequestValidator(),
             new UploadCaseDocumentRequestValidator(),
             new UpdateCaseDocumentClassificationRequestValidator(),
             new OverrideWorkflowStepReadinessRequestValidator(),

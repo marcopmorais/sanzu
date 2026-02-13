@@ -19,6 +19,7 @@ public sealed class CaseService : ICaseService
     private readonly IUserRepository _userRepository;
     private readonly ICaseRepository _caseRepository;
     private readonly ICaseDocumentRepository _caseDocumentRepository;
+    private readonly ICaseHandoffRepository _caseHandoffRepository;
     private readonly IExtractionCandidateRepository _extractionCandidateRepository;
     private readonly ICaseParticipantRepository _caseParticipantRepository;
     private readonly IWorkflowStepRepository _workflowStepRepository;
@@ -28,6 +29,7 @@ public sealed class CaseService : ICaseService
     private readonly IValidator<SubmitCaseIntakeRequest> _submitCaseIntakeValidator;
     private readonly IValidator<ApplyExtractionDecisionsRequest> _applyExtractionDecisionsValidator;
     private readonly IValidator<GenerateOutboundTemplateRequest> _generateOutboundTemplateValidator;
+    private readonly IValidator<UpdateCaseHandoffStateRequest> _updateCaseHandoffStateValidator;
     private readonly IValidator<UploadCaseDocumentRequest> _uploadCaseDocumentValidator;
     private readonly IValidator<UpdateCaseDocumentClassificationRequest> _updateCaseDocumentClassificationValidator;
     private readonly IValidator<OverrideWorkflowStepReadinessRequest> _overrideWorkflowStepReadinessValidator;
@@ -44,6 +46,7 @@ public sealed class CaseService : ICaseService
         IUserRepository userRepository,
         ICaseRepository caseRepository,
         ICaseDocumentRepository caseDocumentRepository,
+        ICaseHandoffRepository caseHandoffRepository,
         IExtractionCandidateRepository extractionCandidateRepository,
         ICaseParticipantRepository caseParticipantRepository,
         IWorkflowStepRepository workflowStepRepository,
@@ -53,6 +56,7 @@ public sealed class CaseService : ICaseService
         IValidator<SubmitCaseIntakeRequest> submitCaseIntakeValidator,
         IValidator<ApplyExtractionDecisionsRequest> applyExtractionDecisionsValidator,
         IValidator<GenerateOutboundTemplateRequest> generateOutboundTemplateValidator,
+        IValidator<UpdateCaseHandoffStateRequest> updateCaseHandoffStateValidator,
         IValidator<UploadCaseDocumentRequest> uploadCaseDocumentValidator,
         IValidator<UpdateCaseDocumentClassificationRequest> updateCaseDocumentClassificationValidator,
         IValidator<OverrideWorkflowStepReadinessRequest> overrideWorkflowStepReadinessValidator,
@@ -68,6 +72,7 @@ public sealed class CaseService : ICaseService
         _userRepository = userRepository;
         _caseRepository = caseRepository;
         _caseDocumentRepository = caseDocumentRepository;
+        _caseHandoffRepository = caseHandoffRepository;
         _extractionCandidateRepository = extractionCandidateRepository;
         _caseParticipantRepository = caseParticipantRepository;
         _workflowStepRepository = workflowStepRepository;
@@ -77,6 +82,7 @@ public sealed class CaseService : ICaseService
         _submitCaseIntakeValidator = submitCaseIntakeValidator;
         _applyExtractionDecisionsValidator = applyExtractionDecisionsValidator;
         _generateOutboundTemplateValidator = generateOutboundTemplateValidator;
+        _updateCaseHandoffStateValidator = updateCaseHandoffStateValidator;
         _uploadCaseDocumentValidator = uploadCaseDocumentValidator;
         _updateCaseDocumentClassificationValidator = updateCaseDocumentClassificationValidator;
         _overrideWorkflowStepReadinessValidator = overrideWorkflowStepReadinessValidator;
@@ -1088,6 +1094,21 @@ public sealed class CaseService : ICaseService
                 var packetTitle = $"Advisor Handoff Packet - {caseEntity.CaseNumber}";
                 var packetContent = BuildHandoffPacketContent(caseEntity, requiredActions, evidenceContext, generatedAt);
                 var contentBase64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(packetContent));
+                var handoff = new CaseHandoff
+                {
+                    Id = Guid.NewGuid(),
+                    TenantId = tenantId,
+                    CaseId = caseEntity.Id,
+                    PacketTitle = packetTitle,
+                    Status = CaseHandoffStatus.PendingAdvisor,
+                    FollowUpRequired = true,
+                    LastUpdatedByUserId = actorUserId,
+                    LastStatusChangedAt = generatedAt,
+                    CreatedAt = generatedAt,
+                    UpdatedAt = generatedAt
+                };
+
+                await _caseHandoffRepository.CreateAsync(handoff, token);
 
                 await WriteAuditEventAsync(
                     actorUserId,
@@ -1095,8 +1116,11 @@ public sealed class CaseService : ICaseService
                     new
                     {
                         CaseId = caseEntity.Id,
+                        HandoffId = handoff.Id,
                         caseEntity.CaseNumber,
                         PacketTitle = packetTitle,
+                        HandoffStatus = handoff.Status.ToString(),
+                        handoff.FollowUpRequired,
                         GeneratedByUserId = actorUserId,
                         GeneratedAt = generatedAt,
                         RequiredActionCount = requiredActions.Count,
@@ -1108,6 +1132,9 @@ public sealed class CaseService : ICaseService
                 response = new GenerateCaseHandoffPacketResponse
                 {
                     CaseId = caseEntity.Id,
+                    HandoffId = handoff.Id,
+                    HandoffStatus = handoff.Status.ToString(),
+                    FollowUpRequired = handoff.FollowUpRequired,
                     CaseNumber = caseEntity.CaseNumber,
                     PacketTitle = packetTitle,
                     ContentType = "text/plain",
@@ -1116,6 +1143,90 @@ public sealed class CaseService : ICaseService
                     RequiredActions = requiredActions,
                     EvidenceContext = evidenceContext
                 };
+            },
+            cancellationToken);
+
+        return response!;
+    }
+
+    public async Task<CaseHandoffStateResponse> GetCaseHandoffStateAsync(
+        Guid tenantId,
+        Guid actorUserId,
+        Guid caseId,
+        CancellationToken cancellationToken)
+    {
+        var caseForAccess = await LoadCaseForTenantAsync(tenantId, caseId, cancellationToken);
+        var effectiveRole = await ResolveEffectiveCaseRoleAsync(tenantId, actorUserId, caseForAccess, cancellationToken);
+        await EnsureCaseRoleAsync(effectiveRole, CaseRole.Editor, actorUserId, caseId, "GetCaseHandoffState", cancellationToken);
+
+        var handoff = await _caseHandoffRepository.GetLatestByCaseIdAsync(caseId, cancellationToken);
+        if (handoff is null || handoff.CaseId != caseForAccess.Id || handoff.TenantId != tenantId)
+        {
+            throw new CaseStateException("No handoff packet exists for this case yet.");
+        }
+
+        return MapCaseHandoffState(handoff);
+    }
+
+    public async Task<CaseHandoffStateResponse> UpdateCaseHandoffStateAsync(
+        Guid tenantId,
+        Guid actorUserId,
+        Guid caseId,
+        Guid handoffId,
+        UpdateCaseHandoffStateRequest request,
+        CancellationToken cancellationToken)
+    {
+        var validationResult = await _updateCaseHandoffStateValidator.ValidateAsync(request, cancellationToken);
+        if (!validationResult.IsValid)
+        {
+            throw new ValidationException(validationResult.Errors);
+        }
+
+        var caseForAccess = await LoadCaseForTenantAsync(tenantId, caseId, cancellationToken);
+        var effectiveRole = await ResolveEffectiveCaseRoleAsync(tenantId, actorUserId, caseForAccess, cancellationToken);
+        await EnsureCaseRoleAsync(effectiveRole, CaseRole.Manager, actorUserId, caseId, "UpdateCaseHandoffState", cancellationToken);
+
+        var targetStatus = ParseCaseHandoffStatus(request.Status);
+        CaseHandoffStateResponse? response = null;
+
+        await _unitOfWork.ExecuteInTransactionAsync(
+            async token =>
+            {
+                var handoff = await _caseHandoffRepository.GetByIdAsync(handoffId, token);
+                if (handoff is null || handoff.CaseId != caseForAccess.Id || handoff.TenantId != tenantId)
+                {
+                    throw new TenantAccessDeniedException();
+                }
+
+                var previousStatus = handoff.Status;
+                var reviewedAt = DateTime.UtcNow;
+                handoff.Status = targetStatus;
+                handoff.FollowUpRequired = ShouldFlagHandoffFollowUp(targetStatus);
+                handoff.StatusNotes = string.IsNullOrWhiteSpace(request.Notes)
+                    ? null
+                    : request.Notes.Trim();
+                handoff.LastUpdatedByUserId = actorUserId;
+                handoff.LastStatusChangedAt = reviewedAt;
+                handoff.UpdatedAt = reviewedAt;
+
+                await WriteAuditEventAsync(
+                    actorUserId,
+                    "CaseHandoffStateUpdated",
+                    new
+                    {
+                        CaseId = caseForAccess.Id,
+                        HandoffId = handoff.Id,
+                        PreviousStatus = previousStatus.ToString(),
+                        NewStatus = handoff.Status.ToString(),
+                        handoff.FollowUpRequired,
+                        StatusNotes = handoff.StatusNotes,
+                        UpdatedByUserId = actorUserId,
+                        UpdatedAt = reviewedAt
+                    },
+                    token,
+                    caseForAccess.Id);
+
+                response = MapCaseHandoffState(handoff);
             },
             cancellationToken);
 
@@ -2105,6 +2216,21 @@ public sealed class CaseService : ICaseService
         }
     }
 
+    private static CaseHandoffStatus ParseCaseHandoffStatus(string value)
+    {
+        if (Enum.TryParse<CaseHandoffStatus>(value.Trim(), ignoreCase: true, out var status))
+        {
+            return status;
+        }
+
+        throw new CaseStateException("The requested handoff status is not recognized.");
+    }
+
+    private static bool ShouldFlagHandoffFollowUp(CaseHandoffStatus status)
+    {
+        return status is CaseHandoffStatus.PendingAdvisor or CaseHandoffStatus.InProgress or CaseHandoffStatus.Blocked;
+    }
+
     private static CaseStatus ParseCaseStatus(string value)
     {
         if (Enum.TryParse<CaseStatus>(value.Trim(), ignoreCase: true, out var status))
@@ -2695,6 +2821,22 @@ public sealed class CaseService : ICaseService
         };
     }
 
+    private static CaseHandoffStateResponse MapCaseHandoffState(CaseHandoff handoff)
+    {
+        return new CaseHandoffStateResponse
+        {
+            HandoffId = handoff.Id,
+            CaseId = handoff.CaseId,
+            PacketTitle = handoff.PacketTitle,
+            Status = handoff.Status.ToString(),
+            FollowUpRequired = handoff.FollowUpRequired,
+            StatusNotes = handoff.StatusNotes,
+            LastUpdatedByUserId = handoff.LastUpdatedByUserId,
+            LastStatusChangedAt = handoff.LastStatusChangedAt,
+            UpdatedAt = handoff.UpdatedAt
+        };
+    }
+
     private static CaseParticipantResponse MapParticipant(CaseParticipant participant)
     {
         return new CaseParticipantResponse
@@ -2984,6 +3126,17 @@ public sealed class CaseService : ICaseService
                     ? evidenceCountValue.GetInt32()
                     : 0;
                 return $"Advisor handoff packet generated with {actionCount} actions and {evidenceCount} evidence items";
+            }
+
+            if (auditEvent.EventType == "CaseHandoffStateUpdated")
+            {
+                var previousStatus = root.TryGetProperty("PreviousStatus", out var previousStatusValue)
+                    ? previousStatusValue.GetString()
+                    : "Unknown";
+                var newStatus = root.TryGetProperty("NewStatus", out var newStatusValue)
+                    ? newStatusValue.GetString()
+                    : "Unknown";
+                return $"Advisor handoff state changed from {previousStatus} to {newStatus}";
             }
         }
         catch (JsonException)

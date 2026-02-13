@@ -45,6 +45,7 @@ public static class ServiceRegistration
         services.AddScoped<IValidator<SubmitCaseIntakeRequest>, SubmitCaseIntakeRequestValidator>();
         services.AddScoped<IValidator<ApplyExtractionDecisionsRequest>, ApplyExtractionDecisionsRequestValidator>();
         services.AddScoped<IValidator<GenerateOutboundTemplateRequest>, GenerateOutboundTemplateRequestValidator>();
+        services.AddScoped<IValidator<UpdateCaseHandoffStateRequest>, UpdateCaseHandoffStateRequestValidator>();
         services.AddScoped<IValidator<UploadCaseDocumentRequest>, UploadCaseDocumentRequestValidator>();
         services.AddScoped<IValidator<UpdateCaseDocumentClassificationRequest>, UpdateCaseDocumentClassificationRequestValidator>();
         services.AddScoped<IValidator<OverrideWorkflowStepReadinessRequest>, OverrideWorkflowStepReadinessRequestValidator>();

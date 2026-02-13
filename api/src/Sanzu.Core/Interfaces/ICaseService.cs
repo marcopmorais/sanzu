@@ -138,6 +138,20 @@ public interface ICaseService
         Guid caseId,
         CancellationToken cancellationToken);
 
+    Task<CaseHandoffStateResponse> GetCaseHandoffStateAsync(
+        Guid tenantId,
+        Guid actorUserId,
+        Guid caseId,
+        CancellationToken cancellationToken);
+
+    Task<CaseHandoffStateResponse> UpdateCaseHandoffStateAsync(
+        Guid tenantId,
+        Guid actorUserId,
+        Guid caseId,
+        Guid handoffId,
+        UpdateCaseHandoffStateRequest request,
+        CancellationToken cancellationToken);
+
     Task<GenerateCasePlanResponse> RecalculateCasePlanReadinessAsync(
         Guid tenantId,
         Guid actorUserId,
