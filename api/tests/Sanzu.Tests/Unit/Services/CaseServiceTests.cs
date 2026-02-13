@@ -1007,6 +1007,7 @@ public sealed class CaseServiceTests
         workspace.Tasks.Should().NotBeEmpty();
         workspace.Tasks[0].StepKey.Should().Be("collect-civil-records");
         workspace.Tasks[0].PriorityRank.Should().Be(1);
+        workspace.Tasks[0].AssignedUserId.Should().Be(actorUserId);
         workspace.Tasks[1].StepKey.Should().Be("gather-estate-inventory");
         workspace.Tasks[1].UrgencyIndicator.Should().Be("overdue");
     }
@@ -1061,6 +1062,8 @@ public sealed class CaseServiceTests
         response.Tasks.Should().Contain(x => x.StepId == step.Id && x.Status == WorkflowStepStatus.InProgress);
         dbContext.AuditEvents.Should().Contain(
             x => x.EventType == "WorkflowTaskStatusUpdated" && x.CaseId == createdCase.CaseId && x.ActorUserId == editorUserId);
+        dbContext.AuditEvents.Should().Contain(
+            x => x.EventType == "CaseNotificationQueued" && x.CaseId == createdCase.CaseId && x.ActorUserId == editorUserId);
     }
 
     [Fact]
@@ -1116,6 +1119,55 @@ public sealed class CaseServiceTests
     }
 
     [Fact]
+    public async Task UpdateWorkflowTaskStatus_ShouldQueueMissingInputNotification_WhenTaskNeedsReview()
+    {
+        var dbContext = CreateContext();
+        var (tenantId, actorUserId) = await SeedTenantWithAdminAsync(dbContext, TenantStatus.Active);
+        var service = CreateService(dbContext);
+        var createdCase = await CreateCaseAsync(service, tenantId, actorUserId, "Missing Input Notification Case");
+
+        await service.SubmitCaseIntakeAsync(
+            tenantId,
+            actorUserId,
+            createdCase.CaseId,
+            new SubmitCaseIntakeRequest
+            {
+                PrimaryContactName = "Ana Pereira",
+                PrimaryContactPhone = "+351919999999",
+                RelationshipToDeceased = "Daughter",
+                ConfirmAccuracy = true
+            },
+            CancellationToken.None);
+
+        await service.GenerateCasePlanAsync(
+            tenantId,
+            actorUserId,
+            createdCase.CaseId,
+            CancellationToken.None);
+
+        var step = await dbContext.WorkflowStepInstances
+            .SingleAsync(x => x.CaseId == createdCase.CaseId && x.StepKey == "collect-civil-records");
+
+        await service.UpdateWorkflowTaskStatusAsync(
+            tenantId,
+            actorUserId,
+            createdCase.CaseId,
+            step.Id,
+            new UpdateWorkflowTaskStatusRequest
+            {
+                TargetStatus = "NeedsReview",
+                Notes = "Awaiting signed declaration from family."
+            },
+            CancellationToken.None);
+
+        var notificationEvents = dbContext.AuditEvents
+            .Where(x => x.EventType == "CaseNotificationQueued" && x.CaseId == createdCase.CaseId)
+            .ToList();
+        notificationEvents.Count.Should().BeGreaterThanOrEqualTo(2);
+        notificationEvents.Should().Contain(x => x.Metadata.Contains("MissingInputRequired"));
+    }
+
+    [Fact]
     public async Task UpdateWorkflowTaskStatus_ShouldThrowCaseAccessDeniedAndAudit_WhenUserIsReader()
     {
         var dbContext = CreateContext();
@@ -1167,6 +1219,60 @@ public sealed class CaseServiceTests
             "Editor",
             "Reader",
             "ROLE_INSUFFICIENT");
+    }
+
+    [Fact]
+    public async Task GetCaseTimeline_ShouldReturnOrderedEventsAndCurrentOwners()
+    {
+        var dbContext = CreateContext();
+        var (tenantId, actorUserId) = await SeedTenantWithAdminAsync(dbContext, TenantStatus.Active);
+        var service = CreateService(dbContext);
+        var createdCase = await CreateCaseAsync(service, tenantId, actorUserId, "Timeline Ownership Case");
+
+        await service.SubmitCaseIntakeAsync(
+            tenantId,
+            actorUserId,
+            createdCase.CaseId,
+            new SubmitCaseIntakeRequest
+            {
+                PrimaryContactName = "Ana Pereira",
+                PrimaryContactPhone = "+351919999999",
+                RelationshipToDeceased = "Daughter",
+                ConfirmAccuracy = true
+            },
+            CancellationToken.None);
+
+        await service.GenerateCasePlanAsync(
+            tenantId,
+            actorUserId,
+            createdCase.CaseId,
+            CancellationToken.None);
+
+        var step = await dbContext.WorkflowStepInstances
+            .SingleAsync(x => x.CaseId == createdCase.CaseId && x.StepKey == "collect-civil-records");
+        await service.UpdateWorkflowTaskStatusAsync(
+            tenantId,
+            actorUserId,
+            createdCase.CaseId,
+            step.Id,
+            new UpdateWorkflowTaskStatusRequest
+            {
+                TargetStatus = "Started"
+            },
+            CancellationToken.None);
+
+        var timeline = await service.GetCaseTimelineAsync(
+            tenantId,
+            actorUserId,
+            createdCase.CaseId,
+            CancellationToken.None);
+
+        timeline.CurrentOwners.Should().NotBeEmpty();
+        timeline.CurrentOwners.Should().Contain(x => x.AssignedUserId == actorUserId);
+        timeline.Events.Should().NotBeEmpty();
+        timeline.Events.Should().BeInAscendingOrder(x => x.OccurredAt);
+        timeline.Events.Should().Contain(x => x.EventType == "WorkflowTaskStatusUpdated");
+        timeline.Events.Should().Contain(x => x.EventType == "CaseNotificationQueued");
     }
 
     [Fact]

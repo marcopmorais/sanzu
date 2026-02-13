@@ -10,6 +10,7 @@ public sealed class CaseTaskItemResponse
     public int Sequence { get; init; }
     public int PriorityRank { get; init; }
     public WorkflowStepStatus Status { get; init; }
+    public Guid? AssignedUserId { get; init; }
     public DateTime? DueDate { get; init; }
     public string? DeadlineSource { get; init; }
     public string UrgencyIndicator { get; init; } = "none";

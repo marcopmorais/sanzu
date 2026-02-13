@@ -100,4 +100,10 @@ public interface ICaseService
         Guid stepId,
         UpdateWorkflowTaskStatusRequest request,
         CancellationToken cancellationToken);
+
+    Task<CaseTimelineResponse> GetCaseTimelineAsync(
+        Guid tenantId,
+        Guid actorUserId,
+        Guid caseId,
+        CancellationToken cancellationToken);
 }

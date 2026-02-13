@@ -878,6 +878,8 @@ public sealed class CasesControllerTests : IClassFixture<CustomWebApplicationFac
             x => x.Id == targetStepId && x.Status == WorkflowStepStatus.InProgress);
         verificationContext.AuditEvents.Should().Contain(
             x => x.EventType == "WorkflowTaskStatusUpdated" && x.CaseId == createdCase.CaseId && x.ActorUserId == editorUserId);
+        verificationContext.AuditEvents.Should().Contain(
+            x => x.EventType == "CaseNotificationQueued" && x.CaseId == createdCase.CaseId && x.ActorUserId == editorUserId);
     }
 
     [Fact]
@@ -944,6 +946,85 @@ public sealed class CasesControllerTests : IClassFixture<CustomWebApplicationFac
 
         var response = await client.SendAsync(updateRequest);
         response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task GetCaseTimeline_ShouldReturn200WithOrderedEventsAndCurrentOwners()
+    {
+        var client = _factory.CreateClient();
+        var signup = await CreateTenantAsync(client, "cases-timeline@agency.pt");
+        await ActivateTenantAsync(client, signup);
+        var createdCase = await CreateCaseAsync(client, signup, "Timeline Integration Case");
+
+        using (var intakeRequest = BuildAuthorizedJsonRequest(
+                   HttpMethod.Put,
+                   $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/intake",
+                   new SubmitCaseIntakeRequest
+                   {
+                       PrimaryContactName = "Ana Pereira",
+                       PrimaryContactPhone = "+351910000000",
+                       RelationshipToDeceased = "Daughter",
+                       ConfirmAccuracy = true
+                   },
+                   signup.UserId,
+                   signup.OrganizationId,
+                   "AgencyAdmin"))
+        {
+            var intakeResponse = await client.SendAsync(intakeRequest);
+            intakeResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        }
+
+        using (var generateRequest = BuildAuthorizedRequest(
+                   HttpMethod.Post,
+                   $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/plan/generate",
+                   signup.UserId,
+                   signup.OrganizationId,
+                   "AgencyAdmin"))
+        {
+            var generateResponse = await client.SendAsync(generateRequest);
+            generateResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        }
+
+        Guid targetStepId;
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var dbContext = scope.ServiceProvider.GetRequiredService<SanzuDbContext>();
+            targetStepId = dbContext.WorkflowStepInstances
+                .Single(x => x.CaseId == createdCase.CaseId && x.StepKey == "collect-civil-records")
+                .Id;
+        }
+
+        using (var updateRequest = BuildAuthorizedJsonRequest(
+                   HttpMethod.Patch,
+                   $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/tasks/{targetStepId}/status",
+                   new UpdateWorkflowTaskStatusRequest { TargetStatus = "Started" },
+                   signup.UserId,
+                   signup.OrganizationId,
+                   "AgencyAdmin"))
+        {
+            var updateResponse = await client.SendAsync(updateRequest);
+            updateResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        }
+
+        using var timelineRequest = BuildAuthorizedRequest(
+            HttpMethod.Get,
+            $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/timeline",
+            signup.UserId,
+            signup.OrganizationId,
+            "AgencyAdmin");
+
+        var response = await client.SendAsync(timelineRequest);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var envelope = await response.Content.ReadFromJsonAsync<ApiEnvelope<CaseTimelineResponse>>();
+        envelope.Should().NotBeNull();
+        envelope!.Data.Should().NotBeNull();
+        envelope.Data!.CurrentOwners.Should().NotBeEmpty();
+        envelope.Data.CurrentOwners.Should().Contain(x => x.AssignedUserId == signup.UserId);
+        envelope.Data.Events.Should().NotBeEmpty();
+        envelope.Data.Events.Should().BeInAscendingOrder(x => x.OccurredAt);
+        envelope.Data.Events.Should().Contain(x => x.EventType == "WorkflowTaskStatusUpdated");
+        envelope.Data.Events.Should().Contain(x => x.EventType == "CaseNotificationQueued");
     }
 
     private async Task ActivateTenantAsync(HttpClient client, CreateAgencyAccountResponse signup)

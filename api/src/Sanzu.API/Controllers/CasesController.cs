@@ -475,6 +475,40 @@ public sealed class CasesController : ControllerBase
     }
 
     [Authorize]
+    [HttpGet("{caseId:guid}/timeline")]
+    [ProducesResponseType(typeof(ApiEnvelope<CaseTimelineResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetCaseTimeline(
+        Guid tenantId,
+        Guid caseId,
+        CancellationToken cancellationToken)
+    {
+        if (!TryGetActorUserId(out var actorUserId))
+        {
+            return Unauthorized();
+        }
+
+        try
+        {
+            var response = await _caseService.GetCaseTimelineAsync(
+                tenantId,
+                actorUserId,
+                caseId,
+                cancellationToken);
+
+            return Ok(ApiEnvelope<CaseTimelineResponse>.Success(response, BuildMeta()));
+        }
+        catch (TenantAccessDeniedException)
+        {
+            return Forbid();
+        }
+        catch (CaseAccessDeniedException)
+        {
+            return Forbid();
+        }
+    }
+
+    [Authorize]
     [HttpGet("{caseId:guid}/milestones")]
     [ProducesResponseType(typeof(ApiEnvelope<CaseMilestonesResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]

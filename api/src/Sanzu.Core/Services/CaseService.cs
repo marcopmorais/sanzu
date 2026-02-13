@@ -284,6 +284,7 @@ public sealed class CaseService : ICaseService
                                 Status = blueprint.DependsOnKeys.Count == 0
                                     ? WorkflowStepStatus.Ready
                                     : WorkflowStepStatus.Blocked,
+                                AssignedUserId = caseEntity.ManagerUserId,
                                 DueDate = dueDate,
                                 DeadlineSource = BuildDeadlineSource(sequence),
                                 CreatedAt = nowUtc,
@@ -352,6 +353,25 @@ public sealed class CaseService : ICaseService
                             intakeSnapshot.RequiresLegalSupport,
                             intakeSnapshot.RequiresFinancialSupport
                         }
+                    },
+                    token,
+                    caseEntity.Id);
+
+                await WriteAuditEventAsync(
+                    actorUserId,
+                    "WorkflowTaskOwnershipInitialized",
+                    new
+                    {
+                        CaseId = caseEntity.Id,
+                        InitializedAt = nowUtc,
+                        DefaultOwnerUserId = caseEntity.ManagerUserId,
+                        Owners = stepEntities.Select(
+                            x => new
+                            {
+                                x.Id,
+                                x.StepKey,
+                                x.AssignedUserId
+                            })
                     },
                     token,
                     caseEntity.Id);
@@ -623,11 +643,62 @@ public sealed class CaseService : ICaseService
                     token,
                     caseEntity.Id);
 
+                await WriteTaskNotificationsAsync(
+                    actorUserId,
+                    caseEntity,
+                    step,
+                    targetStatus,
+                    string.IsNullOrWhiteSpace(request.Notes) ? null : request.Notes.Trim(),
+                    nowUtc,
+                    token);
+
                 response = MapCaseTaskWorkspace(caseEntity.Id, nowUtc, steps, dependencies);
             },
             cancellationToken);
 
         return response!;
+    }
+
+    public async Task<CaseTimelineResponse> GetCaseTimelineAsync(
+        Guid tenantId,
+        Guid actorUserId,
+        Guid caseId,
+        CancellationToken cancellationToken)
+    {
+        var caseEntity = await LoadCaseForTenantAsync(tenantId, caseId, cancellationToken);
+        var effectiveRole = await ResolveEffectiveCaseRoleAsync(tenantId, actorUserId, caseEntity, cancellationToken);
+        await EnsureCaseRoleAsync(effectiveRole, CaseRole.Reader, actorUserId, caseId, "GetCaseTimeline", cancellationToken);
+
+        var steps = await _workflowStepRepository.GetByCaseIdAsync(caseId, cancellationToken);
+        var auditEvents = await _auditRepository.GetByCaseIdAsync(caseId, cancellationToken);
+        var timelineEvents = auditEvents
+            .Where(
+                x => x.EventType is
+                    "CaseCreated"
+                    or "CaseStatusChanged"
+                    or "CasePlanGenerated"
+                    or "WorkflowTaskOwnershipInitialized"
+                    or "WorkflowTaskStatusUpdated"
+                    or "CaseNotificationQueued")
+            .OrderBy(x => x.CreatedAt)
+            .Select(MapTimelineEvent)
+            .ToList();
+
+        return new CaseTimelineResponse
+        {
+            CaseId = caseId,
+            CurrentOwners = steps
+                .OrderBy(x => x.Sequence)
+                .Select(
+                    x => new CaseTaskOwnerResponse
+                    {
+                        StepId = x.Id,
+                        StepKey = x.StepKey,
+                        AssignedUserId = x.AssignedUserId
+                    })
+                .ToList(),
+            Events = timelineEvents
+        };
     }
 
     public async Task<CaseDetailsResponse> UpdateCaseDetailsAsync(
@@ -1593,6 +1664,7 @@ public sealed class CaseService : ICaseService
                         Sequence = step.Sequence,
                         PriorityRank = GetTaskPriorityRank(step),
                         Status = step.Status,
+                        AssignedUserId = step.AssignedUserId,
                         DueDate = step.DueDate,
                         DeadlineSource = step.DeadlineSource,
                         UrgencyIndicator = urgency,
@@ -1742,6 +1814,65 @@ public sealed class CaseService : ICaseService
         return "Case lifecycle updated";
     }
 
+    private static CaseTimelineEventResponse MapTimelineEvent(AuditEvent auditEvent)
+    {
+        return new CaseTimelineEventResponse
+        {
+            EventType = auditEvent.EventType,
+            Description = BuildTimelineDescription(auditEvent),
+            ActorUserId = auditEvent.ActorUserId,
+            OccurredAt = auditEvent.CreatedAt
+        };
+    }
+
+    private static string BuildTimelineDescription(AuditEvent auditEvent)
+    {
+        try
+        {
+            using var document = JsonDocument.Parse(auditEvent.Metadata);
+            var root = document.RootElement;
+
+            if (auditEvent.EventType == "WorkflowTaskStatusUpdated")
+            {
+                var stepKey = root.TryGetProperty("StepKey", out var stepKeyValue)
+                    ? stepKeyValue.GetString()
+                    : "task";
+                var previous = root.TryGetProperty("PreviousStatus", out var previousValue)
+                    ? previousValue.GetString()
+                    : "Unknown";
+                var current = root.TryGetProperty("NewStatus", out var currentValue)
+                    ? currentValue.GetString()
+                    : "Unknown";
+                return $"Task {stepKey} moved from {previous} to {current}";
+            }
+
+            if (auditEvent.EventType == "WorkflowTaskOwnershipInitialized")
+            {
+                var ownerUserId = root.TryGetProperty("DefaultOwnerUserId", out var owner)
+                    ? owner.GetString()
+                    : null;
+                return $"Task ownership initialized with default owner {ownerUserId}";
+            }
+
+            if (auditEvent.EventType == "CaseNotificationQueued")
+            {
+                var notificationType = root.TryGetProperty("NotificationType", out var notificationTypeValue)
+                    ? notificationTypeValue.GetString()
+                    : "Notification";
+                var recipientCount = root.TryGetProperty("RecipientUserIds", out var recipientIds)
+                    && recipientIds.ValueKind == JsonValueKind.Array
+                    ? recipientIds.GetArrayLength()
+                    : 0;
+                return $"{notificationType} notification queued for {recipientCount} recipients";
+            }
+        }
+        catch (JsonException)
+        {
+        }
+
+        return BuildMilestoneDescription(auditEvent);
+    }
+
     private static string HashToken(string token)
     {
         var hashBytes = SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(token));
@@ -1774,6 +1905,72 @@ public sealed class CaseService : ICaseService
         };
 
         return _auditRepository.CreateAsync(auditEvent, cancellationToken);
+    }
+
+    private async Task WriteTaskNotificationsAsync(
+        Guid actorUserId,
+        Case caseEntity,
+        WorkflowStepInstance step,
+        WorkflowStepStatus targetStatus,
+        string? notes,
+        DateTime nowUtc,
+        CancellationToken cancellationToken)
+    {
+        var recipientUserIds = new HashSet<Guid> { caseEntity.ManagerUserId };
+        if (step.AssignedUserId.HasValue)
+        {
+            recipientUserIds.Add(step.AssignedUserId.Value);
+        }
+
+        var acceptedParticipants = await _caseParticipantRepository.GetAcceptedByCaseIdAsync(caseEntity.Id, cancellationToken);
+        foreach (var participant in acceptedParticipants)
+        {
+            if (participant.ParticipantUserId.HasValue)
+            {
+                recipientUserIds.Add(participant.ParticipantUserId.Value);
+            }
+        }
+
+        var recipients = recipientUserIds.ToArray();
+        if (recipients.Length == 0)
+        {
+            return;
+        }
+
+        await WriteAuditEventAsync(
+            actorUserId,
+            "CaseNotificationQueued",
+            new
+            {
+                CaseId = caseEntity.Id,
+                TaskId = step.Id,
+                step.StepKey,
+                NotificationType = "TaskStateChanged",
+                TargetStatus = targetStatus.ToString(),
+                RecipientUserIds = recipients,
+                CreatedAt = nowUtc
+            },
+            cancellationToken,
+            caseEntity.Id);
+
+        if (targetStatus == WorkflowStepStatus.AwaitingEvidence)
+        {
+            await WriteAuditEventAsync(
+                actorUserId,
+                "CaseNotificationQueued",
+                new
+                {
+                    CaseId = caseEntity.Id,
+                    TaskId = step.Id,
+                    step.StepKey,
+                    NotificationType = "MissingInputRequired",
+                    Notes = notes,
+                    RecipientUserIds = recipients,
+                    CreatedAt = nowUtc
+                },
+                cancellationToken,
+                caseEntity.Id);
+        }
     }
 
     private sealed record IntakeSnapshot(
