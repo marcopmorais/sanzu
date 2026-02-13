@@ -25,6 +25,14 @@ public sealed class OrganizationRepository : IOrganizationRepository
         return _dbContext.Organizations.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
     }
 
+    public async Task<IReadOnlyList<Organization>> GetAllAsync(CancellationToken cancellationToken)
+    {
+        return await _dbContext.Organizations
+            .IgnoreQueryFilters()
+            .OrderBy(x => x.CreatedAt)
+            .ToListAsync(cancellationToken);
+    }
+
     public Task<bool> ExistsByNameAsync(string name, CancellationToken cancellationToken)
     {
         return _dbContext.Organizations.AnyAsync(x => x.Name == name, cancellationToken);

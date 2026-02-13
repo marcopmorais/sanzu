@@ -6,5 +6,6 @@ public interface IOrganizationRepository
 {
     Task CreateAsync(Organization organization, CancellationToken cancellationToken);
     Task<Organization?> GetByIdAsync(Guid id, CancellationToken cancellationToken);
+    Task<IReadOnlyList<Organization>> GetAllAsync(CancellationToken cancellationToken);
     Task<bool> ExistsByNameAsync(string name, CancellationToken cancellationToken);
 }

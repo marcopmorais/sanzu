@@ -34,6 +34,18 @@ public sealed class CaseDocumentRepository : ICaseDocumentRepository
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyList<CaseDocument>> GetByCaseIdForPlatformAsync(
+        Guid caseId,
+        CancellationToken cancellationToken)
+    {
+        return await _dbContext.CaseDocuments
+            .IgnoreQueryFilters()
+            .Where(x => x.CaseId == caseId)
+            .OrderByDescending(x => x.UpdatedAt)
+            .ThenByDescending(x => x.CreatedAt)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<IReadOnlyList<CaseDocumentVersion>> GetVersionsAsync(
         Guid documentId,
         CancellationToken cancellationToken)

@@ -50,6 +50,7 @@ public static class ServiceRegistration
         services.AddScoped<ITenantLifecycleService, TenantLifecycleService>();
         services.AddScoped<ISupportDiagnosticsService, SupportDiagnosticsService>();
         services.AddScoped<ITenantPolicyControlService, TenantPolicyControlService>();
+        services.AddScoped<IKpiDashboardService, KpiDashboardService>();
         services.AddScoped<ITenantSubscriptionService, TenantSubscriptionService>();
         services.AddScoped<ITenantBillingService, TenantBillingService>();
         services.AddScoped<ICaseService, CaseService>();
