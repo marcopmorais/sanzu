@@ -397,6 +397,121 @@ public sealed class CasesControllerTests : IClassFixture<CustomWebApplicationFac
         validation.Errors.Keys.Should().Contain(nameof(SubmitCaseIntakeRequest.ConfirmAccuracy));
     }
 
+    [Fact]
+    public async Task GenerateCasePlan_ShouldReturn200AndPersistPlan_WhenManagerRunsAfterIntake()
+    {
+        var client = _factory.CreateClient();
+        var signup = await CreateTenantAsync(client, "cases-plan-generate@agency.pt");
+        await ActivateTenantAsync(client, signup);
+        var createdCase = await CreateCaseAsync(client, signup, "Generate Plan Case");
+
+        using (var intakeRequest = BuildAuthorizedJsonRequest(
+                   HttpMethod.Put,
+                   $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/intake",
+                   new SubmitCaseIntakeRequest
+                   {
+                       PrimaryContactName = "Ana Pereira",
+                       PrimaryContactPhone = "+351910000000",
+                       RelationshipToDeceased = "Daughter",
+                       HasWill = true,
+                       RequiresLegalSupport = true,
+                       ConfirmAccuracy = true
+                   },
+                   signup.UserId,
+                   signup.OrganizationId,
+                   "AgencyAdmin"))
+        {
+            var intakeResponse = await client.SendAsync(intakeRequest);
+            intakeResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        }
+
+        using var generateRequest = BuildAuthorizedRequest(
+            HttpMethod.Post,
+            $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/plan/generate",
+            signup.UserId,
+            signup.OrganizationId,
+            "AgencyAdmin");
+
+        var response = await client.SendAsync(generateRequest);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var envelope = await response.Content.ReadFromJsonAsync<ApiEnvelope<GenerateCasePlanResponse>>();
+        envelope.Should().NotBeNull();
+        envelope!.Data.Should().NotBeNull();
+        envelope.Data!.CaseId.Should().Be(createdCase.CaseId);
+        envelope.Data.Steps.Should().HaveCount(5);
+        envelope.Data.Steps.Should().Contain(x => x.StepKey == "collect-civil-records" && x.Status == WorkflowStepStatus.Ready);
+        envelope.Data.Steps.Should().Contain(x => x.StepKey == "submit-succession-notification" && x.Status == WorkflowStepStatus.Blocked);
+
+        using var scope = _factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<SanzuDbContext>();
+        dbContext.WorkflowStepInstances.Count(x => x.CaseId == createdCase.CaseId).Should().Be(5);
+        dbContext.WorkflowStepDependencies.Count(x => x.CaseId == createdCase.CaseId).Should().Be(4);
+        dbContext.Cases.Should().Contain(x => x.Id == createdCase.CaseId && x.Status == CaseStatus.Active);
+        dbContext.AuditEvents.Should().Contain(x => x.EventType == "CasePlanGenerated" && x.CaseId == createdCase.CaseId);
+    }
+
+    [Fact]
+    public async Task GenerateCasePlan_ShouldReturn409_WhenIntakeIsNotCompleted()
+    {
+        var client = _factory.CreateClient();
+        var signup = await CreateTenantAsync(client, "cases-plan-no-intake@agency.pt");
+        await ActivateTenantAsync(client, signup);
+        var createdCase = await CreateCaseAsync(client, signup, "Generate Plan Without Intake Case");
+
+        using var generateRequest = BuildAuthorizedRequest(
+            HttpMethod.Post,
+            $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/plan/generate",
+            signup.UserId,
+            signup.OrganizationId,
+            "AgencyAdmin");
+
+        var response = await client.SendAsync(generateRequest);
+        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
+    }
+
+    [Fact]
+    public async Task GenerateCasePlan_ShouldReturn403_WhenUserIsEditor()
+    {
+        var client = _factory.CreateClient();
+        var signup = await CreateTenantAsync(client, "cases-plan-editor@agency.pt");
+        await ActivateTenantAsync(client, signup);
+        var createdCase = await CreateCaseAsync(client, signup, "Generate Plan Editor Case");
+        var editorUserId = await SeedAcceptedParticipantAsync(
+            signup.OrganizationId,
+            createdCase.CaseId,
+            "family.plan.editor@agency.pt",
+            CaseRole.Editor);
+
+        using (var intakeRequest = BuildAuthorizedJsonRequest(
+                   HttpMethod.Put,
+                   $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/intake",
+                   new SubmitCaseIntakeRequest
+                   {
+                       PrimaryContactName = "Ana Pereira",
+                       PrimaryContactPhone = "+351910000000",
+                       RelationshipToDeceased = "Daughter",
+                       ConfirmAccuracy = true
+                   },
+                   signup.UserId,
+                   signup.OrganizationId,
+                   "AgencyAdmin"))
+        {
+            var intakeResponse = await client.SendAsync(intakeRequest);
+            intakeResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        }
+
+        using var generateRequest = BuildAuthorizedRequest(
+            HttpMethod.Post,
+            $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/plan/generate",
+            editorUserId,
+            signup.OrganizationId,
+            "Editor");
+
+        var response = await client.SendAsync(generateRequest);
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
     private async Task ActivateTenantAsync(HttpClient client, CreateAgencyAccountResponse signup)
     {
         using var defaultsRequest = BuildAuthorizedJsonRequest(

@@ -25,4 +25,5 @@ public sealed class Case
     public Organization? Tenant { get; set; }
     public User? ManagerUser { get; set; }
     public ICollection<CaseParticipant> Participants { get; set; } = new List<CaseParticipant>();
+    public ICollection<WorkflowStepInstance> WorkflowSteps { get; set; } = new List<WorkflowStepInstance>();
 }

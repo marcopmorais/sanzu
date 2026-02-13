@@ -66,4 +66,10 @@ public interface ICaseService
         Guid caseId,
         SubmitCaseIntakeRequest request,
         CancellationToken cancellationToken);
+
+    Task<GenerateCasePlanResponse> GenerateCasePlanAsync(
+        Guid tenantId,
+        Guid actorUserId,
+        Guid caseId,
+        CancellationToken cancellationToken);
 }

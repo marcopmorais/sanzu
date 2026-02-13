@@ -248,6 +248,48 @@ public sealed class CasesController : ControllerBase
     }
 
     [Authorize]
+    [HttpPost("{caseId:guid}/plan/generate")]
+    [ProducesResponseType(typeof(ApiEnvelope<GenerateCasePlanResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> GenerateCasePlan(
+        Guid tenantId,
+        Guid caseId,
+        CancellationToken cancellationToken)
+    {
+        if (!TryGetActorUserId(out var actorUserId))
+        {
+            return Unauthorized();
+        }
+
+        try
+        {
+            var response = await _caseService.GenerateCasePlanAsync(
+                tenantId,
+                actorUserId,
+                caseId,
+                cancellationToken);
+
+            return Ok(ApiEnvelope<GenerateCasePlanResponse>.Success(response, BuildMeta()));
+        }
+        catch (TenantAccessDeniedException)
+        {
+            return Forbid();
+        }
+        catch (CaseAccessDeniedException)
+        {
+            return Forbid();
+        }
+        catch (CaseStateException exception)
+        {
+            return Problem(
+                statusCode: StatusCodes.Status409Conflict,
+                title: "Case state conflict",
+                detail: exception.Message);
+        }
+    }
+
+    [Authorize]
     [HttpGet("{caseId:guid}/milestones")]
     [ProducesResponseType(typeof(ApiEnvelope<CaseMilestonesResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]

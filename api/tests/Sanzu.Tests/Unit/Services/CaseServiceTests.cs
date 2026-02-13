@@ -668,6 +668,111 @@ public sealed class CaseServiceTests
     }
 
     [Fact]
+    public async Task GenerateCasePlan_ShouldCreateStepsDependenciesAndSetInitialReadiness_WhenIntakeIsCompleted()
+    {
+        var dbContext = CreateContext();
+        var (tenantId, actorUserId) = await SeedTenantWithAdminAsync(dbContext, TenantStatus.Active);
+        var service = CreateService(dbContext);
+        var createdCase = await CreateCaseAsync(service, tenantId, actorUserId, "Plan Generation Case");
+
+        await service.SubmitCaseIntakeAsync(
+            tenantId,
+            actorUserId,
+            createdCase.CaseId,
+            new SubmitCaseIntakeRequest
+            {
+                PrimaryContactName = "Ana Pereira",
+                PrimaryContactPhone = "+351919999999",
+                RelationshipToDeceased = "Daughter",
+                HasWill = true,
+                RequiresLegalSupport = true,
+                RequiresFinancialSupport = false,
+                ConfirmAccuracy = true
+            },
+            CancellationToken.None);
+
+        var response = await service.GenerateCasePlanAsync(
+            tenantId,
+            actorUserId,
+            createdCase.CaseId,
+            CancellationToken.None);
+
+        response.CaseId.Should().Be(createdCase.CaseId);
+        response.Steps.Should().HaveCount(5);
+        response.Steps.Select(x => x.StepKey).Should().ContainInOrder(
+            "collect-civil-records",
+            "gather-estate-inventory",
+            "submit-succession-notification",
+            "validate-will",
+            "engage-legal-support");
+        response.Steps.Should().Contain(x => x.StepKey == "collect-civil-records" && x.Status == WorkflowStepStatus.Ready);
+        response.Steps.Should().Contain(x => x.StepKey == "gather-estate-inventory" && x.Status == WorkflowStepStatus.Ready);
+        response.Steps.Should().Contain(x => x.StepKey == "submit-succession-notification" && x.Status == WorkflowStepStatus.Blocked && x.DependsOnStepIds.Count == 2);
+        response.Steps.Should().Contain(x => x.StepKey == "validate-will" && x.Status == WorkflowStepStatus.Blocked && x.DependsOnStepIds.Count == 1);
+        response.Steps.Should().Contain(x => x.StepKey == "engage-legal-support" && x.Status == WorkflowStepStatus.Blocked && x.DependsOnStepIds.Count == 1);
+
+        dbContext.WorkflowStepInstances.Count(x => x.CaseId == createdCase.CaseId).Should().Be(5);
+        dbContext.WorkflowStepDependencies.Count(x => x.CaseId == createdCase.CaseId).Should().Be(4);
+        dbContext.Cases.Single(x => x.Id == createdCase.CaseId).Status.Should().Be(CaseStatus.Active);
+        dbContext.AuditEvents.Should().Contain(x => x.EventType == "CasePlanGenerated" && x.CaseId == createdCase.CaseId);
+    }
+
+    [Fact]
+    public async Task GenerateCasePlan_ShouldThrowCaseStateException_WhenIntakeIsMissing()
+    {
+        var dbContext = CreateContext();
+        var (tenantId, actorUserId) = await SeedTenantWithAdminAsync(dbContext, TenantStatus.Active);
+        var service = CreateService(dbContext);
+        var createdCase = await CreateCaseAsync(service, tenantId, actorUserId, "Plan Without Intake Case");
+
+        var act = () => service.GenerateCasePlanAsync(
+            tenantId,
+            actorUserId,
+            createdCase.CaseId,
+            CancellationToken.None);
+
+        await act.Should().ThrowAsync<CaseStateException>()
+            .WithMessage("*Structured intake must be completed*");
+    }
+
+    [Fact]
+    public async Task GenerateCasePlan_ShouldThrowCaseAccessDeniedAndAudit_WhenUserIsEditor()
+    {
+        var dbContext = CreateContext();
+        var (tenantId, actorUserId) = await SeedTenantWithAdminAsync(dbContext, TenantStatus.Active);
+        var service = CreateService(dbContext);
+        var createdCase = await CreateCaseAsync(service, tenantId, actorUserId, "Editor Plan Case");
+
+        await service.SubmitCaseIntakeAsync(
+            tenantId,
+            actorUserId,
+            createdCase.CaseId,
+            new SubmitCaseIntakeRequest
+            {
+                PrimaryContactName = "Ana Pereira",
+                PrimaryContactPhone = "+351919999999",
+                RelationshipToDeceased = "Daughter",
+                ConfirmAccuracy = true
+            },
+            CancellationToken.None);
+
+        var editorUserId = Guid.NewGuid();
+        const string editorEmail = "family.plan.editor@agency.pt";
+        await SeedUserAsync(dbContext, editorUserId, tenantId, editorEmail, "Family Editor");
+        await SeedAcceptedParticipantDirectAsync(dbContext, tenantId, createdCase.CaseId, editorUserId, editorEmail, CaseRole.Editor);
+
+        var act = () => service.GenerateCasePlanAsync(
+            tenantId,
+            editorUserId,
+            createdCase.CaseId,
+            CancellationToken.None);
+
+        await act.Should().ThrowAsync<CaseAccessDeniedException>()
+            .Where(e => e.ReasonCode == "ROLE_INSUFFICIENT" && e.AttemptedAction == "GenerateCasePlan");
+        AssertAccessDeniedAudit(dbContext, editorUserId, createdCase.CaseId, "GenerateCasePlan", "Manager", "Editor", "ROLE_INSUFFICIENT");
+    }
+
+    [Fact]
     public async Task GetCaseDetails_ShouldReturnDetails_WhenUserIsCaseManager()
     {
         var dbContext = CreateContext();
@@ -828,6 +933,7 @@ public sealed class CaseServiceTests
             new UserRepository(dbContext),
             new CaseRepository(dbContext),
             new CaseParticipantRepository(dbContext),
+            new WorkflowStepRepository(dbContext),
             new AuditRepository(dbContext),
             new EfUnitOfWork(dbContext),
             new CreateCaseRequestValidator(),

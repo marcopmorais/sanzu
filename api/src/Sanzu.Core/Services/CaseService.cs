@@ -17,6 +17,7 @@ public sealed class CaseService : ICaseService
     private readonly IUserRepository _userRepository;
     private readonly ICaseRepository _caseRepository;
     private readonly ICaseParticipantRepository _caseParticipantRepository;
+    private readonly IWorkflowStepRepository _workflowStepRepository;
     private readonly IAuditRepository _auditRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IValidator<CreateCaseRequest> _createCaseValidator;
@@ -33,6 +34,7 @@ public sealed class CaseService : ICaseService
         IUserRepository userRepository,
         ICaseRepository caseRepository,
         ICaseParticipantRepository caseParticipantRepository,
+        IWorkflowStepRepository workflowStepRepository,
         IAuditRepository auditRepository,
         IUnitOfWork unitOfWork,
         IValidator<CreateCaseRequest> createCaseValidator,
@@ -48,6 +50,7 @@ public sealed class CaseService : ICaseService
         _userRepository = userRepository;
         _caseRepository = caseRepository;
         _caseParticipantRepository = caseParticipantRepository;
+        _workflowStepRepository = workflowStepRepository;
         _auditRepository = auditRepository;
         _unitOfWork = unitOfWork;
         _createCaseValidator = createCaseValidator;
@@ -226,6 +229,146 @@ public sealed class CaseService : ICaseService
                     caseEntity.Id);
 
                 response = MapCaseDetails(caseEntity);
+            },
+            cancellationToken);
+
+        return response!;
+    }
+
+    public async Task<GenerateCasePlanResponse> GenerateCasePlanAsync(
+        Guid tenantId,
+        Guid actorUserId,
+        Guid caseId,
+        CancellationToken cancellationToken)
+    {
+        var caseForAccess = await LoadCaseForTenantAsync(tenantId, caseId, cancellationToken);
+        var effectiveRole = await ResolveEffectiveCaseRoleAsync(tenantId, actorUserId, caseForAccess, cancellationToken);
+        await EnsureCaseRoleAsync(effectiveRole, CaseRole.Manager, actorUserId, caseId, "GenerateCasePlan", cancellationToken);
+        EnsureCaseHasCompletedIntake(caseForAccess);
+        var intakeSnapshot = ParseIntakeSnapshot(caseForAccess.IntakeData!);
+
+        GenerateCasePlanResponse? response = null;
+
+        await _unitOfWork.ExecuteInTransactionAsync(
+            async token =>
+            {
+                var caseEntity = await LoadCaseForTenantAsync(tenantId, caseId, token);
+                EnsureCaseHasCompletedIntake(caseEntity);
+                var latestIntakeSnapshot = ParseIntakeSnapshot(caseEntity.IntakeData!);
+                var stepBlueprints = BuildPlanBlueprints(latestIntakeSnapshot);
+                var nowUtc = DateTime.UtcNow;
+
+                await _workflowStepRepository.DeletePlanByCaseIdAsync(caseEntity.Id, token);
+
+                var stepEntities = stepBlueprints
+                    .Select(
+                        (blueprint, index) =>
+                            new WorkflowStepInstance
+                            {
+                                Id = Guid.NewGuid(),
+                                TenantId = tenantId,
+                                CaseId = caseEntity.Id,
+                                StepKey = blueprint.StepKey,
+                                Title = blueprint.Title,
+                                Sequence = index + 1,
+                                Status = blueprint.DependsOnKeys.Count == 0
+                                    ? WorkflowStepStatus.Ready
+                                    : WorkflowStepStatus.Blocked,
+                                CreatedAt = nowUtc,
+                                UpdatedAt = nowUtc
+                            })
+                    .ToList();
+
+                await _workflowStepRepository.CreateStepsAsync(stepEntities, token);
+
+                var stepIdByKey = stepEntities.ToDictionary(x => x.StepKey, x => x.Id, StringComparer.OrdinalIgnoreCase);
+                var dependencyEntities = stepBlueprints
+                    .SelectMany(
+                        blueprint => blueprint.DependsOnKeys.Select(
+                            dependsOnKey => new WorkflowStepDependency
+                            {
+                                Id = Guid.NewGuid(),
+                                TenantId = tenantId,
+                                CaseId = caseEntity.Id,
+                                StepId = stepIdByKey[blueprint.StepKey],
+                                DependsOnStepId = stepIdByKey[dependsOnKey],
+                                CreatedAt = nowUtc
+                            }))
+                    .ToList();
+
+                await _workflowStepRepository.CreateDependenciesAsync(dependencyEntities, token);
+
+                if (caseEntity.Status == CaseStatus.Intake)
+                {
+                    var previousStatus = caseEntity.Status;
+                    caseEntity.Status = CaseStatus.Active;
+                    caseEntity.UpdatedAt = nowUtc;
+
+                    await WriteAuditEventAsync(
+                        actorUserId,
+                        "CaseStatusChanged",
+                        new
+                        {
+                            CaseId = caseEntity.Id,
+                            PreviousStatus = previousStatus.ToString(),
+                            NewStatus = caseEntity.Status.ToString(),
+                            Reason = "Case plan generated",
+                            ChangedAt = nowUtc
+                        },
+                        token,
+                        caseEntity.Id);
+                }
+                else
+                {
+                    caseEntity.UpdatedAt = nowUtc;
+                }
+
+                await WriteAuditEventAsync(
+                    actorUserId,
+                    "CasePlanGenerated",
+                    new
+                    {
+                        CaseId = caseEntity.Id,
+                        GeneratedAt = nowUtc,
+                        StepCount = stepEntities.Count,
+                        DependencyCount = dependencyEntities.Count,
+                        StepKeys = stepEntities.Select(x => x.StepKey).ToArray(),
+                        IntakeFlags = new
+                        {
+                            intakeSnapshot.HasWill,
+                            intakeSnapshot.RequiresLegalSupport,
+                            intakeSnapshot.RequiresFinancialSupport
+                        }
+                    },
+                    token,
+                    caseEntity.Id);
+
+                var dependencyMap = dependencyEntities
+                    .GroupBy(x => x.StepId)
+                    .ToDictionary(
+                        x => x.Key,
+                        x => (IReadOnlyList<Guid>)x.Select(d => d.DependsOnStepId).ToList());
+
+                response = new GenerateCasePlanResponse
+                {
+                    CaseId = caseEntity.Id,
+                    GeneratedAt = nowUtc,
+                    Steps = stepEntities
+                        .OrderBy(x => x.Sequence)
+                        .Select(
+                            step => new CasePlanStepResponse
+                            {
+                                StepId = step.Id,
+                                StepKey = step.StepKey,
+                                Title = step.Title,
+                                Sequence = step.Sequence,
+                                Status = step.Status,
+                                DependsOnStepIds = dependencyMap.TryGetValue(step.Id, out var dependsOn)
+                                    ? dependsOn
+                                    : Array.Empty<Guid>()
+                            })
+                        .ToList()
+                };
             },
             cancellationToken);
 
@@ -810,6 +953,92 @@ public sealed class CaseService : ICaseService
         }
     }
 
+    private static void EnsureCaseHasCompletedIntake(Case caseEntity)
+    {
+        if (string.IsNullOrWhiteSpace(caseEntity.IntakeData) || caseEntity.IntakeCompletedAt is null)
+        {
+            throw new CaseStateException(
+                "Structured intake must be completed before generating a case plan.");
+        }
+    }
+
+    private static IntakeSnapshot ParseIntakeSnapshot(string intakeData)
+    {
+        try
+        {
+            using var document = JsonDocument.Parse(intakeData);
+            var root = document.RootElement;
+
+            return new IntakeSnapshot(
+                HasWill: ReadBooleanOrDefault(root, "HasWill"),
+                RequiresLegalSupport: ReadBooleanOrDefault(root, "RequiresLegalSupport"),
+                RequiresFinancialSupport: ReadBooleanOrDefault(root, "RequiresFinancialSupport"));
+        }
+        catch (JsonException)
+        {
+            throw new CaseStateException(
+                "Stored intake data is invalid and cannot be used for plan generation.");
+        }
+    }
+
+    private static bool ReadBooleanOrDefault(JsonElement root, string propertyName)
+    {
+        if (!root.TryGetProperty(propertyName, out var value))
+        {
+            return false;
+        }
+
+        return value.ValueKind switch
+        {
+            JsonValueKind.True => true,
+            JsonValueKind.False => false,
+            _ => false
+        };
+    }
+
+    private static IReadOnlyList<PlanStepBlueprint> BuildPlanBlueprints(IntakeSnapshot intakeSnapshot)
+    {
+        var blueprints = new List<PlanStepBlueprint>
+        {
+            new("collect-civil-records", "Collect civil and identity records"),
+            new("gather-estate-inventory", "Gather estate and account inventory"),
+            new(
+                "submit-succession-notification",
+                "Submit succession notification",
+                "collect-civil-records",
+                "gather-estate-inventory")
+        };
+
+        if (intakeSnapshot.HasWill)
+        {
+            blueprints.Add(
+                new(
+                    "validate-will",
+                    "Validate will and testament requirements",
+                    "collect-civil-records"));
+        }
+
+        if (intakeSnapshot.RequiresLegalSupport)
+        {
+            blueprints.Add(
+                new(
+                    "engage-legal-support",
+                    "Engage legal support and share case context",
+                    "submit-succession-notification"));
+        }
+
+        if (intakeSnapshot.RequiresFinancialSupport)
+        {
+            blueprints.Add(
+                new(
+                    "engage-financial-support",
+                    "Engage financial support for account and tax obligations",
+                    "gather-estate-inventory"));
+        }
+
+        return blueprints;
+    }
+
     private static void EnsureCaseDetailsMutable(Case caseEntity)
     {
         if (caseEntity.Status is CaseStatus.Archived or CaseStatus.Cancelled)
@@ -1046,5 +1275,24 @@ public sealed class CaseService : ICaseService
         };
 
         return _auditRepository.CreateAsync(auditEvent, cancellationToken);
+    }
+
+    private sealed record IntakeSnapshot(
+        bool HasWill,
+        bool RequiresLegalSupport,
+        bool RequiresFinancialSupport);
+
+    private sealed class PlanStepBlueprint
+    {
+        public PlanStepBlueprint(string stepKey, string title, params string[] dependsOnKeys)
+        {
+            StepKey = stepKey;
+            Title = title;
+            DependsOnKeys = dependsOnKeys;
+        }
+
+        public string StepKey { get; }
+        public string Title { get; }
+        public IReadOnlyList<string> DependsOnKeys { get; }
     }
 }
