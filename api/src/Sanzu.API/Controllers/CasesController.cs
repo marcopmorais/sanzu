@@ -289,6 +289,85 @@ public sealed class CasesController : ControllerBase
     }
 
     [Authorize]
+    [HttpPost("{caseId:guid}/documents")]
+    [ProducesResponseType(typeof(ApiEnvelope<CaseDocumentUploadResponse>), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> UploadCaseDocument(
+        Guid tenantId,
+        Guid caseId,
+        [FromBody] UploadCaseDocumentRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (!TryGetActorUserId(out var actorUserId))
+        {
+            return Unauthorized();
+        }
+
+        try
+        {
+            var response = await _caseService.UploadCaseDocumentAsync(
+                tenantId,
+                actorUserId,
+                caseId,
+                request,
+                cancellationToken);
+
+            return Created(
+                $"/api/v1/tenants/{tenantId}/cases/{caseId}/documents/{response.DocumentId}",
+                ApiEnvelope<CaseDocumentUploadResponse>.Success(response, BuildMeta()));
+        }
+        catch (ValidationException validationException)
+        {
+            return BadRequest(BuildValidationProblem(validationException, "Invalid case document upload request"));
+        }
+        catch (TenantAccessDeniedException)
+        {
+            return Forbid();
+        }
+        catch (CaseAccessDeniedException)
+        {
+            return Forbid();
+        }
+    }
+
+    [Authorize]
+    [HttpGet("{caseId:guid}/documents/{documentId:guid}")]
+    [ProducesResponseType(typeof(ApiEnvelope<CaseDocumentDownloadResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> DownloadCaseDocument(
+        Guid tenantId,
+        Guid caseId,
+        Guid documentId,
+        CancellationToken cancellationToken)
+    {
+        if (!TryGetActorUserId(out var actorUserId))
+        {
+            return Unauthorized();
+        }
+
+        try
+        {
+            var response = await _caseService.DownloadCaseDocumentAsync(
+                tenantId,
+                actorUserId,
+                caseId,
+                documentId,
+                cancellationToken);
+
+            return Ok(ApiEnvelope<CaseDocumentDownloadResponse>.Success(response, BuildMeta()));
+        }
+        catch (TenantAccessDeniedException)
+        {
+            return Forbid();
+        }
+        catch (CaseAccessDeniedException)
+        {
+            return Forbid();
+        }
+    }
+
+    [Authorize]
     [HttpPost("{caseId:guid}/plan/readiness/recalculate")]
     [ProducesResponseType(typeof(ApiEnvelope<GenerateCasePlanResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]

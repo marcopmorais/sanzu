@@ -1276,6 +1276,114 @@ public sealed class CaseServiceTests
     }
 
     [Fact]
+    public async Task UploadCaseDocument_ShouldPersistDocumentAndAudit_WhenUserIsEditor()
+    {
+        var dbContext = CreateContext();
+        var (tenantId, actorUserId) = await SeedTenantWithAdminAsync(dbContext, TenantStatus.Active);
+        var service = CreateService(dbContext);
+        var createdCase = await CreateCaseAsync(service, tenantId, actorUserId, "Document Upload Case");
+        var editorUserId = Guid.NewGuid();
+        const string editorEmail = "family.docs.editor@agency.pt";
+        await SeedUserAsync(dbContext, editorUserId, tenantId, editorEmail, "Family Editor");
+        await SeedAcceptedParticipantDirectAsync(dbContext, tenantId, createdCase.CaseId, editorUserId, editorEmail, CaseRole.Editor);
+
+        var payload = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("document-content"));
+        var response = await service.UploadCaseDocumentAsync(
+            tenantId,
+            editorUserId,
+            createdCase.CaseId,
+            new UploadCaseDocumentRequest
+            {
+                FileName = "certificate.pdf",
+                ContentType = "application/pdf",
+                ContentBase64 = payload
+            },
+            CancellationToken.None);
+
+        response.CaseId.Should().Be(createdCase.CaseId);
+        response.FileName.Should().Be("certificate.pdf");
+        response.SizeBytes.Should().Be(16);
+        dbContext.CaseDocuments.Should().Contain(x => x.Id == response.DocumentId && x.CaseId == createdCase.CaseId);
+        dbContext.AuditEvents.Should().Contain(
+            x => x.EventType == "CaseDocumentUploaded" && x.CaseId == createdCase.CaseId && x.ActorUserId == editorUserId);
+    }
+
+    [Fact]
+    public async Task UploadCaseDocument_ShouldThrowCaseAccessDeniedAndAudit_WhenUserIsReader()
+    {
+        var dbContext = CreateContext();
+        var (tenantId, actorUserId) = await SeedTenantWithAdminAsync(dbContext, TenantStatus.Active);
+        var service = CreateService(dbContext);
+        var createdCase = await CreateCaseAsync(service, tenantId, actorUserId, "Reader Upload Case");
+        var readerUserId = Guid.NewGuid();
+        const string readerEmail = "family.docs.reader@agency.pt";
+        await SeedUserAsync(dbContext, readerUserId, tenantId, readerEmail, "Family Reader");
+        await SeedAcceptedParticipantDirectAsync(dbContext, tenantId, createdCase.CaseId, readerUserId, readerEmail, CaseRole.Reader);
+
+        var act = () => service.UploadCaseDocumentAsync(
+            tenantId,
+            readerUserId,
+            createdCase.CaseId,
+            new UploadCaseDocumentRequest
+            {
+                FileName = "certificate.pdf",
+                ContentType = "application/pdf",
+                ContentBase64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("content"))
+            },
+            CancellationToken.None);
+
+        await act.Should().ThrowAsync<CaseAccessDeniedException>()
+            .Where(e => e.ReasonCode == "ROLE_INSUFFICIENT" && e.AttemptedAction == "UploadCaseDocument");
+        AssertAccessDeniedAudit(
+            dbContext,
+            readerUserId,
+            createdCase.CaseId,
+            "UploadCaseDocument",
+            "Editor",
+            "Reader",
+            "ROLE_INSUFFICIENT");
+    }
+
+    [Fact]
+    public async Task DownloadCaseDocument_ShouldReturnContentAndAudit_WhenUserIsReader()
+    {
+        var dbContext = CreateContext();
+        var (tenantId, actorUserId) = await SeedTenantWithAdminAsync(dbContext, TenantStatus.Active);
+        var service = CreateService(dbContext);
+        var createdCase = await CreateCaseAsync(service, tenantId, actorUserId, "Download Document Case");
+        var readerUserId = Guid.NewGuid();
+        const string readerEmail = "family.docs.download.reader@agency.pt";
+        await SeedUserAsync(dbContext, readerUserId, tenantId, readerEmail, "Family Reader");
+        await SeedAcceptedParticipantDirectAsync(dbContext, tenantId, createdCase.CaseId, readerUserId, readerEmail, CaseRole.Reader);
+
+        var contentBase64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("download-content"));
+        var uploaded = await service.UploadCaseDocumentAsync(
+            tenantId,
+            actorUserId,
+            createdCase.CaseId,
+            new UploadCaseDocumentRequest
+            {
+                FileName = "declaration.txt",
+                ContentType = "text/plain",
+                ContentBase64 = contentBase64
+            },
+            CancellationToken.None);
+
+        var downloaded = await service.DownloadCaseDocumentAsync(
+            tenantId,
+            readerUserId,
+            createdCase.CaseId,
+            uploaded.DocumentId,
+            CancellationToken.None);
+
+        downloaded.DocumentId.Should().Be(uploaded.DocumentId);
+        downloaded.ContentType.Should().Be("text/plain");
+        downloaded.ContentBase64.Should().Be(contentBase64);
+        dbContext.AuditEvents.Should().Contain(
+            x => x.EventType == "CaseDocumentDownloaded" && x.CaseId == createdCase.CaseId && x.ActorUserId == readerUserId);
+    }
+
+    [Fact]
     public async Task GetCaseDetails_ShouldReturnDetails_WhenUserIsCaseManager()
     {
         var dbContext = CreateContext();
@@ -1435,12 +1543,14 @@ public sealed class CaseServiceTests
             new UserRoleRepository(dbContext),
             new UserRepository(dbContext),
             new CaseRepository(dbContext),
+            new CaseDocumentRepository(dbContext),
             new CaseParticipantRepository(dbContext),
             new WorkflowStepRepository(dbContext),
             new AuditRepository(dbContext),
             new EfUnitOfWork(dbContext),
             new CreateCaseRequestValidator(),
             new SubmitCaseIntakeRequestValidator(),
+            new UploadCaseDocumentRequestValidator(),
             new OverrideWorkflowStepReadinessRequestValidator(),
             new UpdateWorkflowTaskStatusRequestValidator(),
             new UpdateCaseDetailsRequestValidator(),

@@ -1027,6 +1027,137 @@ public sealed class CasesControllerTests : IClassFixture<CustomWebApplicationFac
         envelope.Data.Events.Should().Contain(x => x.EventType == "CaseNotificationQueued");
     }
 
+    [Fact]
+    public async Task UploadCaseDocument_ShouldReturn201AndPersistDocument_WhenUserIsEditor()
+    {
+        var client = _factory.CreateClient();
+        var signup = await CreateTenantAsync(client, "cases-doc-upload-editor@agency.pt");
+        await ActivateTenantAsync(client, signup);
+        var createdCase = await CreateCaseAsync(client, signup, "Document Upload Integration Case");
+        var editorUserId = await SeedAcceptedParticipantAsync(
+            signup.OrganizationId,
+            createdCase.CaseId,
+            "family.docs.editor@agency.pt",
+            CaseRole.Editor);
+
+        using var uploadRequest = BuildAuthorizedJsonRequest(
+            HttpMethod.Post,
+            $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/documents",
+            new UploadCaseDocumentRequest
+            {
+                FileName = "will.pdf",
+                ContentType = "application/pdf",
+                ContentBase64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("mock-pdf-content"))
+            },
+            editorUserId,
+            signup.OrganizationId,
+            "Editor");
+
+        var response = await client.SendAsync(uploadRequest);
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+
+        var envelope = await response.Content.ReadFromJsonAsync<ApiEnvelope<CaseDocumentUploadResponse>>();
+        envelope.Should().NotBeNull();
+        envelope!.Data.Should().NotBeNull();
+        envelope.Data!.CaseId.Should().Be(createdCase.CaseId);
+        envelope.Data.FileName.Should().Be("will.pdf");
+
+        using var scope = _factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<SanzuDbContext>();
+        dbContext.CaseDocuments.Should().Contain(x => x.Id == envelope.Data.DocumentId && x.CaseId == createdCase.CaseId);
+        dbContext.AuditEvents.Should().Contain(
+            x => x.EventType == "CaseDocumentUploaded" && x.CaseId == createdCase.CaseId && x.ActorUserId == editorUserId);
+    }
+
+    [Fact]
+    public async Task DownloadCaseDocument_ShouldReturn200AndDocumentContent_WhenUserIsReader()
+    {
+        var client = _factory.CreateClient();
+        var signup = await CreateTenantAsync(client, "cases-doc-download-reader@agency.pt");
+        await ActivateTenantAsync(client, signup);
+        var createdCase = await CreateCaseAsync(client, signup, "Document Download Integration Case");
+        var readerUserId = await SeedAcceptedParticipantAsync(
+            signup.OrganizationId,
+            createdCase.CaseId,
+            "family.docs.reader@agency.pt",
+            CaseRole.Reader);
+
+        Guid documentId;
+        var payload = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("downloadable-content"));
+        using (var uploadRequest = BuildAuthorizedJsonRequest(
+                   HttpMethod.Post,
+                   $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/documents",
+                   new UploadCaseDocumentRequest
+                   {
+                       FileName = "statement.txt",
+                       ContentType = "text/plain",
+                       ContentBase64 = payload
+                   },
+                   signup.UserId,
+                   signup.OrganizationId,
+                   "AgencyAdmin"))
+        {
+            var uploadResponse = await client.SendAsync(uploadRequest);
+            uploadResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+            var uploadEnvelope = await uploadResponse.Content.ReadFromJsonAsync<ApiEnvelope<CaseDocumentUploadResponse>>();
+            uploadEnvelope.Should().NotBeNull();
+            uploadEnvelope!.Data.Should().NotBeNull();
+            documentId = uploadEnvelope.Data!.DocumentId;
+        }
+
+        using var downloadRequest = BuildAuthorizedRequest(
+            HttpMethod.Get,
+            $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/documents/{documentId}",
+            readerUserId,
+            signup.OrganizationId,
+            "Reader");
+
+        var response = await client.SendAsync(downloadRequest);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var envelope = await response.Content.ReadFromJsonAsync<ApiEnvelope<CaseDocumentDownloadResponse>>();
+        envelope.Should().NotBeNull();
+        envelope!.Data.Should().NotBeNull();
+        envelope.Data!.DocumentId.Should().Be(documentId);
+        envelope.Data.ContentType.Should().Be("text/plain");
+        envelope.Data.ContentBase64.Should().Be(payload);
+
+        using var scope = _factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<SanzuDbContext>();
+        dbContext.AuditEvents.Should().Contain(
+            x => x.EventType == "CaseDocumentDownloaded" && x.CaseId == createdCase.CaseId && x.ActorUserId == readerUserId);
+    }
+
+    [Fact]
+    public async Task UploadCaseDocument_ShouldReturn403_WhenUserIsReader()
+    {
+        var client = _factory.CreateClient();
+        var signup = await CreateTenantAsync(client, "cases-doc-upload-reader@agency.pt");
+        await ActivateTenantAsync(client, signup);
+        var createdCase = await CreateCaseAsync(client, signup, "Document Upload Forbidden Case");
+        var readerUserId = await SeedAcceptedParticipantAsync(
+            signup.OrganizationId,
+            createdCase.CaseId,
+            "family.docs.upload.reader@agency.pt",
+            CaseRole.Reader);
+
+        using var uploadRequest = BuildAuthorizedJsonRequest(
+            HttpMethod.Post,
+            $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/documents",
+            new UploadCaseDocumentRequest
+            {
+                FileName = "will.pdf",
+                ContentType = "application/pdf",
+                ContentBase64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("forbidden"))
+            },
+            readerUserId,
+            signup.OrganizationId,
+            "Reader");
+
+        var response = await client.SendAsync(uploadRequest);
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
     private async Task ActivateTenantAsync(HttpClient client, CreateAgencyAccountResponse signup)
     {
         using var defaultsRequest = BuildAuthorizedJsonRequest(

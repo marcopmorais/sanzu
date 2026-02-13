@@ -43,6 +43,7 @@ public static class ServiceRegistration
         services.AddScoped<IValidator<CreateAgencyAccountRequest>, CreateAgencyAccountRequestValidator>();
         services.AddScoped<IValidator<CreateCaseRequest>, CreateCaseRequestValidator>();
         services.AddScoped<IValidator<SubmitCaseIntakeRequest>, SubmitCaseIntakeRequestValidator>();
+        services.AddScoped<IValidator<UploadCaseDocumentRequest>, UploadCaseDocumentRequestValidator>();
         services.AddScoped<IValidator<OverrideWorkflowStepReadinessRequest>, OverrideWorkflowStepReadinessRequestValidator>();
         services.AddScoped<IValidator<UpdateWorkflowTaskStatusRequest>, UpdateWorkflowTaskStatusRequestValidator>();
         services.AddScoped<IValidator<UpdateCaseDetailsRequest>, UpdateCaseDetailsRequestValidator>();

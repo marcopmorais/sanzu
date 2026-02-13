@@ -276,4 +276,35 @@ public sealed class CaseValidatorsTests
         result.IsValid.Should().BeFalse();
         result.Errors.Should().Contain(x => x.PropertyName == nameof(UpdateWorkflowTaskStatusRequest.TargetStatus));
     }
+
+    [Fact]
+    public void UploadCaseDocumentValidator_ShouldPass_WhenPayloadIsValid()
+    {
+        var validator = new UploadCaseDocumentRequestValidator();
+        var request = new UploadCaseDocumentRequest
+        {
+            FileName = "certificate.pdf",
+            ContentType = "application/pdf",
+            ContentBase64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("valid-content"))
+        };
+
+        var result = validator.Validate(request);
+        result.IsValid.Should().BeTrue();
+    }
+
+    [Fact]
+    public void UploadCaseDocumentValidator_ShouldFail_WhenBase64IsInvalid()
+    {
+        var validator = new UploadCaseDocumentRequestValidator();
+        var request = new UploadCaseDocumentRequest
+        {
+            FileName = "certificate.pdf",
+            ContentType = "application/pdf",
+            ContentBase64 = "***invalid***"
+        };
+
+        var result = validator.Validate(request);
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(x => x.PropertyName == nameof(UploadCaseDocumentRequest.ContentBase64));
+    }
 }

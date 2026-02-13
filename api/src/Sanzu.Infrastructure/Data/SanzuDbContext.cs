@@ -17,6 +17,7 @@ public sealed class SanzuDbContext : DbContext
     public DbSet<UserRole> UserRoles => Set<UserRole>();
     public DbSet<AuditEvent> AuditEvents => Set<AuditEvent>();
     public DbSet<Case> Cases => Set<Case>();
+    public DbSet<CaseDocument> CaseDocuments => Set<CaseDocument>();
     public DbSet<CaseParticipant> CaseParticipants => Set<CaseParticipant>();
     public DbSet<WorkflowStepInstance> WorkflowStepInstances => Set<WorkflowStepInstance>();
     public DbSet<WorkflowStepDependency> WorkflowStepDependencies => Set<WorkflowStepDependency>();
@@ -40,6 +41,9 @@ public sealed class SanzuDbContext : DbContext
 
         modelBuilder.Entity<Case>()
             .HasQueryFilter(caseEntity => CurrentOrganizationId == null || caseEntity.TenantId == CurrentOrganizationId);
+
+        modelBuilder.Entity<CaseDocument>()
+            .HasQueryFilter(document => CurrentOrganizationId == null || document.TenantId == CurrentOrganizationId);
 
         modelBuilder.Entity<CaseParticipant>()
             .HasQueryFilter(participant => CurrentOrganizationId == null || participant.TenantId == CurrentOrganizationId);

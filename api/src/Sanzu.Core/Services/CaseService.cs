@@ -16,12 +16,14 @@ public sealed class CaseService : ICaseService
     private readonly IUserRoleRepository _userRoleRepository;
     private readonly IUserRepository _userRepository;
     private readonly ICaseRepository _caseRepository;
+    private readonly ICaseDocumentRepository _caseDocumentRepository;
     private readonly ICaseParticipantRepository _caseParticipantRepository;
     private readonly IWorkflowStepRepository _workflowStepRepository;
     private readonly IAuditRepository _auditRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IValidator<CreateCaseRequest> _createCaseValidator;
     private readonly IValidator<SubmitCaseIntakeRequest> _submitCaseIntakeValidator;
+    private readonly IValidator<UploadCaseDocumentRequest> _uploadCaseDocumentValidator;
     private readonly IValidator<OverrideWorkflowStepReadinessRequest> _overrideWorkflowStepReadinessValidator;
     private readonly IValidator<UpdateWorkflowTaskStatusRequest> _updateWorkflowTaskStatusValidator;
     private readonly IValidator<UpdateCaseDetailsRequest> _updateCaseDetailsValidator;
@@ -35,12 +37,14 @@ public sealed class CaseService : ICaseService
         IUserRoleRepository userRoleRepository,
         IUserRepository userRepository,
         ICaseRepository caseRepository,
+        ICaseDocumentRepository caseDocumentRepository,
         ICaseParticipantRepository caseParticipantRepository,
         IWorkflowStepRepository workflowStepRepository,
         IAuditRepository auditRepository,
         IUnitOfWork unitOfWork,
         IValidator<CreateCaseRequest> createCaseValidator,
         IValidator<SubmitCaseIntakeRequest> submitCaseIntakeValidator,
+        IValidator<UploadCaseDocumentRequest> uploadCaseDocumentValidator,
         IValidator<OverrideWorkflowStepReadinessRequest> overrideWorkflowStepReadinessValidator,
         IValidator<UpdateWorkflowTaskStatusRequest> updateWorkflowTaskStatusValidator,
         IValidator<UpdateCaseDetailsRequest> updateCaseDetailsValidator,
@@ -53,12 +57,14 @@ public sealed class CaseService : ICaseService
         _userRoleRepository = userRoleRepository;
         _userRepository = userRepository;
         _caseRepository = caseRepository;
+        _caseDocumentRepository = caseDocumentRepository;
         _caseParticipantRepository = caseParticipantRepository;
         _workflowStepRepository = workflowStepRepository;
         _auditRepository = auditRepository;
         _unitOfWork = unitOfWork;
         _createCaseValidator = createCaseValidator;
         _submitCaseIntakeValidator = submitCaseIntakeValidator;
+        _uploadCaseDocumentValidator = uploadCaseDocumentValidator;
         _overrideWorkflowStepReadinessValidator = overrideWorkflowStepReadinessValidator;
         _updateWorkflowTaskStatusValidator = updateWorkflowTaskStatusValidator;
         _updateCaseDetailsValidator = updateCaseDetailsValidator;
@@ -402,6 +408,142 @@ public sealed class CaseService : ICaseService
                             })
                         .ToList()
                 };
+            },
+            cancellationToken);
+
+        return response!;
+    }
+
+    public async Task<CaseDocumentUploadResponse> UploadCaseDocumentAsync(
+        Guid tenantId,
+        Guid actorUserId,
+        Guid caseId,
+        UploadCaseDocumentRequest request,
+        CancellationToken cancellationToken)
+    {
+        var validationResult = await _uploadCaseDocumentValidator.ValidateAsync(request, cancellationToken);
+        if (!validationResult.IsValid)
+        {
+            throw new ValidationException(validationResult.Errors);
+        }
+
+        var caseForAccess = await LoadCaseForTenantAsync(tenantId, caseId, cancellationToken);
+        var effectiveRole = await ResolveEffectiveCaseRoleAsync(tenantId, actorUserId, caseForAccess, cancellationToken);
+        await EnsureCaseRoleAsync(effectiveRole, CaseRole.Editor, actorUserId, caseId, "UploadCaseDocument", cancellationToken);
+
+        CaseDocumentUploadResponse? response = null;
+
+        await _unitOfWork.ExecuteInTransactionAsync(
+            async token =>
+            {
+                var caseEntity = await LoadCaseForTenantAsync(tenantId, caseId, token);
+                var nowUtc = DateTime.UtcNow;
+                byte[] contentBytes;
+                try
+                {
+                    contentBytes = Convert.FromBase64String(request.ContentBase64.Trim());
+                }
+                catch (FormatException)
+                {
+                    throw new ValidationException(
+                        new[]
+                        {
+                            new FluentValidation.Results.ValidationFailure(
+                                nameof(UploadCaseDocumentRequest.ContentBase64),
+                                "ContentBase64 must be valid Base64 data.")
+                        });
+                }
+
+                if (contentBytes.Length == 0)
+                {
+                    throw new ValidationException(
+                        new[]
+                        {
+                            new FluentValidation.Results.ValidationFailure(
+                                nameof(UploadCaseDocumentRequest.ContentBase64),
+                                "ContentBase64 must contain document bytes.")
+                        });
+                }
+
+                var document = new CaseDocument
+                {
+                    Id = Guid.NewGuid(),
+                    TenantId = tenantId,
+                    CaseId = caseEntity.Id,
+                    FileName = request.FileName.Trim(),
+                    ContentType = request.ContentType.Trim(),
+                    SizeBytes = contentBytes.LongLength,
+                    Content = contentBytes,
+                    UploadedByUserId = actorUserId,
+                    CreatedAt = nowUtc
+                };
+
+                await _caseDocumentRepository.CreateAsync(document, token);
+
+                await WriteAuditEventAsync(
+                    actorUserId,
+                    "CaseDocumentUploaded",
+                    new
+                    {
+                        CaseId = caseEntity.Id,
+                        DocumentId = document.Id,
+                        document.FileName,
+                        document.ContentType,
+                        document.SizeBytes,
+                        document.UploadedByUserId,
+                        UploadedAt = nowUtc
+                    },
+                    token,
+                    caseEntity.Id);
+
+                response = MapDocumentUpload(document);
+            },
+            cancellationToken);
+
+        return response!;
+    }
+
+    public async Task<CaseDocumentDownloadResponse> DownloadCaseDocumentAsync(
+        Guid tenantId,
+        Guid actorUserId,
+        Guid caseId,
+        Guid documentId,
+        CancellationToken cancellationToken)
+    {
+        var caseForAccess = await LoadCaseForTenantAsync(tenantId, caseId, cancellationToken);
+        var effectiveRole = await ResolveEffectiveCaseRoleAsync(tenantId, actorUserId, caseForAccess, cancellationToken);
+        await EnsureCaseRoleAsync(effectiveRole, CaseRole.Reader, actorUserId, caseId, "DownloadCaseDocument", cancellationToken);
+
+        CaseDocumentDownloadResponse? response = null;
+
+        await _unitOfWork.ExecuteInTransactionAsync(
+            async token =>
+            {
+                var caseEntity = await LoadCaseForTenantAsync(tenantId, caseId, token);
+                var document = await _caseDocumentRepository.GetByIdAsync(documentId, token);
+                if (document is null || document.CaseId != caseEntity.Id || document.TenantId != tenantId)
+                {
+                    throw new TenantAccessDeniedException();
+                }
+
+                var downloadedAt = DateTime.UtcNow;
+                await WriteAuditEventAsync(
+                    actorUserId,
+                    "CaseDocumentDownloaded",
+                    new
+                    {
+                        CaseId = caseEntity.Id,
+                        DocumentId = document.Id,
+                        document.FileName,
+                        document.ContentType,
+                        document.SizeBytes,
+                        DownloadedByUserId = actorUserId,
+                        DownloadedAt = downloadedAt
+                    },
+                    token,
+                    caseEntity.Id);
+
+                response = MapDocumentDownload(document);
             },
             cancellationToken);
 
@@ -1585,6 +1727,34 @@ public sealed class CaseService : ICaseService
             UpdatedAt = caseEntity.UpdatedAt,
             ClosedAt = caseEntity.ClosedAt,
             ArchivedAt = caseEntity.ArchivedAt
+        };
+    }
+
+    private static CaseDocumentUploadResponse MapDocumentUpload(CaseDocument document)
+    {
+        return new CaseDocumentUploadResponse
+        {
+            DocumentId = document.Id,
+            CaseId = document.CaseId,
+            FileName = document.FileName,
+            ContentType = document.ContentType,
+            SizeBytes = document.SizeBytes,
+            UploadedByUserId = document.UploadedByUserId,
+            UploadedAt = document.CreatedAt
+        };
+    }
+
+    private static CaseDocumentDownloadResponse MapDocumentDownload(CaseDocument document)
+    {
+        return new CaseDocumentDownloadResponse
+        {
+            DocumentId = document.Id,
+            CaseId = document.CaseId,
+            FileName = document.FileName,
+            ContentType = document.ContentType,
+            SizeBytes = document.SizeBytes,
+            ContentBase64 = Convert.ToBase64String(document.Content),
+            UploadedAt = document.CreatedAt
         };
     }
 

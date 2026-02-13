@@ -73,6 +73,20 @@ public interface ICaseService
         Guid caseId,
         CancellationToken cancellationToken);
 
+    Task<CaseDocumentUploadResponse> UploadCaseDocumentAsync(
+        Guid tenantId,
+        Guid actorUserId,
+        Guid caseId,
+        UploadCaseDocumentRequest request,
+        CancellationToken cancellationToken);
+
+    Task<CaseDocumentDownloadResponse> DownloadCaseDocumentAsync(
+        Guid tenantId,
+        Guid actorUserId,
+        Guid caseId,
+        Guid documentId,
+        CancellationToken cancellationToken);
+
     Task<GenerateCasePlanResponse> RecalculateCasePlanReadinessAsync(
         Guid tenantId,
         Guid actorUserId,
