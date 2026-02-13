@@ -1507,10 +1507,61 @@ public sealed class CaseService : ICaseService
         }
 
         var emails = await _processEmailRepository.GetByCaseIdAsync(caseForAccess.Id, cancellationToken);
+        var visibleEmails = emails;
+        if (effectiveRole != CaseRole.Manager)
+        {
+            var actor = await _userRepository.GetByIdAsync(actorUserId, cancellationToken);
+            var actorEmail = actor?.Email?.Trim().ToLowerInvariant();
+
+            if (string.IsNullOrWhiteSpace(actorEmail))
+            {
+                const string reasonCode = "ACTOR_EMAIL_MISSING";
+                await WriteAccessDeniedAuditAsync(
+                    actorUserId,
+                    caseForAccess.Id,
+                    "GetProcessInbox",
+                    "InboxParticipant",
+                    effectiveRole?.ToString(),
+                    reasonCode,
+                    cancellationToken);
+                throw new CaseAccessDeniedException(
+                    actorUserId,
+                    caseForAccess.Id,
+                    "GetProcessInbox",
+                    "InboxParticipant",
+                    effectiveRole?.ToString(),
+                    reasonCode);
+            }
+
+            visibleEmails = emails
+                .Where(email => IsProcessEmailVisibleToActor(email, actorEmail))
+                .ToList();
+
+            if (emails.Count > 0 && visibleEmails.Count == 0)
+            {
+                const string reasonCode = "NO_INBOX_THREAD_ACCESS";
+                await WriteAccessDeniedAuditAsync(
+                    actorUserId,
+                    caseForAccess.Id,
+                    "GetProcessInbox",
+                    "InboxParticipant",
+                    effectiveRole?.ToString(),
+                    reasonCode,
+                    cancellationToken);
+                throw new CaseAccessDeniedException(
+                    actorUserId,
+                    caseForAccess.Id,
+                    "GetProcessInbox",
+                    "InboxParticipant",
+                    effectiveRole?.ToString(),
+                    reasonCode);
+            }
+        }
+
         var retrievedAt = DateTime.UtcNow;
         var caseContextUrl = $"/api/v1/tenants/{tenantId}/cases/{caseForAccess.Id}";
 
-        var threads = emails
+        var threads = visibleEmails
             .GroupBy(
                 email => string.IsNullOrWhiteSpace(email.ThreadId)
                     ? email.Id.ToString("N")
@@ -3252,6 +3303,17 @@ public sealed class CaseService : ICaseService
             .Where(x => !string.IsNullOrWhiteSpace(x))
             .Select(x => x.Trim())
             .ToList();
+    }
+
+    private static bool IsProcessEmailVisibleToActor(ProcessEmail email, string actorEmail)
+    {
+        if (string.Equals(email.SenderEmail?.Trim(), actorEmail, StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        return ParseRecipientEmails(email.RecipientEmails)
+            .Any(recipient => string.Equals(recipient, actorEmail, StringComparison.OrdinalIgnoreCase));
     }
 
     private static CaseParticipantResponse MapParticipant(CaseParticipant participant)

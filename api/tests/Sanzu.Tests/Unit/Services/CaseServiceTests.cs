@@ -2619,7 +2619,7 @@ public sealed class CaseServiceTests
                 Direction = ProcessEmailDirection.Outbound,
                 Subject = "Reader-visible thread",
                 SenderEmail = alias.AliasEmail,
-                RecipientEmails = "advisor.reader@external.pt",
+                RecipientEmails = readerEmail,
                 BodyPreview = "Shared update.",
                 ExternalMessageId = "msg-r1",
                 SentAt = DateTime.UtcNow.AddMinutes(-2),
@@ -2637,6 +2637,59 @@ public sealed class CaseServiceTests
         inbox.Threads.Should().HaveCount(1);
         inbox.Threads[0].ThreadId.Should().Be("thread-reader");
         inbox.Threads[0].Messages.Should().HaveCount(1);
+    }
+
+    [Fact]
+    public async Task GetProcessInbox_ShouldThrowCaseAccessDeniedAndAudit_WhenReaderHasNoVisibleThreads()
+    {
+        var dbContext = CreateContext();
+        var (tenantId, actorUserId) = await SeedTenantWithAdminAsync(dbContext, TenantStatus.Active);
+        var service = CreateService(dbContext);
+        var createdCase = await CreateCaseAsync(service, tenantId, actorUserId, "Process Inbox Reader Denied Case");
+        await MoveCaseToActiveAsync(service, tenantId, actorUserId, createdCase.CaseId);
+        var alias = await service.ProvisionProcessAliasAsync(tenantId, actorUserId, createdCase.CaseId, CancellationToken.None);
+
+        var readerUserId = Guid.NewGuid();
+        const string readerEmail = "family.process.inbox.denied@agency.pt";
+        await SeedUserAsync(dbContext, readerUserId, tenantId, readerEmail, "Inbox Reader Denied");
+        await SeedAcceptedParticipantDirectAsync(dbContext, tenantId, createdCase.CaseId, readerUserId, readerEmail, CaseRole.Reader);
+
+        dbContext.ProcessEmails.Add(
+            new ProcessEmail
+            {
+                Id = Guid.NewGuid(),
+                TenantId = tenantId,
+                CaseId = createdCase.CaseId,
+                ProcessAliasId = alias.AliasId,
+                ThreadId = "thread-hidden",
+                Direction = ProcessEmailDirection.Outbound,
+                Subject = "Hidden thread",
+                SenderEmail = alias.AliasEmail,
+                RecipientEmails = "advisor.hidden@external.pt",
+                BodyPreview = "Not visible to reader.",
+                ExternalMessageId = "msg-hidden",
+                SentAt = DateTime.UtcNow.AddMinutes(-2),
+                CreatedAt = DateTime.UtcNow.AddMinutes(-2),
+                UpdatedAt = DateTime.UtcNow.AddMinutes(-2)
+            });
+        await dbContext.SaveChangesAsync();
+
+        var act = () => service.GetProcessInboxAsync(
+            tenantId,
+            readerUserId,
+            createdCase.CaseId,
+            CancellationToken.None);
+
+        await act.Should().ThrowAsync<CaseAccessDeniedException>()
+            .Where(e => e.ReasonCode == "NO_INBOX_THREAD_ACCESS" && e.AttemptedAction == "GetProcessInbox");
+        AssertAccessDeniedAudit(
+            dbContext,
+            readerUserId,
+            createdCase.CaseId,
+            "GetProcessInbox",
+            "InboxParticipant",
+            "Reader",
+            "NO_INBOX_THREAD_ACCESS");
     }
 
     [Fact]
