@@ -132,6 +132,12 @@ public interface ICaseService
         ApplyExtractionDecisionsRequest request,
         CancellationToken cancellationToken);
 
+    Task<GenerateCaseHandoffPacketResponse> GenerateCaseHandoffPacketAsync(
+        Guid tenantId,
+        Guid actorUserId,
+        Guid caseId,
+        CancellationToken cancellationToken);
+
     Task<GenerateCasePlanResponse> RecalculateCasePlanReadinessAsync(
         Guid tenantId,
         Guid actorUserId,

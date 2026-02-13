@@ -1864,6 +1864,188 @@ public sealed class CasesControllerTests : IClassFixture<CustomWebApplicationFac
         response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
     }
 
+    [Fact]
+    public async Task GenerateCaseHandoffPacket_ShouldReturn200AndIncludeActionsAndEvidence_WhenPrerequisitesAreMet()
+    {
+        var client = _factory.CreateClient();
+        var signup = await CreateTenantAsync(client, "cases-handoff-success@agency.pt");
+        await ActivateTenantAsync(client, signup);
+        var createdCase = await CreateCaseAsync(client, signup, "Handoff Integration Case");
+
+        using (var intakeRequest = BuildAuthorizedJsonRequest(
+                   HttpMethod.Put,
+                   $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/intake",
+                   new SubmitCaseIntakeRequest
+                   {
+                       PrimaryContactName = "Ana Pereira",
+                       PrimaryContactPhone = "+351910000000",
+                       RelationshipToDeceased = "Daughter",
+                       HasWill = true,
+                       RequiresLegalSupport = false,
+                       RequiresFinancialSupport = true,
+                       ConfirmAccuracy = true
+                   },
+                   signup.UserId,
+                   signup.OrganizationId,
+                   "AgencyAdmin"))
+        {
+            var intakeResponse = await client.SendAsync(intakeRequest);
+            intakeResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        }
+
+        using (var activateRequest = BuildAuthorizedJsonRequest(
+                   HttpMethod.Patch,
+                   $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/lifecycle",
+                   new UpdateCaseLifecycleRequest { TargetStatus = "Active" },
+                   signup.UserId,
+                   signup.OrganizationId,
+                   "AgencyAdmin"))
+        {
+            var activateResponse = await client.SendAsync(activateRequest);
+            activateResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        }
+
+        using (var generatePlanRequest = BuildAuthorizedRequest(
+                   HttpMethod.Post,
+                   $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/plan/generate",
+                   signup.UserId,
+                   signup.OrganizationId,
+                   "AgencyAdmin"))
+        {
+            var planResponse = await client.SendAsync(generatePlanRequest);
+            planResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        }
+
+        using (var uploadRequest = BuildAuthorizedJsonRequest(
+                   HttpMethod.Post,
+                   $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/documents",
+                   new UploadCaseDocumentRequest
+                   {
+                       FileName = "evidence.txt",
+                       ContentType = "text/plain",
+                       ContentBase64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("evidence-content"))
+                   },
+                   signup.UserId,
+                   signup.OrganizationId,
+                   "AgencyAdmin"))
+        {
+            var uploadResponse = await client.SendAsync(uploadRequest);
+            uploadResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+        }
+
+        using var handoffRequest = BuildAuthorizedRequest(
+            HttpMethod.Post,
+            $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/handoffs/packet",
+            signup.UserId,
+            signup.OrganizationId,
+            "AgencyAdmin");
+
+        var response = await client.SendAsync(handoffRequest);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var envelope = await response.Content.ReadFromJsonAsync<ApiEnvelope<GenerateCaseHandoffPacketResponse>>();
+        envelope.Should().NotBeNull();
+        envelope!.Data.Should().NotBeNull();
+        envelope.Data!.CaseId.Should().Be(createdCase.CaseId);
+        envelope.Data.RequiredActions.Should().NotBeEmpty();
+        envelope.Data.EvidenceContext.Should().NotBeEmpty();
+        var content = System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(envelope.Data.ContentBase64));
+        content.Should().Contain("Required Actions:");
+        content.Should().Contain("Evidence Context:");
+
+        using var scope = _factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<SanzuDbContext>();
+        dbContext.AuditEvents.Should().Contain(
+            x => x.EventType == "CaseHandoffPacketGenerated" && x.CaseId == createdCase.CaseId && x.ActorUserId == signup.UserId);
+    }
+
+    [Fact]
+    public async Task GenerateCaseHandoffPacket_ShouldReturn409_WhenEvidenceIsMissing()
+    {
+        var client = _factory.CreateClient();
+        var signup = await CreateTenantAsync(client, "cases-handoff-no-evidence@agency.pt");
+        await ActivateTenantAsync(client, signup);
+        var createdCase = await CreateCaseAsync(client, signup, "Handoff No Evidence Integration Case");
+
+        using (var intakeRequest = BuildAuthorizedJsonRequest(
+                   HttpMethod.Put,
+                   $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/intake",
+                   new SubmitCaseIntakeRequest
+                   {
+                       PrimaryContactName = "Ana Pereira",
+                       PrimaryContactPhone = "+351910000000",
+                       RelationshipToDeceased = "Daughter",
+                       HasWill = true,
+                       RequiresLegalSupport = false,
+                       RequiresFinancialSupport = true,
+                       ConfirmAccuracy = true
+                   },
+                   signup.UserId,
+                   signup.OrganizationId,
+                   "AgencyAdmin"))
+        {
+            var intakeResponse = await client.SendAsync(intakeRequest);
+            intakeResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        }
+
+        using (var activateRequest = BuildAuthorizedJsonRequest(
+                   HttpMethod.Patch,
+                   $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/lifecycle",
+                   new UpdateCaseLifecycleRequest { TargetStatus = "Active" },
+                   signup.UserId,
+                   signup.OrganizationId,
+                   "AgencyAdmin"))
+        {
+            var activateResponse = await client.SendAsync(activateRequest);
+            activateResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        }
+
+        using (var generatePlanRequest = BuildAuthorizedRequest(
+                   HttpMethod.Post,
+                   $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/plan/generate",
+                   signup.UserId,
+                   signup.OrganizationId,
+                   "AgencyAdmin"))
+        {
+            var planResponse = await client.SendAsync(generatePlanRequest);
+            planResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        }
+
+        using var handoffRequest = BuildAuthorizedRequest(
+            HttpMethod.Post,
+            $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/handoffs/packet",
+            signup.UserId,
+            signup.OrganizationId,
+            "AgencyAdmin");
+
+        var response = await client.SendAsync(handoffRequest);
+        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
+    }
+
+    [Fact]
+    public async Task GenerateCaseHandoffPacket_ShouldReturn403_WhenUserIsEditor()
+    {
+        var client = _factory.CreateClient();
+        var signup = await CreateTenantAsync(client, "cases-handoff-editor@agency.pt");
+        await ActivateTenantAsync(client, signup);
+        var createdCase = await CreateCaseAsync(client, signup, "Handoff Editor Integration Case");
+        var editorUserId = await SeedAcceptedParticipantAsync(
+            signup.OrganizationId,
+            createdCase.CaseId,
+            "family.handoff.editor@agency.pt",
+            CaseRole.Editor);
+
+        using var handoffRequest = BuildAuthorizedRequest(
+            HttpMethod.Post,
+            $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/handoffs/packet",
+            editorUserId,
+            signup.OrganizationId,
+            "Editor");
+
+        var response = await client.SendAsync(handoffRequest);
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
     private async Task ActivateTenantAsync(HttpClient client, CreateAgencyAccountResponse signup)
     {
         using var defaultsRequest = BuildAuthorizedJsonRequest(

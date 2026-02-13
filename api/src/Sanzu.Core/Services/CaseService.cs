@@ -1039,6 +1039,89 @@ public sealed class CaseService : ICaseService
         return response!;
     }
 
+    public async Task<GenerateCaseHandoffPacketResponse> GenerateCaseHandoffPacketAsync(
+        Guid tenantId,
+        Guid actorUserId,
+        Guid caseId,
+        CancellationToken cancellationToken)
+    {
+        var caseForAccess = await LoadCaseForTenantAsync(tenantId, caseId, cancellationToken);
+        var effectiveRole = await ResolveEffectiveCaseRoleAsync(tenantId, actorUserId, caseForAccess, cancellationToken);
+        await EnsureCaseRoleAsync(effectiveRole, CaseRole.Manager, actorUserId, caseId, "GenerateCaseHandoffPacket", cancellationToken);
+
+        GenerateCaseHandoffPacketResponse? response = null;
+
+        await _unitOfWork.ExecuteInTransactionAsync(
+            async token =>
+            {
+                var caseEntity = await LoadCaseForTenantAsync(tenantId, caseId, token);
+                EnsureCaseEligibleForHandoff(caseEntity);
+
+                var steps = (await _workflowStepRepository.GetByCaseIdAsync(caseEntity.Id, token)).ToList();
+                if (steps.Count == 0)
+                {
+                    throw new CaseStateException("A generated case plan is required before a handoff packet can be created.");
+                }
+
+                var requiredActions = steps
+                    .Where(step => step.Status is not (WorkflowStepStatus.Complete or WorkflowStepStatus.Skipped))
+                    .OrderBy(step => step.Sequence)
+                    .Select(MapHandoffAction)
+                    .ToList();
+
+                if (requiredActions.Count == 0)
+                {
+                    throw new CaseStateException("At least one open required action is needed before creating a handoff packet.");
+                }
+
+                var documents = await _caseDocumentRepository.GetByCaseIdAsync(caseEntity.Id, token);
+                if (documents.Count == 0)
+                {
+                    throw new CaseStateException("At least one case document is required before creating a handoff packet.");
+                }
+
+                var evidenceContext = documents
+                    .Select(MapHandoffEvidence)
+                    .ToList();
+
+                var generatedAt = DateTime.UtcNow;
+                var packetTitle = $"Advisor Handoff Packet - {caseEntity.CaseNumber}";
+                var packetContent = BuildHandoffPacketContent(caseEntity, requiredActions, evidenceContext, generatedAt);
+                var contentBase64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(packetContent));
+
+                await WriteAuditEventAsync(
+                    actorUserId,
+                    "CaseHandoffPacketGenerated",
+                    new
+                    {
+                        CaseId = caseEntity.Id,
+                        caseEntity.CaseNumber,
+                        PacketTitle = packetTitle,
+                        GeneratedByUserId = actorUserId,
+                        GeneratedAt = generatedAt,
+                        RequiredActionCount = requiredActions.Count,
+                        EvidenceCount = evidenceContext.Count
+                    },
+                    token,
+                    caseEntity.Id);
+
+                response = new GenerateCaseHandoffPacketResponse
+                {
+                    CaseId = caseEntity.Id,
+                    CaseNumber = caseEntity.CaseNumber,
+                    PacketTitle = packetTitle,
+                    ContentType = "text/plain",
+                    ContentBase64 = contentBase64,
+                    GeneratedAt = generatedAt,
+                    RequiredActions = requiredActions,
+                    EvidenceContext = evidenceContext
+                };
+            },
+            cancellationToken);
+
+        return response!;
+    }
+
     public async Task<GenerateCasePlanResponse> RecalculateCasePlanReadinessAsync(
         Guid tenantId,
         Guid actorUserId,
@@ -2014,6 +2097,14 @@ public sealed class CaseService : ICaseService
         }
     }
 
+    private static void EnsureCaseEligibleForHandoff(Case caseEntity)
+    {
+        if (caseEntity.Status != CaseStatus.Active)
+        {
+            throw new CaseStateException("Handoff packets can only be generated for active cases.");
+        }
+    }
+
     private static CaseStatus ParseCaseStatus(string value)
     {
         if (Enum.TryParse<CaseStatus>(value.Trim(), ignoreCase: true, out var status))
@@ -2126,6 +2217,45 @@ public sealed class CaseService : ICaseService
         foreach (var field in mappedFields)
         {
             lines.Add($"{field.Key}: {field.Value}");
+        }
+
+        return string.Join(Environment.NewLine, lines);
+    }
+
+    private static string BuildHandoffPacketContent(
+        Case caseEntity,
+        IReadOnlyList<CaseHandoffActionItemResponse> requiredActions,
+        IReadOnlyList<CaseHandoffEvidenceItemResponse> evidenceContext,
+        DateTime generatedAt)
+    {
+        var lines = new List<string>
+        {
+            "Sanzu Advisor Handoff Packet",
+            $"GeneratedAt: {generatedAt:O}",
+            $"CaseNumber: {caseEntity.CaseNumber}",
+            $"CaseId: {caseEntity.Id}",
+            $"DeceasedFullName: {caseEntity.DeceasedFullName}",
+            $"DateOfDeath: {caseEntity.DateOfDeath:yyyy-MM-dd}",
+            $"CaseType: {caseEntity.CaseType}",
+            $"Urgency: {caseEntity.Urgency}",
+            $"CaseStatus: {caseEntity.Status}",
+            string.Empty,
+            "Required Actions:"
+        };
+
+        foreach (var action in requiredActions)
+        {
+            lines.Add(
+                $"- [{action.Sequence}] {action.Title} ({action.StepKey}) | Status: {action.Status} | DueDate: {action.DueDate:yyyy-MM-dd} | AssignedUserId: {action.AssignedUserId}");
+        }
+
+        lines.Add(string.Empty);
+        lines.Add("Evidence Context:");
+
+        foreach (var evidence in evidenceContext)
+        {
+            lines.Add(
+                $"- {evidence.FileName} | Type: {evidence.ContentType} | SizeBytes: {evidence.SizeBytes} | Version: {evidence.VersionNumber} | Classification: {evidence.Classification} | UploadedAt: {evidence.UploadedAt:O}");
         }
 
         return string.Join(Environment.NewLine, lines);
@@ -2537,6 +2667,34 @@ public sealed class CaseService : ICaseService
         };
     }
 
+    private static CaseHandoffActionItemResponse MapHandoffAction(WorkflowStepInstance step)
+    {
+        return new CaseHandoffActionItemResponse
+        {
+            StepId = step.Id,
+            StepKey = step.StepKey,
+            Title = step.Title,
+            Status = step.Status.ToString(),
+            Sequence = step.Sequence,
+            DueDate = step.DueDate,
+            AssignedUserId = step.AssignedUserId
+        };
+    }
+
+    private static CaseHandoffEvidenceItemResponse MapHandoffEvidence(CaseDocument document)
+    {
+        return new CaseHandoffEvidenceItemResponse
+        {
+            DocumentId = document.Id,
+            FileName = document.FileName,
+            ContentType = document.ContentType,
+            SizeBytes = document.SizeBytes,
+            VersionNumber = document.CurrentVersionNumber,
+            Classification = document.Classification.ToString(),
+            UploadedAt = document.UpdatedAt
+        };
+    }
+
     private static CaseParticipantResponse MapParticipant(CaseParticipant participant)
     {
         return new CaseParticipantResponse
@@ -2813,6 +2971,19 @@ public sealed class CaseService : ICaseService
                     ? recipientIds.GetArrayLength()
                     : 0;
                 return $"{notificationType} notification queued for {recipientCount} recipients";
+            }
+
+            if (auditEvent.EventType == "CaseHandoffPacketGenerated")
+            {
+                var actionCount = root.TryGetProperty("RequiredActionCount", out var actionCountValue)
+                    && actionCountValue.ValueKind == JsonValueKind.Number
+                    ? actionCountValue.GetInt32()
+                    : 0;
+                var evidenceCount = root.TryGetProperty("EvidenceCount", out var evidenceCountValue)
+                    && evidenceCountValue.ValueKind == JsonValueKind.Number
+                    ? evidenceCountValue.GetInt32()
+                    : 0;
+                return $"Advisor handoff packet generated with {actionCount} actions and {evidenceCount} evidence items";
             }
         }
         catch (JsonException)
