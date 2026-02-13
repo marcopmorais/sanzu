@@ -72,4 +72,18 @@ public interface ICaseService
         Guid actorUserId,
         Guid caseId,
         CancellationToken cancellationToken);
+
+    Task<GenerateCasePlanResponse> RecalculateCasePlanReadinessAsync(
+        Guid tenantId,
+        Guid actorUserId,
+        Guid caseId,
+        CancellationToken cancellationToken);
+
+    Task<GenerateCasePlanResponse> OverrideWorkflowStepReadinessAsync(
+        Guid tenantId,
+        Guid actorUserId,
+        Guid caseId,
+        Guid stepId,
+        OverrideWorkflowStepReadinessRequest request,
+        CancellationToken cancellationToken);
 }

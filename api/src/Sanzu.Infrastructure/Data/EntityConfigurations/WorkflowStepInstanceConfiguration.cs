@@ -36,6 +36,17 @@ public sealed class WorkflowStepInstanceConfiguration : IEntityTypeConfiguration
             .HasMaxLength(32)
             .IsRequired();
 
+        builder.Property(x => x.IsReadinessOverridden)
+            .IsRequired();
+
+        builder.Property(x => x.ReadinessOverrideRationale)
+            .HasMaxLength(1000);
+
+        builder.Property(x => x.ReadinessOverrideByUserId);
+
+        builder.Property(x => x.ReadinessOverriddenAt)
+            .HasColumnType("datetime2");
+
         builder.Property(x => x.CreatedAt)
             .HasColumnType("datetime2")
             .HasDefaultValueSql("GETUTCDATE()");

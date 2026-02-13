@@ -773,6 +773,191 @@ public sealed class CaseServiceTests
     }
 
     [Fact]
+    public async Task RecalculateCasePlanReadiness_ShouldSetDependentStepsToReady_WhenPrerequisitesAreCompleted()
+    {
+        var dbContext = CreateContext();
+        var (tenantId, actorUserId) = await SeedTenantWithAdminAsync(dbContext, TenantStatus.Active);
+        var service = CreateService(dbContext);
+        var createdCase = await CreateCaseAsync(service, tenantId, actorUserId, "Recalculate Readiness Case");
+
+        await service.SubmitCaseIntakeAsync(
+            tenantId,
+            actorUserId,
+            createdCase.CaseId,
+            new SubmitCaseIntakeRequest
+            {
+                PrimaryContactName = "Ana Pereira",
+                PrimaryContactPhone = "+351919999999",
+                RelationshipToDeceased = "Daughter",
+                HasWill = true,
+                RequiresLegalSupport = true,
+                ConfirmAccuracy = true
+            },
+            CancellationToken.None);
+
+        await service.GenerateCasePlanAsync(
+            tenantId,
+            actorUserId,
+            createdCase.CaseId,
+            CancellationToken.None);
+
+        var recordsStep = await dbContext.WorkflowStepInstances
+            .SingleAsync(x => x.CaseId == createdCase.CaseId && x.StepKey == "collect-civil-records");
+        var inventoryStep = await dbContext.WorkflowStepInstances
+            .SingleAsync(x => x.CaseId == createdCase.CaseId && x.StepKey == "gather-estate-inventory");
+        var nowUtc = DateTime.UtcNow;
+        recordsStep.Status = WorkflowStepStatus.Complete;
+        recordsStep.UpdatedAt = nowUtc;
+        inventoryStep.Status = WorkflowStepStatus.Complete;
+        inventoryStep.UpdatedAt = nowUtc;
+        await dbContext.SaveChangesAsync();
+
+        var response = await service.RecalculateCasePlanReadinessAsync(
+            tenantId,
+            actorUserId,
+            createdCase.CaseId,
+            CancellationToken.None);
+
+        response.Steps.Should().Contain(
+            x => x.StepKey == "submit-succession-notification" && x.Status == WorkflowStepStatus.Ready);
+        response.Steps.Should().Contain(
+            x => x.StepKey == "validate-will" && x.Status == WorkflowStepStatus.Ready);
+        response.Steps.Should().Contain(
+            x => x.StepKey == "engage-legal-support" && x.Status == WorkflowStepStatus.Blocked);
+        dbContext.AuditEvents.Should().Contain(
+            x => x.EventType == "CasePlanReadinessRecalculated" && x.CaseId == createdCase.CaseId);
+    }
+
+    [Fact]
+    public async Task RecalculateCasePlanReadiness_ShouldThrowCaseStateException_WhenCasePlanWasNotGenerated()
+    {
+        var dbContext = CreateContext();
+        var (tenantId, actorUserId) = await SeedTenantWithAdminAsync(dbContext, TenantStatus.Active);
+        var service = CreateService(dbContext);
+        var createdCase = await CreateCaseAsync(service, tenantId, actorUserId, "No Plan Recalculate Case");
+
+        var act = () => service.RecalculateCasePlanReadinessAsync(
+            tenantId,
+            actorUserId,
+            createdCase.CaseId,
+            CancellationToken.None);
+
+        await act.Should().ThrowAsync<CaseStateException>()
+            .WithMessage("*generated case plan is required*");
+    }
+
+    [Fact]
+    public async Task OverrideWorkflowStepReadiness_ShouldPersistOverrideMetadataAndAudit_WhenManagerOverrides()
+    {
+        var dbContext = CreateContext();
+        var (tenantId, actorUserId) = await SeedTenantWithAdminAsync(dbContext, TenantStatus.Active);
+        var service = CreateService(dbContext);
+        var createdCase = await CreateCaseAsync(service, tenantId, actorUserId, "Override Readiness Case");
+
+        await service.SubmitCaseIntakeAsync(
+            tenantId,
+            actorUserId,
+            createdCase.CaseId,
+            new SubmitCaseIntakeRequest
+            {
+                PrimaryContactName = "Ana Pereira",
+                PrimaryContactPhone = "+351919999999",
+                RelationshipToDeceased = "Daughter",
+                ConfirmAccuracy = true
+            },
+            CancellationToken.None);
+
+        await service.GenerateCasePlanAsync(
+            tenantId,
+            actorUserId,
+            createdCase.CaseId,
+            CancellationToken.None);
+
+        var targetStep = await dbContext.WorkflowStepInstances
+            .SingleAsync(x => x.CaseId == createdCase.CaseId && x.StepKey == "submit-succession-notification");
+
+        var response = await service.OverrideWorkflowStepReadinessAsync(
+            tenantId,
+            actorUserId,
+            createdCase.CaseId,
+            targetStep.Id,
+            new OverrideWorkflowStepReadinessRequest
+            {
+                TargetStatus = "Ready",
+                Rationale = "Manual unblock approved after external verification."
+            },
+            CancellationToken.None);
+
+        response.Steps.Should().Contain(x => x.StepId == targetStep.Id && x.Status == WorkflowStepStatus.Ready);
+
+        var persistedStep = await dbContext.WorkflowStepInstances.SingleAsync(x => x.Id == targetStep.Id);
+        persistedStep.IsReadinessOverridden.Should().BeTrue();
+        persistedStep.ReadinessOverrideRationale.Should().Be("Manual unblock approved after external verification.");
+        persistedStep.ReadinessOverrideByUserId.Should().Be(actorUserId);
+        persistedStep.ReadinessOverriddenAt.Should().NotBeNull();
+        dbContext.AuditEvents.Should().Contain(
+            x => x.EventType == "CasePlanReadinessOverridden" && x.CaseId == createdCase.CaseId);
+    }
+
+    [Fact]
+    public async Task OverrideWorkflowStepReadiness_ShouldThrowCaseAccessDeniedAndAudit_WhenUserIsEditor()
+    {
+        var dbContext = CreateContext();
+        var (tenantId, actorUserId) = await SeedTenantWithAdminAsync(dbContext, TenantStatus.Active);
+        var service = CreateService(dbContext);
+        var createdCase = await CreateCaseAsync(service, tenantId, actorUserId, "Editor Override Case");
+
+        await service.SubmitCaseIntakeAsync(
+            tenantId,
+            actorUserId,
+            createdCase.CaseId,
+            new SubmitCaseIntakeRequest
+            {
+                PrimaryContactName = "Ana Pereira",
+                PrimaryContactPhone = "+351919999999",
+                RelationshipToDeceased = "Daughter",
+                ConfirmAccuracy = true
+            },
+            CancellationToken.None);
+
+        await service.GenerateCasePlanAsync(
+            tenantId,
+            actorUserId,
+            createdCase.CaseId,
+            CancellationToken.None);
+
+        var editorUserId = Guid.NewGuid();
+        const string editorEmail = "family.override.editor@agency.pt";
+        await SeedUserAsync(dbContext, editorUserId, tenantId, editorEmail, "Family Editor");
+        await SeedAcceptedParticipantDirectAsync(dbContext, tenantId, createdCase.CaseId, editorUserId, editorEmail, CaseRole.Editor);
+        var targetStep = await dbContext.WorkflowStepInstances
+            .SingleAsync(x => x.CaseId == createdCase.CaseId && x.StepKey == "submit-succession-notification");
+
+        var act = () => service.OverrideWorkflowStepReadinessAsync(
+            tenantId,
+            editorUserId,
+            createdCase.CaseId,
+            targetStep.Id,
+            new OverrideWorkflowStepReadinessRequest
+            {
+                TargetStatus = "Ready",
+                Rationale = "Attempted by editor."
+            },
+            CancellationToken.None);
+
+        await act.Should().ThrowAsync<CaseAccessDeniedException>()
+            .Where(e => e.ReasonCode == "ROLE_INSUFFICIENT" && e.AttemptedAction == "OverrideWorkflowStepReadiness");
+        AssertAccessDeniedAudit(
+            dbContext,
+            editorUserId,
+            createdCase.CaseId,
+            "OverrideWorkflowStepReadiness",
+            "Manager",
+            "Editor",
+            "ROLE_INSUFFICIENT");
+    }
+
+    [Fact]
     public async Task GetCaseDetails_ShouldReturnDetails_WhenUserIsCaseManager()
     {
         var dbContext = CreateContext();
@@ -938,6 +1123,7 @@ public sealed class CaseServiceTests
             new EfUnitOfWork(dbContext),
             new CreateCaseRequestValidator(),
             new SubmitCaseIntakeRequestValidator(),
+            new OverrideWorkflowStepReadinessRequestValidator(),
             new UpdateCaseDetailsRequestValidator(),
             new UpdateCaseLifecycleRequestValidator(),
             new InviteCaseParticipantRequestValidator(),

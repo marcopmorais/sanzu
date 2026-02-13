@@ -22,6 +22,7 @@ public sealed class CaseService : ICaseService
     private readonly IUnitOfWork _unitOfWork;
     private readonly IValidator<CreateCaseRequest> _createCaseValidator;
     private readonly IValidator<SubmitCaseIntakeRequest> _submitCaseIntakeValidator;
+    private readonly IValidator<OverrideWorkflowStepReadinessRequest> _overrideWorkflowStepReadinessValidator;
     private readonly IValidator<UpdateCaseDetailsRequest> _updateCaseDetailsValidator;
     private readonly IValidator<UpdateCaseLifecycleRequest> _updateCaseLifecycleValidator;
     private readonly IValidator<InviteCaseParticipantRequest> _inviteCaseParticipantValidator;
@@ -39,6 +40,7 @@ public sealed class CaseService : ICaseService
         IUnitOfWork unitOfWork,
         IValidator<CreateCaseRequest> createCaseValidator,
         IValidator<SubmitCaseIntakeRequest> submitCaseIntakeValidator,
+        IValidator<OverrideWorkflowStepReadinessRequest> overrideWorkflowStepReadinessValidator,
         IValidator<UpdateCaseDetailsRequest> updateCaseDetailsValidator,
         IValidator<UpdateCaseLifecycleRequest> updateCaseLifecycleValidator,
         IValidator<InviteCaseParticipantRequest> inviteCaseParticipantValidator,
@@ -55,6 +57,7 @@ public sealed class CaseService : ICaseService
         _unitOfWork = unitOfWork;
         _createCaseValidator = createCaseValidator;
         _submitCaseIntakeValidator = submitCaseIntakeValidator;
+        _overrideWorkflowStepReadinessValidator = overrideWorkflowStepReadinessValidator;
         _updateCaseDetailsValidator = updateCaseDetailsValidator;
         _updateCaseLifecycleValidator = updateCaseLifecycleValidator;
         _inviteCaseParticipantValidator = inviteCaseParticipantValidator;
@@ -369,6 +372,170 @@ public sealed class CaseService : ICaseService
                             })
                         .ToList()
                 };
+            },
+            cancellationToken);
+
+        return response!;
+    }
+
+    public async Task<GenerateCasePlanResponse> RecalculateCasePlanReadinessAsync(
+        Guid tenantId,
+        Guid actorUserId,
+        Guid caseId,
+        CancellationToken cancellationToken)
+    {
+        var caseForAccess = await LoadCaseForTenantAsync(tenantId, caseId, cancellationToken);
+        var effectiveRole = await ResolveEffectiveCaseRoleAsync(tenantId, actorUserId, caseForAccess, cancellationToken);
+        await EnsureCaseRoleAsync(effectiveRole, CaseRole.Manager, actorUserId, caseId, "RecalculateCasePlanReadiness", cancellationToken);
+
+        GenerateCasePlanResponse? response = null;
+
+        await _unitOfWork.ExecuteInTransactionAsync(
+            async token =>
+            {
+                var caseEntity = await LoadCaseForTenantAsync(tenantId, caseId, token);
+                var steps = (await _workflowStepRepository.GetByCaseIdAsync(caseEntity.Id, token)).ToList();
+                if (steps.Count == 0)
+                {
+                    throw new CaseStateException("A generated case plan is required before readiness can be recalculated.");
+                }
+
+                var dependencies = await _workflowStepRepository.GetDependenciesByCaseIdAsync(caseEntity.Id, token);
+                var stepById = steps.ToDictionary(x => x.Id, x => x);
+                var dependencyMap = dependencies
+                    .GroupBy(x => x.StepId)
+                    .ToDictionary(x => x.Key, x => x.Select(y => y.DependsOnStepId).ToList());
+
+                var nowUtc = DateTime.UtcNow;
+                var changedSteps = new List<string>();
+
+                foreach (var step in steps)
+                {
+                    if (step.IsReadinessOverridden)
+                    {
+                        continue;
+                    }
+
+                    if (step.Status is WorkflowStepStatus.Complete or WorkflowStepStatus.Skipped)
+                    {
+                        continue;
+                    }
+
+                    var dependencyIds = dependencyMap.TryGetValue(step.Id, out var dependsOn)
+                        ? dependsOn
+                        : new List<Guid>();
+                    var shouldBeReady = dependencyIds.Count == 0
+                        || dependencyIds.All(
+                            dependencyId =>
+                                stepById.TryGetValue(dependencyId, out var dependencyStep)
+                                && dependencyStep.Status is WorkflowStepStatus.Complete or WorkflowStepStatus.Skipped);
+                    var desiredStatus = shouldBeReady ? WorkflowStepStatus.Ready : WorkflowStepStatus.Blocked;
+
+                    if (step.Status == desiredStatus)
+                    {
+                        continue;
+                    }
+
+                    step.Status = desiredStatus;
+                    step.UpdatedAt = nowUtc;
+                    changedSteps.Add(step.StepKey);
+                }
+
+                caseEntity.UpdatedAt = nowUtc;
+
+                await WriteAuditEventAsync(
+                    actorUserId,
+                    "CasePlanReadinessRecalculated",
+                    new
+                    {
+                        CaseId = caseEntity.Id,
+                        RecalculatedAt = nowUtc,
+                        ChangedStepCount = changedSteps.Count,
+                        ChangedStepKeys = changedSteps
+                    },
+                    token,
+                    caseEntity.Id);
+
+                response = MapGeneratedCasePlan(caseEntity.Id, nowUtc, steps, dependencies);
+            },
+            cancellationToken);
+
+        return response!;
+    }
+
+    public async Task<GenerateCasePlanResponse> OverrideWorkflowStepReadinessAsync(
+        Guid tenantId,
+        Guid actorUserId,
+        Guid caseId,
+        Guid stepId,
+        OverrideWorkflowStepReadinessRequest request,
+        CancellationToken cancellationToken)
+    {
+        var validationResult = await _overrideWorkflowStepReadinessValidator.ValidateAsync(request, cancellationToken);
+        if (!validationResult.IsValid)
+        {
+            throw new ValidationException(validationResult.Errors);
+        }
+
+        var caseForAccess = await LoadCaseForTenantAsync(tenantId, caseId, cancellationToken);
+        var effectiveRole = await ResolveEffectiveCaseRoleAsync(tenantId, actorUserId, caseForAccess, cancellationToken);
+        await EnsureCaseRoleAsync(effectiveRole, CaseRole.Manager, actorUserId, caseId, "OverrideWorkflowStepReadiness", cancellationToken);
+
+        GenerateCasePlanResponse? response = null;
+
+        await _unitOfWork.ExecuteInTransactionAsync(
+            async token =>
+            {
+                var caseEntity = await LoadCaseForTenantAsync(tenantId, caseId, token);
+                var steps = (await _workflowStepRepository.GetByCaseIdAsync(caseEntity.Id, token)).ToList();
+                if (steps.Count == 0)
+                {
+                    throw new CaseStateException("A generated case plan is required before readiness can be overridden.");
+                }
+
+                var step = steps.FirstOrDefault(x => x.Id == stepId);
+                if (step is null || step.CaseId != caseEntity.Id || step.TenantId != tenantId)
+                {
+                    throw new TenantAccessDeniedException();
+                }
+
+                if (step.Status is WorkflowStepStatus.Complete or WorkflowStepStatus.Skipped)
+                {
+                    throw new CaseStateException(
+                        "Readiness override is not allowed for completed or skipped workflow steps.");
+                }
+
+                var targetStatus = ParseReadinessOverrideStatus(request.TargetStatus);
+                var previousStatus = step.Status;
+                var nowUtc = DateTime.UtcNow;
+
+                step.Status = targetStatus;
+                step.IsReadinessOverridden = true;
+                step.ReadinessOverrideRationale = request.Rationale.Trim();
+                step.ReadinessOverrideByUserId = actorUserId;
+                step.ReadinessOverriddenAt = nowUtc;
+                step.UpdatedAt = nowUtc;
+                caseEntity.UpdatedAt = nowUtc;
+
+                await WriteAuditEventAsync(
+                    actorUserId,
+                    "CasePlanReadinessOverridden",
+                    new
+                    {
+                        CaseId = caseEntity.Id,
+                        StepId = step.Id,
+                        step.StepKey,
+                        PreviousStatus = previousStatus.ToString(),
+                        NewStatus = step.Status.ToString(),
+                        Rationale = step.ReadinessOverrideRationale,
+                        OverriddenByUserId = actorUserId,
+                        OverriddenAt = nowUtc
+                    },
+                    token,
+                    caseEntity.Id);
+
+                var dependencies = await _workflowStepRepository.GetDependenciesByCaseIdAsync(caseEntity.Id, token);
+                response = MapGeneratedCasePlan(caseEntity.Id, nowUtc, steps, dependencies);
             },
             cancellationToken);
 
@@ -1077,6 +1244,17 @@ public sealed class CaseService : ICaseService
         throw new CaseStateException("The requested case role is not recognized.");
     }
 
+    private static WorkflowStepStatus ParseReadinessOverrideStatus(string value)
+    {
+        if (Enum.TryParse<WorkflowStepStatus>(value.Trim(), ignoreCase: true, out var status)
+            && status is WorkflowStepStatus.Ready or WorkflowStepStatus.Blocked)
+        {
+            return status;
+        }
+
+        throw new CaseStateException("Readiness overrides only support Ready or Blocked statuses.");
+    }
+
     private static void EnsureLifecycleTransitionAllowed(CaseStatus currentStatus, CaseStatus targetStatus)
     {
         var isAllowed = currentStatus switch
@@ -1162,6 +1340,40 @@ public sealed class CaseService : ICaseService
             ParticipantUserId = participant.ParticipantUserId,
             ExpiresAt = participant.ExpiresAt,
             AcceptedAt = participant.AcceptedAt
+        };
+    }
+
+    private static GenerateCasePlanResponse MapGeneratedCasePlan(
+        Guid caseId,
+        DateTime generatedAt,
+        IEnumerable<WorkflowStepInstance> steps,
+        IReadOnlyList<WorkflowStepDependency> dependencies)
+    {
+        var dependencyMap = dependencies
+            .GroupBy(x => x.StepId)
+            .ToDictionary(
+                x => x.Key,
+                x => (IReadOnlyList<Guid>)x.Select(y => y.DependsOnStepId).ToList());
+
+        return new GenerateCasePlanResponse
+        {
+            CaseId = caseId,
+            GeneratedAt = generatedAt,
+            Steps = steps
+                .OrderBy(x => x.Sequence)
+                .Select(
+                    step => new CasePlanStepResponse
+                    {
+                        StepId = step.Id,
+                        StepKey = step.StepKey,
+                        Title = step.Title,
+                        Sequence = step.Sequence,
+                        Status = step.Status,
+                        DependsOnStepIds = dependencyMap.TryGetValue(step.Id, out var dependsOn)
+                            ? dependsOn
+                            : Array.Empty<Guid>()
+                    })
+                .ToList()
         };
     }
 

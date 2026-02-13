@@ -512,6 +512,229 @@ public sealed class CasesControllerTests : IClassFixture<CustomWebApplicationFac
         response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
     }
 
+    [Fact]
+    public async Task RecalculateCasePlanReadiness_ShouldReturn200AndUpdateReadiness_WhenPrerequisitesAreCompleted()
+    {
+        var client = _factory.CreateClient();
+        var signup = await CreateTenantAsync(client, "cases-plan-recalculate@agency.pt");
+        await ActivateTenantAsync(client, signup);
+        var createdCase = await CreateCaseAsync(client, signup, "Recalculate Readiness Case");
+
+        using (var intakeRequest = BuildAuthorizedJsonRequest(
+                   HttpMethod.Put,
+                   $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/intake",
+                   new SubmitCaseIntakeRequest
+                   {
+                       PrimaryContactName = "Ana Pereira",
+                       PrimaryContactPhone = "+351910000000",
+                       RelationshipToDeceased = "Daughter",
+                       HasWill = true,
+                       RequiresLegalSupport = true,
+                       ConfirmAccuracy = true
+                   },
+                   signup.UserId,
+                   signup.OrganizationId,
+                   "AgencyAdmin"))
+        {
+            var intakeResponse = await client.SendAsync(intakeRequest);
+            intakeResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        }
+
+        using (var generateRequest = BuildAuthorizedRequest(
+                   HttpMethod.Post,
+                   $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/plan/generate",
+                   signup.UserId,
+                   signup.OrganizationId,
+                   "AgencyAdmin"))
+        {
+            var generateResponse = await client.SendAsync(generateRequest);
+            generateResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        }
+
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var dbContext = scope.ServiceProvider.GetRequiredService<SanzuDbContext>();
+            var recordsStep = dbContext.WorkflowStepInstances
+                .Single(x => x.CaseId == createdCase.CaseId && x.StepKey == "collect-civil-records");
+            var inventoryStep = dbContext.WorkflowStepInstances
+                .Single(x => x.CaseId == createdCase.CaseId && x.StepKey == "gather-estate-inventory");
+            var nowUtc = DateTime.UtcNow;
+            recordsStep.Status = WorkflowStepStatus.Complete;
+            recordsStep.UpdatedAt = nowUtc;
+            inventoryStep.Status = WorkflowStepStatus.Complete;
+            inventoryStep.UpdatedAt = nowUtc;
+            await dbContext.SaveChangesAsync();
+        }
+
+        using var recalculateRequest = BuildAuthorizedRequest(
+            HttpMethod.Post,
+            $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/plan/readiness/recalculate",
+            signup.UserId,
+            signup.OrganizationId,
+            "AgencyAdmin");
+
+        var response = await client.SendAsync(recalculateRequest);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var envelope = await response.Content.ReadFromJsonAsync<ApiEnvelope<GenerateCasePlanResponse>>();
+        envelope.Should().NotBeNull();
+        envelope!.Data.Should().NotBeNull();
+        envelope.Data!.Steps.Should().Contain(
+            x => x.StepKey == "submit-succession-notification" && x.Status == WorkflowStepStatus.Ready);
+        envelope.Data.Steps.Should().Contain(
+            x => x.StepKey == "validate-will" && x.Status == WorkflowStepStatus.Ready);
+
+        using var verificationScope = _factory.Services.CreateScope();
+        var verificationContext = verificationScope.ServiceProvider.GetRequiredService<SanzuDbContext>();
+        verificationContext.AuditEvents.Should().Contain(
+            x => x.EventType == "CasePlanReadinessRecalculated" && x.CaseId == createdCase.CaseId);
+    }
+
+    [Fact]
+    public async Task OverrideWorkflowStepReadiness_ShouldReturn200AndPersistOverride_WhenManagerRequests()
+    {
+        var client = _factory.CreateClient();
+        var signup = await CreateTenantAsync(client, "cases-plan-override-manager@agency.pt");
+        await ActivateTenantAsync(client, signup);
+        var createdCase = await CreateCaseAsync(client, signup, "Override Readiness Case");
+
+        using (var intakeRequest = BuildAuthorizedJsonRequest(
+                   HttpMethod.Put,
+                   $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/intake",
+                   new SubmitCaseIntakeRequest
+                   {
+                       PrimaryContactName = "Ana Pereira",
+                       PrimaryContactPhone = "+351910000000",
+                       RelationshipToDeceased = "Daughter",
+                       ConfirmAccuracy = true
+                   },
+                   signup.UserId,
+                   signup.OrganizationId,
+                   "AgencyAdmin"))
+        {
+            var intakeResponse = await client.SendAsync(intakeRequest);
+            intakeResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        }
+
+        using (var generateRequest = BuildAuthorizedRequest(
+                   HttpMethod.Post,
+                   $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/plan/generate",
+                   signup.UserId,
+                   signup.OrganizationId,
+                   "AgencyAdmin"))
+        {
+            var generateResponse = await client.SendAsync(generateRequest);
+            generateResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        }
+
+        Guid targetStepId;
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var dbContext = scope.ServiceProvider.GetRequiredService<SanzuDbContext>();
+            targetStepId = dbContext.WorkflowStepInstances
+                .Single(x => x.CaseId == createdCase.CaseId && x.StepKey == "submit-succession-notification")
+                .Id;
+        }
+
+        using var overrideRequest = BuildAuthorizedJsonRequest(
+            HttpMethod.Patch,
+            $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/plan/steps/{targetStepId}/readiness-override",
+            new OverrideWorkflowStepReadinessRequest
+            {
+                TargetStatus = "Ready",
+                Rationale = "Manual unblock approved by manager."
+            },
+            signup.UserId,
+            signup.OrganizationId,
+            "AgencyAdmin");
+
+        var response = await client.SendAsync(overrideRequest);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var envelope = await response.Content.ReadFromJsonAsync<ApiEnvelope<GenerateCasePlanResponse>>();
+        envelope.Should().NotBeNull();
+        envelope!.Data.Should().NotBeNull();
+        envelope.Data!.Steps.Should().Contain(
+            x => x.StepId == targetStepId && x.Status == WorkflowStepStatus.Ready);
+
+        using var verificationScope = _factory.Services.CreateScope();
+        var verificationContext = verificationScope.ServiceProvider.GetRequiredService<SanzuDbContext>();
+        var persistedStep = verificationContext.WorkflowStepInstances.Single(x => x.Id == targetStepId);
+        persistedStep.IsReadinessOverridden.Should().BeTrue();
+        persistedStep.ReadinessOverrideRationale.Should().Be("Manual unblock approved by manager.");
+        persistedStep.ReadinessOverrideByUserId.Should().Be(signup.UserId);
+        persistedStep.ReadinessOverriddenAt.Should().NotBeNull();
+        verificationContext.AuditEvents.Should().Contain(
+            x => x.EventType == "CasePlanReadinessOverridden" && x.CaseId == createdCase.CaseId);
+    }
+
+    [Fact]
+    public async Task OverrideWorkflowStepReadiness_ShouldReturn403_WhenUserIsEditor()
+    {
+        var client = _factory.CreateClient();
+        var signup = await CreateTenantAsync(client, "cases-plan-override-editor@agency.pt");
+        await ActivateTenantAsync(client, signup);
+        var createdCase = await CreateCaseAsync(client, signup, "Override Readiness Editor Case");
+        var editorUserId = await SeedAcceptedParticipantAsync(
+            signup.OrganizationId,
+            createdCase.CaseId,
+            "family.override.editor@agency.pt",
+            CaseRole.Editor);
+
+        using (var intakeRequest = BuildAuthorizedJsonRequest(
+                   HttpMethod.Put,
+                   $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/intake",
+                   new SubmitCaseIntakeRequest
+                   {
+                       PrimaryContactName = "Ana Pereira",
+                       PrimaryContactPhone = "+351910000000",
+                       RelationshipToDeceased = "Daughter",
+                       ConfirmAccuracy = true
+                   },
+                   signup.UserId,
+                   signup.OrganizationId,
+                   "AgencyAdmin"))
+        {
+            var intakeResponse = await client.SendAsync(intakeRequest);
+            intakeResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        }
+
+        using (var generateRequest = BuildAuthorizedRequest(
+                   HttpMethod.Post,
+                   $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/plan/generate",
+                   signup.UserId,
+                   signup.OrganizationId,
+                   "AgencyAdmin"))
+        {
+            var generateResponse = await client.SendAsync(generateRequest);
+            generateResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        }
+
+        Guid targetStepId;
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var dbContext = scope.ServiceProvider.GetRequiredService<SanzuDbContext>();
+            targetStepId = dbContext.WorkflowStepInstances
+                .Single(x => x.CaseId == createdCase.CaseId && x.StepKey == "submit-succession-notification")
+                .Id;
+        }
+
+        using var overrideRequest = BuildAuthorizedJsonRequest(
+            HttpMethod.Patch,
+            $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/plan/steps/{targetStepId}/readiness-override",
+            new OverrideWorkflowStepReadinessRequest
+            {
+                TargetStatus = "Ready",
+                Rationale = "Attempted by editor."
+            },
+            editorUserId,
+            signup.OrganizationId,
+            "Editor");
+
+        var response = await client.SendAsync(overrideRequest);
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
     private async Task ActivateTenantAsync(HttpClient client, CreateAgencyAccountResponse signup)
     {
         using var defaultsRequest = BuildAuthorizedJsonRequest(

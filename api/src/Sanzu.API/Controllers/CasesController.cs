@@ -6,7 +6,6 @@ using Sanzu.Core.Exceptions;
 using Sanzu.Core.Interfaces;
 using Sanzu.Core.Models.Requests;
 using Sanzu.Core.Models.Responses;
-using Sanzu.Core.Enums;
 
 namespace Sanzu.API.Controllers;
 
@@ -271,6 +270,99 @@ public sealed class CasesController : ControllerBase
                 cancellationToken);
 
             return Ok(ApiEnvelope<GenerateCasePlanResponse>.Success(response, BuildMeta()));
+        }
+        catch (TenantAccessDeniedException)
+        {
+            return Forbid();
+        }
+        catch (CaseAccessDeniedException)
+        {
+            return Forbid();
+        }
+        catch (CaseStateException exception)
+        {
+            return Problem(
+                statusCode: StatusCodes.Status409Conflict,
+                title: "Case state conflict",
+                detail: exception.Message);
+        }
+    }
+
+    [Authorize]
+    [HttpPost("{caseId:guid}/plan/readiness/recalculate")]
+    [ProducesResponseType(typeof(ApiEnvelope<GenerateCasePlanResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> RecalculateCasePlanReadiness(
+        Guid tenantId,
+        Guid caseId,
+        CancellationToken cancellationToken)
+    {
+        if (!TryGetActorUserId(out var actorUserId))
+        {
+            return Unauthorized();
+        }
+
+        try
+        {
+            var response = await _caseService.RecalculateCasePlanReadinessAsync(
+                tenantId,
+                actorUserId,
+                caseId,
+                cancellationToken);
+
+            return Ok(ApiEnvelope<GenerateCasePlanResponse>.Success(response, BuildMeta()));
+        }
+        catch (TenantAccessDeniedException)
+        {
+            return Forbid();
+        }
+        catch (CaseAccessDeniedException)
+        {
+            return Forbid();
+        }
+        catch (CaseStateException exception)
+        {
+            return Problem(
+                statusCode: StatusCodes.Status409Conflict,
+                title: "Case state conflict",
+                detail: exception.Message);
+        }
+    }
+
+    [Authorize]
+    [HttpPatch("{caseId:guid}/plan/steps/{stepId:guid}/readiness-override")]
+    [ProducesResponseType(typeof(ApiEnvelope<GenerateCasePlanResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> OverrideWorkflowStepReadiness(
+        Guid tenantId,
+        Guid caseId,
+        Guid stepId,
+        [FromBody] OverrideWorkflowStepReadinessRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (!TryGetActorUserId(out var actorUserId))
+        {
+            return Unauthorized();
+        }
+
+        try
+        {
+            var response = await _caseService.OverrideWorkflowStepReadinessAsync(
+                tenantId,
+                actorUserId,
+                caseId,
+                stepId,
+                request,
+                cancellationToken);
+
+            return Ok(ApiEnvelope<GenerateCasePlanResponse>.Success(response, BuildMeta()));
+        }
+        catch (ValidationException validationException)
+        {
+            return BadRequest(BuildValidationProblem(validationException, "Invalid readiness override request"));
         }
         catch (TenantAccessDeniedException)
         {

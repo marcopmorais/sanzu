@@ -11,6 +11,10 @@ public sealed class WorkflowStepInstance
     public string Title { get; set; } = string.Empty;
     public int Sequence { get; set; }
     public WorkflowStepStatus Status { get; set; } = WorkflowStepStatus.NotStarted;
+    public bool IsReadinessOverridden { get; set; }
+    public string? ReadinessOverrideRationale { get; set; }
+    public Guid? ReadinessOverrideByUserId { get; set; }
+    public DateTime? ReadinessOverriddenAt { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 

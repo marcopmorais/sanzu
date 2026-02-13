@@ -204,4 +204,48 @@ public sealed class CaseValidatorsTests
         result.IsValid.Should().BeFalse();
         result.Errors.Should().Contain(x => x.PropertyName == nameof(UpdateCaseParticipantRoleRequest.Role));
     }
+
+    [Fact]
+    public void OverrideWorkflowStepReadinessValidator_ShouldPass_WhenTargetStatusAndRationaleAreValid()
+    {
+        var validator = new OverrideWorkflowStepReadinessRequestValidator();
+        var request = new OverrideWorkflowStepReadinessRequest
+        {
+            TargetStatus = "Ready",
+            Rationale = "Manual unblock approved by manager."
+        };
+
+        var result = validator.Validate(request);
+        result.IsValid.Should().BeTrue();
+    }
+
+    [Fact]
+    public void OverrideWorkflowStepReadinessValidator_ShouldFail_WhenTargetStatusIsUnsupported()
+    {
+        var validator = new OverrideWorkflowStepReadinessRequestValidator();
+        var request = new OverrideWorkflowStepReadinessRequest
+        {
+            TargetStatus = "Complete",
+            Rationale = "Unsupported target."
+        };
+
+        var result = validator.Validate(request);
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(x => x.PropertyName == nameof(OverrideWorkflowStepReadinessRequest.TargetStatus));
+    }
+
+    [Fact]
+    public void OverrideWorkflowStepReadinessValidator_ShouldFail_WhenRationaleIsMissing()
+    {
+        var validator = new OverrideWorkflowStepReadinessRequestValidator();
+        var request = new OverrideWorkflowStepReadinessRequest
+        {
+            TargetStatus = "Blocked",
+            Rationale = string.Empty
+        };
+
+        var result = validator.Validate(request);
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(x => x.PropertyName == nameof(OverrideWorkflowStepReadinessRequest.Rationale));
+    }
 }
