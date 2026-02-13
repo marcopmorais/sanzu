@@ -30,6 +30,8 @@ public sealed class SanzuDbContext : DbContext
     public DbSet<BillingRecord> BillingRecords => Set<BillingRecord>();
     public DbSet<SupportDiagnosticSession> SupportDiagnosticSessions => Set<SupportDiagnosticSession>();
     public DbSet<TenantPolicyControl> TenantPolicyControls => Set<TenantPolicyControl>();
+    public DbSet<KpiThresholdDefinition> KpiThresholds => Set<KpiThresholdDefinition>();
+    public DbSet<KpiAlertLog> KpiAlerts => Set<KpiAlertLog>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

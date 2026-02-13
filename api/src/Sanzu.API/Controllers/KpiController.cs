@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Sanzu.Core.Exceptions;
 using Sanzu.Core.Interfaces;
+using Sanzu.Core.Models.Requests;
 using Sanzu.Core.Models.Responses;
 
 namespace Sanzu.API.Controllers;
@@ -13,10 +14,14 @@ namespace Sanzu.API.Controllers;
 public sealed class KpiController : ControllerBase
 {
     private readonly IKpiDashboardService _kpiDashboardService;
+    private readonly IKpiAlertService _kpiAlertService;
 
-    public KpiController(IKpiDashboardService kpiDashboardService)
+    public KpiController(
+        IKpiDashboardService kpiDashboardService,
+        IKpiAlertService kpiAlertService)
     {
         _kpiDashboardService = kpiDashboardService;
+        _kpiAlertService = kpiAlertService;
     }
 
     [Authorize(Policy = "SanzuAdmin")]
@@ -49,6 +54,65 @@ public sealed class KpiController : ControllerBase
         catch (ValidationException validationException)
         {
             return BadRequest(BuildValidationProblem(validationException, "Invalid KPI dashboard request"));
+        }
+        catch (TenantAccessDeniedException)
+        {
+            return Forbid();
+        }
+    }
+
+    [Authorize(Policy = "SanzuAdmin")]
+    [HttpPut("thresholds")]
+    [ProducesResponseType(typeof(ApiEnvelope<KpiThresholdResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> UpsertThreshold(
+        [FromBody] UpsertKpiThresholdRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (!TryGetActorUserId(out var actorUserId))
+        {
+            return Unauthorized();
+        }
+
+        try
+        {
+            var response = await _kpiAlertService.UpsertThresholdAsync(actorUserId, request, cancellationToken);
+            return Ok(ApiEnvelope<KpiThresholdResponse>.Success(response, BuildMeta()));
+        }
+        catch (ValidationException validationException)
+        {
+            return BadRequest(BuildValidationProblem(validationException, "Invalid KPI threshold request"));
+        }
+        catch (TenantAccessDeniedException)
+        {
+            return Forbid();
+        }
+    }
+
+    [Authorize(Policy = "SanzuAdmin")]
+    [HttpPost("alerts/evaluate")]
+    [ProducesResponseType(typeof(ApiEnvelope<KpiAlertEvaluationResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> EvaluateAlerts(
+        [FromBody] EvaluateKpiAlertsRequest? request,
+        CancellationToken cancellationToken)
+    {
+        if (!TryGetActorUserId(out var actorUserId))
+        {
+            return Unauthorized();
+        }
+
+        try
+        {
+            var payload = request ?? new EvaluateKpiAlertsRequest();
+            var response = await _kpiAlertService.EvaluateThresholdsAsync(actorUserId, payload, cancellationToken);
+            return Ok(ApiEnvelope<KpiAlertEvaluationResponse>.Success(response, BuildMeta()));
+        }
+        catch (ValidationException validationException)
+        {
+            return BadRequest(BuildValidationProblem(validationException, "Invalid KPI alert evaluation request"));
         }
         catch (TenantAccessDeniedException)
         {

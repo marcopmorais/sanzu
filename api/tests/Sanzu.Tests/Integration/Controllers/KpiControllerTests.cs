@@ -67,6 +67,100 @@ public sealed class KpiControllerTests : IClassFixture<CustomWebApplicationFacto
         response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
     }
 
+    [Fact]
+    public async Task UpsertThreshold_ShouldReturn200AndPersistThreshold_WhenActorIsSanzuAdmin()
+    {
+        var client = _factory.CreateClient();
+        var signup = await CreateTenantAsync(client, "kpi-threshold-upsert@agency.pt");
+        var sanzuAdminUserId = await SeedSanzuAdminAsync(signup.OrganizationId);
+
+        using var request = BuildAuthorizedJsonRequest(
+            HttpMethod.Put,
+            "/api/v1/admin/kpi/thresholds",
+            new UpsertKpiThresholdRequest
+            {
+                MetricKey = "CasesCreated",
+                ThresholdValue = 1,
+                Severity = "High",
+                RouteTarget = "ops@agency.pt",
+                IsEnabled = true
+            },
+            sanzuAdminUserId,
+            signup.OrganizationId,
+            "SanzuAdmin");
+
+        var response = await client.SendAsync(request);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var envelope = await response.Content.ReadFromJsonAsync<ApiEnvelope<KpiThresholdResponse>>();
+        envelope.Should().NotBeNull();
+        envelope!.Data.Should().NotBeNull();
+        envelope.Data!.MetricKey.Should().Be(KpiMetricKey.CasesCreated);
+        envelope.Data.Severity.Should().Be(KpiAlertSeverity.High);
+        envelope.Data.RouteTarget.Should().Be("ops@agency.pt");
+
+        using var scope = _factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<SanzuDbContext>();
+        dbContext.KpiThresholds.Should().Contain(x => x.MetricKey == KpiMetricKey.CasesCreated && x.IsEnabled);
+    }
+
+    [Fact]
+    public async Task EvaluateAlerts_ShouldReturnGeneratedAlerts_WhenThresholdIsBreached()
+    {
+        var client = _factory.CreateClient();
+        var signup = await CreateTenantAsync(client, "kpi-alert-evaluate@agency.pt");
+        await SetTenantStatusAsync(signup.OrganizationId, TenantStatus.Active);
+        var sanzuAdminUserId = await SeedSanzuAdminAsync(signup.OrganizationId);
+        await SeedKpiDataAsync(signup.OrganizationId, signup.OrganizationId, signup.UserId, signup.UserId);
+
+        using (var thresholdRequest = BuildAuthorizedJsonRequest(
+                   HttpMethod.Put,
+                   "/api/v1/admin/kpi/thresholds",
+                   new UpsertKpiThresholdRequest
+                   {
+                       MetricKey = "CasesCreated",
+                       ThresholdValue = 1,
+                       Severity = "Critical",
+                       RouteTarget = "incident@agency.pt",
+                       IsEnabled = true
+                   },
+                   sanzuAdminUserId,
+                   signup.OrganizationId,
+                   "SanzuAdmin"))
+        {
+            var thresholdResponse = await client.SendAsync(thresholdRequest);
+            thresholdResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        }
+
+        using var evaluateRequest = BuildAuthorizedJsonRequest(
+            HttpMethod.Post,
+            "/api/v1/admin/kpi/alerts/evaluate",
+            new EvaluateKpiAlertsRequest
+            {
+                PeriodDays = 30,
+                TenantLimit = 10,
+                CaseLimit = 10
+            },
+            sanzuAdminUserId,
+            signup.OrganizationId,
+            "SanzuAdmin");
+
+        var evaluateResponse = await client.SendAsync(evaluateRequest);
+        evaluateResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var envelope = await evaluateResponse.Content.ReadFromJsonAsync<ApiEnvelope<KpiAlertEvaluationResponse>>();
+        envelope.Should().NotBeNull();
+        envelope!.Data.Should().NotBeNull();
+        envelope.Data!.GeneratedAlerts.Should().NotBeEmpty();
+        envelope.Data.GeneratedAlerts.Should().Contain(
+            x => x.MetricKey == KpiMetricKey.CasesCreated
+                 && x.Severity == KpiAlertSeverity.Critical);
+
+        using var scope = _factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<SanzuDbContext>();
+        dbContext.KpiAlerts.Should().NotBeEmpty();
+    }
+
     private async Task<Guid> SeedSanzuAdminAsync(Guid tenantId)
     {
         using var scope = _factory.Services.CreateScope();
@@ -190,6 +284,19 @@ public sealed class KpiControllerTests : IClassFixture<CustomWebApplicationFacto
         message.Headers.Add("X-User-Id", userId.ToString());
         message.Headers.Add("X-Tenant-Id", tenantId.ToString());
         message.Headers.Add("X-User-Role", role);
+        return message;
+    }
+
+    private static HttpRequestMessage BuildAuthorizedJsonRequest<TPayload>(
+        HttpMethod method,
+        string uri,
+        TPayload payload,
+        Guid userId,
+        Guid tenantId,
+        string role)
+    {
+        var message = BuildAuthorizedRequest(method, uri, userId, tenantId, role);
+        message.Content = JsonContent.Create(payload);
         return message;
     }
 
