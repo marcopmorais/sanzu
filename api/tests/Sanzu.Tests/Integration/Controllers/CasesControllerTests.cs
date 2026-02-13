@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using System.Linq;
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Sanzu.Core.Entities;
 using Sanzu.Core.Enums;
@@ -281,6 +282,83 @@ public sealed class CasesControllerTests : IClassFixture<CustomWebApplicationFac
         envelope.Data.Milestones.Should().HaveCount(3);
         envelope.Data.Milestones.Should().BeInAscendingOrder(x => x.OccurredAt);
         envelope.Data.Milestones.Select(x => x.Status).Should().ContainInOrder(CaseStatus.Draft, CaseStatus.Intake, CaseStatus.Active);
+    }
+
+    [Fact]
+    public async Task GetTenantComplianceStatus_ShouldReturn200AndCasePolicyStates_WhenActorIsTenantAdmin()
+    {
+        var client = _factory.CreateClient();
+        var signup = await CreateTenantAsync(client, "cases-admin-compliance@agency.pt");
+        await ActivateTenantAsync(client, signup);
+
+        var activeCase = await CreateCaseAsync(client, signup, "Compliance Active Integration");
+        await MoveCaseToActiveAsync(client, signup, activeCase.CaseId);
+
+        var closedCase = await CreateCaseAsync(client, signup, "Compliance Closed Integration");
+        await MoveCaseToActiveAsync(client, signup, closedCase.CaseId);
+        foreach (var status in new[] { "Review", "Closed" })
+        {
+            using var lifecycleRequest = BuildAuthorizedJsonRequest(
+                HttpMethod.Patch,
+                $"/api/v1/tenants/{signup.OrganizationId}/cases/{closedCase.CaseId}/lifecycle",
+                new UpdateCaseLifecycleRequest { TargetStatus = status },
+                signup.UserId,
+                signup.OrganizationId,
+                "AgencyAdmin");
+            var lifecycleResponse = await client.SendAsync(lifecycleRequest);
+            lifecycleResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        }
+
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var dbContext = scope.ServiceProvider.GetRequiredService<SanzuDbContext>();
+            var persistedClosedCase = await dbContext.Cases.SingleAsync(x => x.Id == closedCase.CaseId);
+            persistedClosedCase.ClosedAt = DateTime.UtcNow.AddDays(-120);
+            await dbContext.SaveChangesAsync();
+        }
+
+        using var request = BuildAuthorizedRequest(
+            HttpMethod.Get,
+            $"/api/v1/tenants/{signup.OrganizationId}/cases/compliance",
+            signup.UserId,
+            signup.OrganizationId,
+            "AgencyAdmin");
+        var response = await client.SendAsync(request);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var envelope = await response.Content.ReadFromJsonAsync<ApiEnvelope<TenantComplianceStatusResponse>>();
+        envelope.Should().NotBeNull();
+        envelope!.Data.Should().NotBeNull();
+        envelope.Data!.TenantId.Should().Be(signup.OrganizationId);
+        envelope.Data.Cases.Should().Contain(x => x.CaseId == activeCase.CaseId && x.CaseStatus == CaseStatus.Active);
+        envelope.Data.Cases.Should().Contain(
+            x => x.CaseId == closedCase.CaseId
+                 && x.CaseStatus == CaseStatus.Closed
+                 && x.Exceptions.Contains("RETENTION_REVIEW_REQUIRED"));
+    }
+
+    [Fact]
+    public async Task GetTenantComplianceStatus_ShouldReturn403_WhenActorIsNotTenantAdmin()
+    {
+        var client = _factory.CreateClient();
+        var signup = await CreateTenantAsync(client, "cases-compliance-reader@agency.pt");
+        await ActivateTenantAsync(client, signup);
+        var createdCase = await CreateCaseAsync(client, signup, "Compliance Reader Integration");
+        await MoveCaseToActiveAsync(client, signup, createdCase.CaseId);
+        var readerUserId = await SeedAcceptedParticipantAsync(
+            signup.OrganizationId,
+            createdCase.CaseId,
+            "family.compliance.reader@agency.pt",
+            CaseRole.Reader);
+
+        using var request = BuildAuthorizedRequest(
+            HttpMethod.Get,
+            $"/api/v1/tenants/{signup.OrganizationId}/cases/compliance",
+            readerUserId,
+            signup.OrganizationId,
+            "Reader");
+        var response = await client.SendAsync(request);
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
     }
 
     [Fact]

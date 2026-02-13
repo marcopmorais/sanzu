@@ -222,6 +222,11 @@ public interface ICaseService
         Guid caseId,
         CancellationToken cancellationToken);
 
+    Task<TenantComplianceStatusResponse> GetTenantComplianceStatusAsync(
+        Guid tenantId,
+        Guid actorUserId,
+        CancellationToken cancellationToken);
+
     Task<CaseTimelineResponse> GetCaseTimelineAsync(
         Guid tenantId,
         Guid actorUserId,

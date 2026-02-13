@@ -65,6 +65,42 @@ public sealed class CasesController : ControllerBase
         }
     }
 
+    [Authorize(Policy = "TenantAdmin")]
+    [HttpGet("compliance")]
+    [ProducesResponseType(typeof(ApiEnvelope<TenantComplianceStatusResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> GetTenantComplianceStatus(
+        Guid tenantId,
+        CancellationToken cancellationToken)
+    {
+        if (!TryGetActorUserId(out var actorUserId))
+        {
+            return Unauthorized();
+        }
+
+        try
+        {
+            var response = await _caseService.GetTenantComplianceStatusAsync(
+                tenantId,
+                actorUserId,
+                cancellationToken);
+
+            return Ok(ApiEnvelope<TenantComplianceStatusResponse>.Success(response, BuildMeta()));
+        }
+        catch (TenantAccessDeniedException)
+        {
+            return Forbid();
+        }
+        catch (CaseStateException exception)
+        {
+            return Problem(
+                statusCode: StatusCodes.Status409Conflict,
+                title: "Case state conflict",
+                detail: exception.Message);
+        }
+    }
+
     [Authorize]
     [HttpGet("{caseId:guid}")]
     [ProducesResponseType(typeof(ApiEnvelope<CaseDetailsResponse>), StatusCodes.Status200OK)]

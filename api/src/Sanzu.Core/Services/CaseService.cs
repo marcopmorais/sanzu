@@ -1891,6 +1891,67 @@ public sealed class CaseService : ICaseService
         };
     }
 
+    public async Task<TenantComplianceStatusResponse> GetTenantComplianceStatusAsync(
+        Guid tenantId,
+        Guid actorUserId,
+        CancellationToken cancellationToken)
+    {
+        await LoadAuthorizedTenantAsync(tenantId, actorUserId, cancellationToken);
+
+        var cases = await _caseRepository.GetByTenantIdAsync(tenantId, cancellationToken);
+        var targetCases = cases
+            .Where(x => x.Status is CaseStatus.Active or CaseStatus.Closed)
+            .ToList();
+        var evaluatedAt = DateTime.UtcNow;
+        var complianceCases = new List<CaseComplianceStatusResponse>(targetCases.Count);
+
+        foreach (var caseEntity in targetCases)
+        {
+            var auditEvents = await _auditRepository.GetByCaseIdAsync(caseEntity.Id, cancellationToken);
+            var exceptions = new List<string>();
+
+            if (auditEvents.Count == 0)
+            {
+                exceptions.Add("MISSING_AUDIT_EVENTS");
+            }
+
+            if (caseEntity.Status == CaseStatus.Active
+                && auditEvents.All(x => x.EventType != "WorkflowTaskStatusUpdated"))
+            {
+                exceptions.Add("ACTIVE_CASE_NO_TASK_PROGRESS");
+            }
+
+            if (caseEntity.Status == CaseStatus.Closed
+                && caseEntity.ClosedAt.HasValue
+                && caseEntity.ClosedAt.Value < evaluatedAt.AddDays(-90))
+            {
+                exceptions.Add("RETENTION_REVIEW_REQUIRED");
+            }
+
+            complianceCases.Add(
+                new CaseComplianceStatusResponse
+                {
+                    CaseId = caseEntity.Id,
+                    CaseNumber = caseEntity.CaseNumber,
+                    CaseStatus = caseEntity.Status,
+                    PolicyState = exceptions.Count == 0 ? "Compliant" : "Exception",
+                    Exceptions = exceptions,
+                    LastEvaluatedAt = evaluatedAt
+                });
+        }
+
+        return new TenantComplianceStatusResponse
+        {
+            TenantId = tenantId,
+            RetrievedAt = evaluatedAt,
+            ExceptionCaseCount = complianceCases.Count(x => x.PolicyState == "Exception"),
+            Cases = complianceCases
+                .OrderBy(x => x.CaseStatus)
+                .ThenBy(x => x.CaseNumber)
+                .ToList()
+        };
+    }
+
     public async Task<CaseTimelineResponse> GetCaseTimelineAsync(
         Guid tenantId,
         Guid actorUserId,

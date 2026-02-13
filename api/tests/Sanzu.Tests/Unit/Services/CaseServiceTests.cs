@@ -1222,6 +1222,68 @@ public sealed class CaseServiceTests
     }
 
     [Fact]
+    public async Task GetTenantComplianceStatus_ShouldReturnCaseStatesAndExceptions_WhenCasesExist()
+    {
+        var dbContext = CreateContext();
+        var (tenantId, actorUserId) = await SeedTenantWithAdminAsync(dbContext, TenantStatus.Active);
+        var service = CreateService(dbContext);
+
+        var activeCase = await CreateCaseAsync(service, tenantId, actorUserId, "Compliance Active Case");
+        await MoveCaseToActiveAsync(service, tenantId, actorUserId, activeCase.CaseId);
+
+        var closedCase = await CreateCaseAsync(service, tenantId, actorUserId, "Compliance Closed Case");
+        await MoveCaseToActiveAsync(service, tenantId, actorUserId, closedCase.CaseId);
+        await service.UpdateCaseLifecycleAsync(
+            tenantId,
+            actorUserId,
+            closedCase.CaseId,
+            new UpdateCaseLifecycleRequest { TargetStatus = "Review" },
+            CancellationToken.None);
+        await service.UpdateCaseLifecycleAsync(
+            tenantId,
+            actorUserId,
+            closedCase.CaseId,
+            new UpdateCaseLifecycleRequest { TargetStatus = "Closed" },
+            CancellationToken.None);
+
+        var closedEntity = await dbContext.Cases.SingleAsync(x => x.Id == closedCase.CaseId);
+        closedEntity.ClosedAt = DateTime.UtcNow.AddDays(-120);
+        await dbContext.SaveChangesAsync();
+
+        var result = await service.GetTenantComplianceStatusAsync(
+            tenantId,
+            actorUserId,
+            CancellationToken.None);
+
+        result.TenantId.Should().Be(tenantId);
+        result.Cases.Should().NotBeEmpty();
+        result.Cases.Should().Contain(x => x.CaseId == activeCase.CaseId && x.CaseStatus == CaseStatus.Active);
+        result.Cases.Should().Contain(
+            x => x.CaseId == closedCase.CaseId
+                 && x.CaseStatus == CaseStatus.Closed
+                 && x.Exceptions.Contains("RETENTION_REVIEW_REQUIRED"));
+        result.ExceptionCaseCount.Should().BeGreaterThan(0);
+    }
+
+    [Fact]
+    public async Task GetTenantComplianceStatus_ShouldThrowTenantAccessDenied_WhenActorIsNotTenantAdmin()
+    {
+        var dbContext = CreateContext();
+        var tenantId = Guid.NewGuid();
+        var actorUserId = Guid.NewGuid();
+        await SeedTenantAsync(dbContext, tenantId, TenantStatus.Active);
+        await SeedUserAsync(dbContext, actorUserId, tenantId, "oversight.nonadmin@agency.pt", "Oversight User");
+        var service = CreateService(dbContext);
+
+        var act = () => service.GetTenantComplianceStatusAsync(
+            tenantId,
+            actorUserId,
+            CancellationToken.None);
+
+        await act.Should().ThrowAsync<TenantAccessDeniedException>();
+    }
+
+    [Fact]
     public async Task GetCaseAuditTrail_ShouldReturnEntriesAndRemainImmutable_WhenUserIsManager()
     {
         var dbContext = CreateContext();
