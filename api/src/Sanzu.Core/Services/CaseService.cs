@@ -21,6 +21,7 @@ public sealed class CaseService : ICaseService
     private readonly ICaseDocumentRepository _caseDocumentRepository;
     private readonly ICaseHandoffRepository _caseHandoffRepository;
     private readonly IProcessAliasRepository _processAliasRepository;
+    private readonly IProcessEmailRepository _processEmailRepository;
     private readonly IExtractionCandidateRepository _extractionCandidateRepository;
     private readonly ICaseParticipantRepository _caseParticipantRepository;
     private readonly IWorkflowStepRepository _workflowStepRepository;
@@ -49,6 +50,7 @@ public sealed class CaseService : ICaseService
         ICaseDocumentRepository caseDocumentRepository,
         ICaseHandoffRepository caseHandoffRepository,
         IProcessAliasRepository processAliasRepository,
+        IProcessEmailRepository processEmailRepository,
         IExtractionCandidateRepository extractionCandidateRepository,
         ICaseParticipantRepository caseParticipantRepository,
         IWorkflowStepRepository workflowStepRepository,
@@ -76,6 +78,7 @@ public sealed class CaseService : ICaseService
         _caseDocumentRepository = caseDocumentRepository;
         _caseHandoffRepository = caseHandoffRepository;
         _processAliasRepository = processAliasRepository;
+        _processEmailRepository = processEmailRepository;
         _extractionCandidateRepository = extractionCandidateRepository;
         _caseParticipantRepository = caseParticipantRepository;
         _workflowStepRepository = workflowStepRepository;
@@ -1485,6 +1488,82 @@ public sealed class CaseService : ICaseService
             cancellationToken);
 
         return response!;
+    }
+
+    public async Task<ProcessInboxResponse> GetProcessInboxAsync(
+        Guid tenantId,
+        Guid actorUserId,
+        Guid caseId,
+        CancellationToken cancellationToken)
+    {
+        var caseForAccess = await LoadCaseForTenantAsync(tenantId, caseId, cancellationToken);
+        var effectiveRole = await ResolveEffectiveCaseRoleAsync(tenantId, actorUserId, caseForAccess, cancellationToken);
+        await EnsureCaseRoleAsync(effectiveRole, CaseRole.Reader, actorUserId, caseId, "GetProcessInbox", cancellationToken);
+
+        var alias = await _processAliasRepository.GetLatestByCaseIdAsync(caseForAccess.Id, cancellationToken);
+        if (alias is null || alias.CaseId != caseForAccess.Id || alias.TenantId != tenantId)
+        {
+            throw new CaseStateException("Process alias must be provisioned before viewing inbox threads.");
+        }
+
+        var emails = await _processEmailRepository.GetByCaseIdAsync(caseForAccess.Id, cancellationToken);
+        var retrievedAt = DateTime.UtcNow;
+        var caseContextUrl = $"/api/v1/tenants/{tenantId}/cases/{caseForAccess.Id}";
+
+        var threads = emails
+            .GroupBy(
+                email => string.IsNullOrWhiteSpace(email.ThreadId)
+                    ? email.Id.ToString("N")
+                    : email.ThreadId.Trim())
+            .Select(
+                group =>
+                {
+                    var orderedMessages = group
+                        .OrderByDescending(x => x.SentAt)
+                        .ThenByDescending(x => x.CreatedAt)
+                        .ToList();
+                    var latest = orderedMessages[0];
+                    var participants = orderedMessages
+                        .SelectMany(
+                            x =>
+                            {
+                                var addresses = ParseRecipientEmails(x.RecipientEmails).ToList();
+                                if (!string.IsNullOrWhiteSpace(x.SenderEmail))
+                                {
+                                    addresses.Add(x.SenderEmail);
+                                }
+
+                                return addresses;
+                            })
+                        .Where(x => !string.IsNullOrWhiteSpace(x))
+                        .Select(x => x.Trim().ToLowerInvariant())
+                        .Distinct()
+                        .OrderBy(x => x)
+                        .ToList();
+
+                    return new ProcessInboxThreadResponse
+                    {
+                        ThreadId = group.Key,
+                        Subject = latest.Subject,
+                        LastMessageAt = latest.SentAt,
+                        MessageCount = orderedMessages.Count,
+                        Participants = participants,
+                        LatestDirection = latest.Direction.ToString(),
+                        CaseContextUrl = caseContextUrl,
+                        Messages = orderedMessages
+                            .Select(MapProcessInboxMessage)
+                            .ToList()
+                    };
+                })
+            .OrderByDescending(x => x.LastMessageAt)
+            .ToList();
+
+        return new ProcessInboxResponse
+        {
+            CaseId = caseForAccess.Id,
+            RetrievedAt = retrievedAt,
+            Threads = threads
+        };
     }
 
     public async Task<GenerateCasePlanResponse> RecalculateCasePlanReadinessAsync(
@@ -3143,6 +3222,36 @@ public sealed class CaseService : ICaseService
             CreatedAt = alias.CreatedAt,
             UpdatedAt = alias.UpdatedAt
         };
+    }
+
+    private static ProcessInboxMessageResponse MapProcessInboxMessage(ProcessEmail email)
+    {
+        return new ProcessInboxMessageResponse
+        {
+            MessageId = email.Id,
+            ThreadId = string.IsNullOrWhiteSpace(email.ThreadId) ? email.Id.ToString("N") : email.ThreadId,
+            Direction = email.Direction.ToString(),
+            Subject = email.Subject,
+            SenderEmail = email.SenderEmail,
+            RecipientEmails = ParseRecipientEmails(email.RecipientEmails),
+            BodyPreview = email.BodyPreview,
+            ExternalMessageId = email.ExternalMessageId,
+            SentAt = email.SentAt
+        };
+    }
+
+    private static IReadOnlyList<string> ParseRecipientEmails(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return Array.Empty<string>();
+        }
+
+        return value
+            .Split([',', ';'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Select(x => x.Trim())
+            .ToList();
     }
 
     private static CaseParticipantResponse MapParticipant(CaseParticipant participant)

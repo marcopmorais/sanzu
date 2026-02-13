@@ -182,6 +182,12 @@ public interface ICaseService
         Guid caseId,
         CancellationToken cancellationToken);
 
+    Task<ProcessInboxResponse> GetProcessInboxAsync(
+        Guid tenantId,
+        Guid actorUserId,
+        Guid caseId,
+        CancellationToken cancellationToken);
+
     Task<GenerateCasePlanResponse> RecalculateCasePlanReadinessAsync(
         Guid tenantId,
         Guid actorUserId,

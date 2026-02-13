@@ -29,4 +29,5 @@ public sealed class Case
     public ICollection<CaseDocument> Documents { get; set; } = new List<CaseDocument>();
     public ICollection<CaseHandoff> Handoffs { get; set; } = new List<CaseHandoff>();
     public ICollection<ProcessAlias> ProcessAliases { get; set; } = new List<ProcessAlias>();
+    public ICollection<ProcessEmail> ProcessEmails { get; set; } = new List<ProcessEmail>();
 }

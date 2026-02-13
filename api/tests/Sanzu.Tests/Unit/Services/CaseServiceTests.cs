@@ -2493,6 +2493,153 @@ public sealed class CaseServiceTests
     }
 
     [Fact]
+    public async Task GetProcessInbox_ShouldReturnThreadHistoryAndMetadata_WhenMessagesExist()
+    {
+        var dbContext = CreateContext();
+        var (tenantId, actorUserId) = await SeedTenantWithAdminAsync(dbContext, TenantStatus.Active);
+        var service = CreateService(dbContext);
+        var createdCase = await CreateCaseAsync(service, tenantId, actorUserId, "Process Inbox Case");
+        await MoveCaseToActiveAsync(service, tenantId, actorUserId, createdCase.CaseId);
+        var alias = await service.ProvisionProcessAliasAsync(tenantId, actorUserId, createdCase.CaseId, CancellationToken.None);
+        var now = DateTime.UtcNow;
+
+        dbContext.ProcessEmails.AddRange(
+            new ProcessEmail
+            {
+                Id = Guid.NewGuid(),
+                TenantId = tenantId,
+                CaseId = createdCase.CaseId,
+                ProcessAliasId = alias.AliasId,
+                ThreadId = "thread-a",
+                Direction = ProcessEmailDirection.Outbound,
+                Subject = "Document request",
+                SenderEmail = alias.AliasEmail,
+                RecipientEmails = "advisor.one@external.pt",
+                BodyPreview = "Please share pending documentation.",
+                ExternalMessageId = "msg-001",
+                SentAt = now.AddMinutes(-15),
+                CreatedAt = now.AddMinutes(-15),
+                UpdatedAt = now.AddMinutes(-15)
+            },
+            new ProcessEmail
+            {
+                Id = Guid.NewGuid(),
+                TenantId = tenantId,
+                CaseId = createdCase.CaseId,
+                ProcessAliasId = alias.AliasId,
+                ThreadId = "thread-a",
+                Direction = ProcessEmailDirection.Inbound,
+                Subject = "Re: Document request",
+                SenderEmail = "advisor.one@external.pt",
+                RecipientEmails = alias.AliasEmail,
+                BodyPreview = "Attached for your review.",
+                ExternalMessageId = "msg-002",
+                SentAt = now.AddMinutes(-5),
+                CreatedAt = now.AddMinutes(-5),
+                UpdatedAt = now.AddMinutes(-5)
+            },
+            new ProcessEmail
+            {
+                Id = Guid.NewGuid(),
+                TenantId = tenantId,
+                CaseId = createdCase.CaseId,
+                ProcessAliasId = alias.AliasId,
+                ThreadId = "thread-b",
+                Direction = ProcessEmailDirection.Outbound,
+                Subject = "Tax authority follow-up",
+                SenderEmail = alias.AliasEmail,
+                RecipientEmails = "tax.office@external.pt",
+                BodyPreview = "Following up on the previous request.",
+                ExternalMessageId = "msg-003",
+                SentAt = now.AddMinutes(-10),
+                CreatedAt = now.AddMinutes(-10),
+                UpdatedAt = now.AddMinutes(-10)
+            });
+        await dbContext.SaveChangesAsync();
+
+        var inbox = await service.GetProcessInboxAsync(
+            tenantId,
+            actorUserId,
+            createdCase.CaseId,
+            CancellationToken.None);
+
+        inbox.CaseId.Should().Be(createdCase.CaseId);
+        inbox.Threads.Should().HaveCount(2);
+        inbox.Threads[0].ThreadId.Should().Be("thread-a");
+        inbox.Threads[0].MessageCount.Should().Be(2);
+        inbox.Threads[0].LatestDirection.Should().Be(ProcessEmailDirection.Inbound.ToString());
+        inbox.Threads[0].CaseContextUrl.Should().Contain(createdCase.CaseId.ToString());
+        inbox.Threads[0].Participants.Should().Contain(alias.AliasEmail);
+        inbox.Threads[0].Participants.Should().Contain("advisor.one@external.pt");
+        inbox.Threads[0].Messages.Should().HaveCount(2);
+    }
+
+    [Fact]
+    public async Task GetProcessInbox_ShouldThrowCaseStateException_WhenAliasIsNotProvisioned()
+    {
+        var dbContext = CreateContext();
+        var (tenantId, actorUserId) = await SeedTenantWithAdminAsync(dbContext, TenantStatus.Active);
+        var service = CreateService(dbContext);
+        var createdCase = await CreateCaseAsync(service, tenantId, actorUserId, "Process Inbox Without Alias Case");
+        await MoveCaseToActiveAsync(service, tenantId, actorUserId, createdCase.CaseId);
+
+        var act = () => service.GetProcessInboxAsync(
+            tenantId,
+            actorUserId,
+            createdCase.CaseId,
+            CancellationToken.None);
+
+        await act.Should().ThrowAsync<CaseStateException>()
+            .Where(e => e.Message.Contains("Process alias must be provisioned"));
+    }
+
+    [Fact]
+    public async Task GetProcessInbox_ShouldAllowReader_WhenCaseScopedAccessIsGranted()
+    {
+        var dbContext = CreateContext();
+        var (tenantId, actorUserId) = await SeedTenantWithAdminAsync(dbContext, TenantStatus.Active);
+        var service = CreateService(dbContext);
+        var createdCase = await CreateCaseAsync(service, tenantId, actorUserId, "Process Inbox Reader Case");
+        await MoveCaseToActiveAsync(service, tenantId, actorUserId, createdCase.CaseId);
+        var alias = await service.ProvisionProcessAliasAsync(tenantId, actorUserId, createdCase.CaseId, CancellationToken.None);
+
+        var readerUserId = Guid.NewGuid();
+        const string readerEmail = "family.process.inbox.reader@agency.pt";
+        await SeedUserAsync(dbContext, readerUserId, tenantId, readerEmail, "Inbox Reader");
+        await SeedAcceptedParticipantDirectAsync(dbContext, tenantId, createdCase.CaseId, readerUserId, readerEmail, CaseRole.Reader);
+
+        dbContext.ProcessEmails.Add(
+            new ProcessEmail
+            {
+                Id = Guid.NewGuid(),
+                TenantId = tenantId,
+                CaseId = createdCase.CaseId,
+                ProcessAliasId = alias.AliasId,
+                ThreadId = "thread-reader",
+                Direction = ProcessEmailDirection.Outbound,
+                Subject = "Reader-visible thread",
+                SenderEmail = alias.AliasEmail,
+                RecipientEmails = "advisor.reader@external.pt",
+                BodyPreview = "Shared update.",
+                ExternalMessageId = "msg-r1",
+                SentAt = DateTime.UtcNow.AddMinutes(-2),
+                CreatedAt = DateTime.UtcNow.AddMinutes(-2),
+                UpdatedAt = DateTime.UtcNow.AddMinutes(-2)
+            });
+        await dbContext.SaveChangesAsync();
+
+        var inbox = await service.GetProcessInboxAsync(
+            tenantId,
+            readerUserId,
+            createdCase.CaseId,
+            CancellationToken.None);
+
+        inbox.Threads.Should().HaveCount(1);
+        inbox.Threads[0].ThreadId.Should().Be("thread-reader");
+        inbox.Threads[0].Messages.Should().HaveCount(1);
+    }
+
+    [Fact]
     public async Task GetCaseDetails_ShouldReturnDetails_WhenUserIsCaseManager()
     {
         var dbContext = CreateContext();
@@ -2655,6 +2802,7 @@ public sealed class CaseServiceTests
             new CaseDocumentRepository(dbContext),
             new CaseHandoffRepository(dbContext),
             new ProcessAliasRepository(dbContext),
+            new ProcessEmailRepository(dbContext),
             new ExtractionCandidateRepository(dbContext),
             new CaseParticipantRepository(dbContext),
             new WorkflowStepRepository(dbContext),

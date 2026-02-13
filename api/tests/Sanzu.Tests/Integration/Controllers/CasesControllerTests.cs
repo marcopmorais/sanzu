@@ -2303,6 +2303,196 @@ public sealed class CasesControllerTests : IClassFixture<CustomWebApplicationFac
         response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
     }
 
+    [Fact]
+    public async Task GetProcessInbox_ShouldReturn200AndThreadMetadata_WhenMessagesExist()
+    {
+        var client = _factory.CreateClient();
+        var signup = await CreateTenantAsync(client, "cases-process-inbox-success@agency.pt");
+        await ActivateTenantAsync(client, signup);
+        var createdCase = await CreateCaseAsync(client, signup, "Process Inbox Integration");
+        await MoveCaseToActiveAsync(client, signup, createdCase.CaseId);
+
+        Guid aliasId;
+        string aliasEmail;
+        using (var provisionRequest = BuildAuthorizedRequest(
+                   HttpMethod.Post,
+                   $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/process-alias/provision",
+                   signup.UserId,
+                   signup.OrganizationId,
+                   "AgencyAdmin"))
+        {
+            var provisionResponse = await client.SendAsync(provisionRequest);
+            provisionResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+            var provisionEnvelope = await provisionResponse.Content.ReadFromJsonAsync<ApiEnvelope<ProcessAliasResponse>>();
+            provisionEnvelope.Should().NotBeNull();
+            provisionEnvelope!.Data.Should().NotBeNull();
+            aliasId = provisionEnvelope.Data!.AliasId;
+            aliasEmail = provisionEnvelope.Data.AliasEmail;
+        }
+
+        var now = DateTime.UtcNow;
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var dbContext = scope.ServiceProvider.GetRequiredService<SanzuDbContext>();
+            dbContext.ProcessEmails.AddRange(
+                new ProcessEmail
+                {
+                    Id = Guid.NewGuid(),
+                    TenantId = signup.OrganizationId,
+                    CaseId = createdCase.CaseId,
+                    ProcessAliasId = aliasId,
+                    ThreadId = "thread-a",
+                    Direction = ProcessEmailDirection.Outbound,
+                    Subject = "Document request",
+                    SenderEmail = aliasEmail,
+                    RecipientEmails = "advisor.one@external.pt",
+                    BodyPreview = "Please send files.",
+                    ExternalMessageId = "ext-1",
+                    SentAt = now.AddMinutes(-12),
+                    CreatedAt = now.AddMinutes(-12),
+                    UpdatedAt = now.AddMinutes(-12)
+                },
+                new ProcessEmail
+                {
+                    Id = Guid.NewGuid(),
+                    TenantId = signup.OrganizationId,
+                    CaseId = createdCase.CaseId,
+                    ProcessAliasId = aliasId,
+                    ThreadId = "thread-a",
+                    Direction = ProcessEmailDirection.Inbound,
+                    Subject = "Re: Document request",
+                    SenderEmail = "advisor.one@external.pt",
+                    RecipientEmails = aliasEmail,
+                    BodyPreview = "Attached.",
+                    ExternalMessageId = "ext-2",
+                    SentAt = now.AddMinutes(-3),
+                    CreatedAt = now.AddMinutes(-3),
+                    UpdatedAt = now.AddMinutes(-3)
+                },
+                new ProcessEmail
+                {
+                    Id = Guid.NewGuid(),
+                    TenantId = signup.OrganizationId,
+                    CaseId = createdCase.CaseId,
+                    ProcessAliasId = aliasId,
+                    ThreadId = "thread-b",
+                    Direction = ProcessEmailDirection.Outbound,
+                    Subject = "Tax follow-up",
+                    SenderEmail = aliasEmail,
+                    RecipientEmails = "tax.office@external.pt",
+                    BodyPreview = "Following up.",
+                    ExternalMessageId = "ext-3",
+                    SentAt = now.AddMinutes(-8),
+                    CreatedAt = now.AddMinutes(-8),
+                    UpdatedAt = now.AddMinutes(-8)
+                });
+            await dbContext.SaveChangesAsync();
+        }
+
+        using var inboxRequest = BuildAuthorizedRequest(
+            HttpMethod.Get,
+            $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/process-inbox",
+            signup.UserId,
+            signup.OrganizationId,
+            "AgencyAdmin");
+        var response = await client.SendAsync(inboxRequest);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var envelope = await response.Content.ReadFromJsonAsync<ApiEnvelope<ProcessInboxResponse>>();
+        envelope.Should().NotBeNull();
+        envelope!.Data.Should().NotBeNull();
+        envelope.Data!.CaseId.Should().Be(createdCase.CaseId);
+        envelope.Data.Threads.Should().HaveCount(2);
+        envelope.Data.Threads[0].ThreadId.Should().Be("thread-a");
+        envelope.Data.Threads[0].MessageCount.Should().Be(2);
+        envelope.Data.Threads[0].CaseContextUrl.Should().Contain(createdCase.CaseId.ToString());
+    }
+
+    [Fact]
+    public async Task GetProcessInbox_ShouldReturn409_WhenProcessAliasIsMissing()
+    {
+        var client = _factory.CreateClient();
+        var signup = await CreateTenantAsync(client, "cases-process-inbox-no-alias@agency.pt");
+        await ActivateTenantAsync(client, signup);
+        var createdCase = await CreateCaseAsync(client, signup, "Process Inbox Missing Alias");
+        await MoveCaseToActiveAsync(client, signup, createdCase.CaseId);
+
+        using var inboxRequest = BuildAuthorizedRequest(
+            HttpMethod.Get,
+            $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/process-inbox",
+            signup.UserId,
+            signup.OrganizationId,
+            "AgencyAdmin");
+        var response = await client.SendAsync(inboxRequest);
+        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
+    }
+
+    [Fact]
+    public async Task GetProcessInbox_ShouldReturn200_WhenUserIsReader()
+    {
+        var client = _factory.CreateClient();
+        var signup = await CreateTenantAsync(client, "cases-process-inbox-reader@agency.pt");
+        await ActivateTenantAsync(client, signup);
+        var createdCase = await CreateCaseAsync(client, signup, "Process Inbox Reader");
+        await MoveCaseToActiveAsync(client, signup, createdCase.CaseId);
+        var readerUserId = await SeedAcceptedParticipantAsync(
+            signup.OrganizationId,
+            createdCase.CaseId,
+            "family.process.inbox.reader@agency.pt",
+            CaseRole.Reader);
+
+        Guid aliasId;
+        string aliasEmail;
+        using (var provisionRequest = BuildAuthorizedRequest(
+                   HttpMethod.Post,
+                   $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/process-alias/provision",
+                   signup.UserId,
+                   signup.OrganizationId,
+                   "AgencyAdmin"))
+        {
+            var provisionResponse = await client.SendAsync(provisionRequest);
+            provisionResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+            var provisionEnvelope = await provisionResponse.Content.ReadFromJsonAsync<ApiEnvelope<ProcessAliasResponse>>();
+            provisionEnvelope.Should().NotBeNull();
+            provisionEnvelope!.Data.Should().NotBeNull();
+            aliasId = provisionEnvelope.Data!.AliasId;
+            aliasEmail = provisionEnvelope.Data.AliasEmail;
+        }
+
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var dbContext = scope.ServiceProvider.GetRequiredService<SanzuDbContext>();
+            dbContext.ProcessEmails.Add(
+                new ProcessEmail
+                {
+                    Id = Guid.NewGuid(),
+                    TenantId = signup.OrganizationId,
+                    CaseId = createdCase.CaseId,
+                    ProcessAliasId = aliasId,
+                    ThreadId = "thread-reader",
+                    Direction = ProcessEmailDirection.Outbound,
+                    Subject = "Reader visible",
+                    SenderEmail = aliasEmail,
+                    RecipientEmails = "advisor.reader@external.pt",
+                    BodyPreview = "Shared for transparency.",
+                    ExternalMessageId = "ext-r1",
+                    SentAt = DateTime.UtcNow.AddMinutes(-1),
+                    CreatedAt = DateTime.UtcNow.AddMinutes(-1),
+                    UpdatedAt = DateTime.UtcNow.AddMinutes(-1)
+                });
+            await dbContext.SaveChangesAsync();
+        }
+
+        using var inboxRequest = BuildAuthorizedRequest(
+            HttpMethod.Get,
+            $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/process-inbox",
+            readerUserId,
+            signup.OrganizationId,
+            "Reader");
+        var response = await client.SendAsync(inboxRequest);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
     private async Task ActivateTenantAsync(HttpClient client, CreateAgencyAccountResponse signup)
     {
         using var defaultsRequest = BuildAuthorizedJsonRequest(
