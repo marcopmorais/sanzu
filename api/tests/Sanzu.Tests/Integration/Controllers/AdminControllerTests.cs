@@ -106,6 +106,105 @@ public sealed class AdminControllerTests : IClassFixture<CustomWebApplicationFac
         response.StatusCode.Should().Be(HttpStatusCode.Conflict);
     }
 
+    [Fact]
+    public async Task StartDiagnosticSession_ShouldReturn201AndPersistSession_WhenActorIsSanzuAdmin()
+    {
+        var client = _factory.CreateClient();
+        var signup = await CreateTenantAsync(client, "admin-diagnostics-start@agency.pt");
+        var sanzuAdminUserId = await SeedSanzuAdminAsync(signup.OrganizationId);
+
+        using var request = BuildAuthorizedJsonRequest(
+            HttpMethod.Post,
+            $"/api/v1/admin/tenants/{signup.OrganizationId}/diagnostics/sessions",
+            new StartSupportDiagnosticSessionRequest
+            {
+                Scope = "TenantOperationalRead",
+                DurationMinutes = 30,
+                Reason = "Escalated support case."
+            },
+            sanzuAdminUserId,
+            signup.OrganizationId,
+            "SanzuAdmin");
+
+        var response = await client.SendAsync(request);
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+
+        var envelope = await response.Content.ReadFromJsonAsync<ApiEnvelope<SupportDiagnosticSessionResponse>>();
+        envelope.Should().NotBeNull();
+        envelope!.Data.Should().NotBeNull();
+        envelope.Data!.TenantId.Should().Be(signup.OrganizationId);
+        envelope.Data.Scope.Should().Be(SupportDiagnosticScope.TenantOperationalRead);
+        envelope.Data.DurationMinutes.Should().Be(30);
+
+        using var scope = _factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<SanzuDbContext>();
+        dbContext.SupportDiagnosticSessions.Should().Contain(x => x.Id == envelope.Data.SessionId);
+        dbContext.AuditEvents.Should().Contain(x => x.EventType == "SupportDiagnosticSessionStarted");
+    }
+
+    [Fact]
+    public async Task GetDiagnosticSummary_ShouldReturn200_WhenSessionIsActive()
+    {
+        var client = _factory.CreateClient();
+        var signup = await CreateTenantAsync(client, "admin-diagnostics-summary@agency.pt");
+        var sanzuAdminUserId = await SeedSanzuAdminAsync(signup.OrganizationId);
+
+        using (var startRequest = BuildAuthorizedJsonRequest(
+                   HttpMethod.Post,
+                   $"/api/v1/admin/tenants/{signup.OrganizationId}/diagnostics/sessions",
+                   new StartSupportDiagnosticSessionRequest
+                   {
+                       Scope = "TenantStatusRead",
+                       DurationMinutes = 30,
+                       Reason = "Summary check."
+                   },
+                   sanzuAdminUserId,
+                   signup.OrganizationId,
+                   "SanzuAdmin"))
+        {
+            var startResponse = await client.SendAsync(startRequest);
+            startResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+            var startEnvelope = await startResponse.Content.ReadFromJsonAsync<ApiEnvelope<SupportDiagnosticSessionResponse>>();
+            startEnvelope.Should().NotBeNull();
+            startEnvelope!.Data.Should().NotBeNull();
+
+            using var summaryRequest = BuildAuthorizedRequest(
+                HttpMethod.Get,
+                $"/api/v1/admin/tenants/{signup.OrganizationId}/diagnostics/sessions/{startEnvelope.Data!.SessionId}/summary",
+                sanzuAdminUserId,
+                signup.OrganizationId,
+                "SanzuAdmin");
+
+            var summaryResponse = await client.SendAsync(summaryRequest);
+            summaryResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+            var summaryEnvelope = await summaryResponse.Content.ReadFromJsonAsync<ApiEnvelope<SupportDiagnosticSummaryResponse>>();
+            summaryEnvelope.Should().NotBeNull();
+            summaryEnvelope!.Data.Should().NotBeNull();
+            summaryEnvelope.Data!.TenantId.Should().Be(signup.OrganizationId);
+            summaryEnvelope.Data.Scope.Should().Be(SupportDiagnosticScope.TenantStatusRead);
+        }
+    }
+
+    [Fact]
+    public async Task GetDiagnosticSummary_ShouldReturn409_WhenSessionIsExpired()
+    {
+        var client = _factory.CreateClient();
+        var signup = await CreateTenantAsync(client, "admin-diagnostics-expired@agency.pt");
+        var sanzuAdminUserId = await SeedSanzuAdminAsync(signup.OrganizationId);
+        var sessionId = await SeedExpiredDiagnosticSessionAsync(signup.OrganizationId, sanzuAdminUserId);
+
+        using var request = BuildAuthorizedRequest(
+            HttpMethod.Get,
+            $"/api/v1/admin/tenants/{signup.OrganizationId}/diagnostics/sessions/{sessionId}/summary",
+            sanzuAdminUserId,
+            signup.OrganizationId,
+            "SanzuAdmin");
+
+        var response = await client.SendAsync(request);
+        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
+    }
+
     private async Task<Guid> SeedSanzuAdminAsync(Guid tenantId)
     {
         using var scope = _factory.Services.CreateScope();
@@ -137,6 +236,29 @@ public sealed class AdminControllerTests : IClassFixture<CustomWebApplicationFac
         return userId;
     }
 
+    private async Task<Guid> SeedExpiredDiagnosticSessionAsync(Guid tenantId, Guid actorUserId)
+    {
+        using var scope = _factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<SanzuDbContext>();
+        var now = DateTime.UtcNow;
+        var sessionId = Guid.NewGuid();
+
+        dbContext.SupportDiagnosticSessions.Add(
+            new SupportDiagnosticSession
+            {
+                Id = sessionId,
+                TenantId = tenantId,
+                RequestedByUserId = actorUserId,
+                Scope = SupportDiagnosticScope.TenantOperationalRead,
+                Reason = "Expired session seed",
+                StartedAt = now.AddMinutes(-40),
+                ExpiresAt = now.AddMinutes(-10)
+            });
+
+        await dbContext.SaveChangesAsync();
+        return sessionId;
+    }
+
     private static HttpRequestMessage BuildAuthorizedJsonRequest(
         HttpMethod method,
         string uri,
@@ -150,6 +272,20 @@ public sealed class AdminControllerTests : IClassFixture<CustomWebApplicationFac
             Content = JsonContent.Create(payload)
         };
 
+        message.Headers.Add("X-User-Id", userId.ToString());
+        message.Headers.Add("X-Tenant-Id", tenantId.ToString());
+        message.Headers.Add("X-User-Role", role);
+        return message;
+    }
+
+    private static HttpRequestMessage BuildAuthorizedRequest(
+        HttpMethod method,
+        string uri,
+        Guid userId,
+        Guid tenantId,
+        string role)
+    {
+        var message = new HttpRequestMessage(method, uri);
         message.Headers.Add("X-User-Id", userId.ToString());
         message.Headers.Add("X-Tenant-Id", tenantId.ToString());
         message.Headers.Add("X-User-Role", role);

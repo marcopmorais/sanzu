@@ -14,10 +14,14 @@ namespace Sanzu.API.Controllers;
 public sealed class AdminController : ControllerBase
 {
     private readonly ITenantLifecycleService _tenantLifecycleService;
+    private readonly ISupportDiagnosticsService _supportDiagnosticsService;
 
-    public AdminController(ITenantLifecycleService tenantLifecycleService)
+    public AdminController(
+        ITenantLifecycleService tenantLifecycleService,
+        ISupportDiagnosticsService supportDiagnosticsService)
     {
         _tenantLifecycleService = tenantLifecycleService;
+        _supportDiagnosticsService = supportDiagnosticsService;
     }
 
     [Authorize(Policy = "SanzuAdmin")]
@@ -59,6 +63,89 @@ public sealed class AdminController : ControllerBase
             return Problem(
                 statusCode: StatusCodes.Status409Conflict,
                 title: "Tenant lifecycle state conflict",
+                detail: exception.Message);
+        }
+    }
+
+    [Authorize(Policy = "SanzuAdmin")]
+    [HttpPost("tenants/{tenantId:guid}/diagnostics/sessions")]
+    [ProducesResponseType(typeof(ApiEnvelope<SupportDiagnosticSessionResponse>), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> StartDiagnosticSession(
+        Guid tenantId,
+        [FromBody] StartSupportDiagnosticSessionRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (!TryGetActorUserId(out var actorUserId))
+        {
+            return Unauthorized();
+        }
+
+        try
+        {
+            var response = await _supportDiagnosticsService.StartDiagnosticSessionAsync(
+                tenantId,
+                actorUserId,
+                request,
+                cancellationToken);
+
+            return Created(
+                $"/api/v1/admin/tenants/{tenantId}/diagnostics/sessions/{response.SessionId}",
+                ApiEnvelope<SupportDiagnosticSessionResponse>.Success(response, BuildMeta()));
+        }
+        catch (ValidationException validationException)
+        {
+            return BadRequest(BuildValidationProblem(validationException, "Invalid support diagnostics request"));
+        }
+        catch (TenantAccessDeniedException)
+        {
+            return Forbid();
+        }
+        catch (SupportDiagnosticAccessException exception)
+        {
+            return Problem(
+                statusCode: StatusCodes.Status409Conflict,
+                title: "Support diagnostics conflict",
+                detail: exception.Message);
+        }
+    }
+
+    [Authorize(Policy = "SanzuAdmin")]
+    [HttpGet("tenants/{tenantId:guid}/diagnostics/sessions/{sessionId:guid}/summary")]
+    [ProducesResponseType(typeof(ApiEnvelope<SupportDiagnosticSummaryResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> GetDiagnosticSummary(
+        Guid tenantId,
+        Guid sessionId,
+        CancellationToken cancellationToken)
+    {
+        if (!TryGetActorUserId(out var actorUserId))
+        {
+            return Unauthorized();
+        }
+
+        try
+        {
+            var response = await _supportDiagnosticsService.GetDiagnosticSummaryAsync(
+                tenantId,
+                actorUserId,
+                sessionId,
+                cancellationToken);
+
+            return Ok(ApiEnvelope<SupportDiagnosticSummaryResponse>.Success(response, BuildMeta()));
+        }
+        catch (TenantAccessDeniedException)
+        {
+            return Forbid();
+        }
+        catch (SupportDiagnosticAccessException exception)
+        {
+            return Problem(
+                statusCode: StatusCodes.Status409Conflict,
+                title: "Support diagnostics conflict",
                 detail: exception.Message);
         }
     }

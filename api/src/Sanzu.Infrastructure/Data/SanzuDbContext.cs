@@ -28,6 +28,7 @@ public sealed class SanzuDbContext : DbContext
     public DbSet<WorkflowStepDependency> WorkflowStepDependencies => Set<WorkflowStepDependency>();
     public DbSet<TenantInvitation> TenantInvitations => Set<TenantInvitation>();
     public DbSet<BillingRecord> BillingRecords => Set<BillingRecord>();
+    public DbSet<SupportDiagnosticSession> SupportDiagnosticSessions => Set<SupportDiagnosticSession>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -79,5 +80,8 @@ public sealed class SanzuDbContext : DbContext
 
         modelBuilder.Entity<BillingRecord>()
             .HasQueryFilter(record => CurrentOrganizationId == null || record.TenantId == CurrentOrganizationId);
+
+        modelBuilder.Entity<SupportDiagnosticSession>()
+            .HasQueryFilter(session => CurrentOrganizationId == null || session.TenantId == CurrentOrganizationId);
     }
 }

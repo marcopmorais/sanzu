@@ -33,6 +33,7 @@ public static class ServiceRegistration
         services.AddScoped<IExtractionCandidateRepository, ExtractionCandidateRepository>();
         services.AddScoped<ICaseParticipantRepository, CaseParticipantRepository>();
         services.AddScoped<IWorkflowStepRepository, WorkflowStepRepository>();
+        services.AddScoped<ISupportDiagnosticSessionRepository, SupportDiagnosticSessionRepository>();
         services.AddScoped<ITenantInvitationNotificationSender, NoOpTenantInvitationNotificationSender>();
         services.AddScoped<IUnitOfWork, EfUnitOfWork>();
 
