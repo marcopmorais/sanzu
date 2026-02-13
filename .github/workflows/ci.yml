@@ -217,6 +217,9 @@ jobs:
         run: |
           set -euo pipefail
           missing=0
+          invalid=0
+          guid_regex='^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
+
           if [ -z "${{ vars.AZURE_WEBAPP_NAME }}" ]; then
             echo "Missing repository variable: AZURE_WEBAPP_NAME"
             missing=1
@@ -234,7 +237,31 @@ jobs:
             missing=1
           fi
 
-          if [ "$missing" -eq 1 ]; then
+          if [ "$missing" -eq 0 ]; then
+            if ! [[ "${{ secrets.AZURE_CLIENT_ID }}" =~ $guid_regex ]]; then
+              echo "Invalid AZURE_CLIENT_ID format (must be GUID)."
+              invalid=1
+            fi
+
+            if ! [[ "${{ secrets.AZURE_TENANT_ID }}" =~ $guid_regex ]]; then
+              echo "Invalid AZURE_TENANT_ID format (must be GUID)."
+              invalid=1
+            fi
+
+            if ! [[ "${{ secrets.AZURE_SUBSCRIPTION_ID }}" =~ $guid_regex ]]; then
+              echo "Invalid AZURE_SUBSCRIPTION_ID format (must be GUID)."
+              invalid=1
+            fi
+
+            if [[ "${{ vars.AZURE_WEBAPP_NAME }}" == *"http://"* || "${{ vars.AZURE_WEBAPP_NAME }}" == *"https://"* || "${{ vars.AZURE_WEBAPP_NAME }}" == *".azurewebsites.net"* ]]; then
+              echo "Invalid AZURE_WEBAPP_NAME format (use app name only, not URL)."
+              invalid=1
+            fi
+          fi
+
+          echo "Expected federated credential subject: repo:marcopmorais/sanzu:environment:azure-dev"
+
+          if [ "$missing" -eq 1 ] || [ "$invalid" -eq 1 ]; then
             echo "ready=false" >> "$GITHUB_OUTPUT"
           else
             echo "ready=true" >> "$GITHUB_OUTPUT"
@@ -248,6 +275,7 @@ jobs:
         if: steps.deploy_check.outputs.ready == 'true'
         uses: azure/login@v2
         with:
+          auth-type: SERVICE_PRINCIPAL
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
