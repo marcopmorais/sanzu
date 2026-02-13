@@ -117,6 +117,13 @@ public interface ICaseService
         GenerateOutboundTemplateRequest request,
         CancellationToken cancellationToken);
 
+    Task<ExtractDocumentCandidatesResponse> ExtractDocumentCandidatesAsync(
+        Guid tenantId,
+        Guid actorUserId,
+        Guid caseId,
+        Guid documentId,
+        CancellationToken cancellationToken);
+
     Task<GenerateCasePlanResponse> RecalculateCasePlanReadinessAsync(
         Guid tenantId,
         Guid actorUserId,

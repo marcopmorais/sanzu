@@ -1499,6 +1499,163 @@ public sealed class CasesControllerTests : IClassFixture<CustomWebApplicationFac
         response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
     }
 
+    [Fact]
+    public async Task ExtractDocumentCandidates_ShouldReturn200AndPendingCandidates_WhenDocumentIsSupported()
+    {
+        var client = _factory.CreateClient();
+        var signup = await CreateTenantAsync(client, "cases-extraction-success@agency.pt");
+        await ActivateTenantAsync(client, signup);
+        var createdCase = await CreateCaseAsync(client, signup, "Extraction Integration Case");
+
+        Guid documentId;
+        var content = string.Join(
+            Environment.NewLine,
+            "PrimaryContactName: Ana Pereira",
+            "PrimaryContactPhone: +351910000000",
+            "RelationshipToDeceased: Daughter");
+        using (var uploadRequest = BuildAuthorizedJsonRequest(
+                   HttpMethod.Post,
+                   $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/documents",
+                   new UploadCaseDocumentRequest
+                   {
+                       FileName = "intake.txt",
+                       ContentType = "text/plain",
+                       ContentBase64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(content))
+                   },
+                   signup.UserId,
+                   signup.OrganizationId,
+                   "AgencyAdmin"))
+        {
+            var uploadResponse = await client.SendAsync(uploadRequest);
+            uploadResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+            var uploadEnvelope = await uploadResponse.Content.ReadFromJsonAsync<ApiEnvelope<CaseDocumentUploadResponse>>();
+            uploadEnvelope.Should().NotBeNull();
+            uploadEnvelope!.Data.Should().NotBeNull();
+            documentId = uploadEnvelope.Data!.DocumentId;
+        }
+
+        using var extractionRequest = BuildAuthorizedRequest(
+            HttpMethod.Post,
+            $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/documents/{documentId}/extraction/candidates",
+            signup.UserId,
+            signup.OrganizationId,
+            "AgencyAdmin");
+
+        var response = await client.SendAsync(extractionRequest);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var envelope = await response.Content.ReadFromJsonAsync<ApiEnvelope<ExtractDocumentCandidatesResponse>>();
+        envelope.Should().NotBeNull();
+        envelope!.Data.Should().NotBeNull();
+        envelope.Data!.DocumentId.Should().Be(documentId);
+        envelope.Data.Candidates.Should().NotBeEmpty();
+        envelope.Data.Candidates.Should().OnlyContain(x => x.Status == "Pending");
+
+        using var scope = _factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<SanzuDbContext>();
+        dbContext.AuditEvents.Should().Contain(
+            x => x.EventType == "CaseDocumentExtractionCompleted" && x.CaseId == createdCase.CaseId && x.ActorUserId == signup.UserId);
+    }
+
+    [Fact]
+    public async Task ExtractDocumentCandidates_ShouldReturn409_WhenContentTypeIsUnsupported()
+    {
+        var client = _factory.CreateClient();
+        var signup = await CreateTenantAsync(client, "cases-extraction-unsupported@agency.pt");
+        await ActivateTenantAsync(client, signup);
+        var createdCase = await CreateCaseAsync(client, signup, "Extraction Unsupported Integration Case");
+
+        Guid documentId;
+        using (var uploadRequest = BuildAuthorizedJsonRequest(
+                   HttpMethod.Post,
+                   $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/documents",
+                   new UploadCaseDocumentRequest
+                   {
+                       FileName = "scan.pdf",
+                       ContentType = "application/pdf",
+                       ContentBase64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("binary"))
+                   },
+                   signup.UserId,
+                   signup.OrganizationId,
+                   "AgencyAdmin"))
+        {
+            var uploadResponse = await client.SendAsync(uploadRequest);
+            uploadResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+            var uploadEnvelope = await uploadResponse.Content.ReadFromJsonAsync<ApiEnvelope<CaseDocumentUploadResponse>>();
+            uploadEnvelope.Should().NotBeNull();
+            uploadEnvelope!.Data.Should().NotBeNull();
+            documentId = uploadEnvelope.Data!.DocumentId;
+        }
+
+        using var extractionRequest = BuildAuthorizedRequest(
+            HttpMethod.Post,
+            $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/documents/{documentId}/extraction/candidates",
+            signup.UserId,
+            signup.OrganizationId,
+            "AgencyAdmin");
+
+        var response = await client.SendAsync(extractionRequest);
+        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
+    }
+
+    [Fact]
+    public async Task ExtractDocumentCandidates_ShouldReturn403_WhenDocumentIsRestrictedAndUserIsEditor()
+    {
+        var client = _factory.CreateClient();
+        var signup = await CreateTenantAsync(client, "cases-extraction-restricted-editor@agency.pt");
+        await ActivateTenantAsync(client, signup);
+        var createdCase = await CreateCaseAsync(client, signup, "Extraction Restricted Integration Case");
+        var editorUserId = await SeedAcceptedParticipantAsync(
+            signup.OrganizationId,
+            createdCase.CaseId,
+            "family.extraction.editor@agency.pt",
+            CaseRole.Editor);
+
+        Guid documentId;
+        using (var uploadRequest = BuildAuthorizedJsonRequest(
+                   HttpMethod.Post,
+                   $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/documents",
+                   new UploadCaseDocumentRequest
+                   {
+                       FileName = "restricted.txt",
+                       ContentType = "text/plain",
+                       ContentBase64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("PrimaryContactName: Ana"))
+                   },
+                   signup.UserId,
+                   signup.OrganizationId,
+                   "AgencyAdmin"))
+        {
+            var uploadResponse = await client.SendAsync(uploadRequest);
+            uploadResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+            var uploadEnvelope = await uploadResponse.Content.ReadFromJsonAsync<ApiEnvelope<CaseDocumentUploadResponse>>();
+            uploadEnvelope.Should().NotBeNull();
+            uploadEnvelope!.Data.Should().NotBeNull();
+            documentId = uploadEnvelope.Data!.DocumentId;
+        }
+
+        using (var classificationRequest = BuildAuthorizedJsonRequest(
+                   HttpMethod.Patch,
+                   $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/documents/{documentId}/classification",
+                   new UpdateCaseDocumentClassificationRequest { Classification = "Restricted" },
+                   signup.UserId,
+                   signup.OrganizationId,
+                   "AgencyAdmin"))
+        {
+            var classificationResponse = await client.SendAsync(classificationRequest);
+            classificationResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        }
+
+        using var extractionRequest = BuildAuthorizedRequest(
+            HttpMethod.Post,
+            $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/documents/{documentId}/extraction/candidates",
+            editorUserId,
+            signup.OrganizationId,
+            "Editor");
+
+        var response = await client.SendAsync(extractionRequest);
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
     private async Task ActivateTenantAsync(HttpClient client, CreateAgencyAccountResponse signup)
     {
         using var defaultsRequest = BuildAuthorizedJsonRequest(

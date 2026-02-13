@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Security.Cryptography;
+using System.Text.RegularExpressions;
 using FluentValidation;
 using Sanzu.Core.Entities;
 using Sanzu.Core.Enums;
@@ -17,6 +18,7 @@ public sealed class CaseService : ICaseService
     private readonly IUserRepository _userRepository;
     private readonly ICaseRepository _caseRepository;
     private readonly ICaseDocumentRepository _caseDocumentRepository;
+    private readonly IExtractionCandidateRepository _extractionCandidateRepository;
     private readonly ICaseParticipantRepository _caseParticipantRepository;
     private readonly IWorkflowStepRepository _workflowStepRepository;
     private readonly IAuditRepository _auditRepository;
@@ -40,6 +42,7 @@ public sealed class CaseService : ICaseService
         IUserRepository userRepository,
         ICaseRepository caseRepository,
         ICaseDocumentRepository caseDocumentRepository,
+        IExtractionCandidateRepository extractionCandidateRepository,
         ICaseParticipantRepository caseParticipantRepository,
         IWorkflowStepRepository workflowStepRepository,
         IAuditRepository auditRepository,
@@ -62,6 +65,7 @@ public sealed class CaseService : ICaseService
         _userRepository = userRepository;
         _caseRepository = caseRepository;
         _caseDocumentRepository = caseDocumentRepository;
+        _extractionCandidateRepository = extractionCandidateRepository;
         _caseParticipantRepository = caseParticipantRepository;
         _workflowStepRepository = workflowStepRepository;
         _auditRepository = auditRepository;
@@ -798,6 +802,76 @@ public sealed class CaseService : ICaseService
             cancellationToken);
 
         return response!;
+    }
+
+    public async Task<ExtractDocumentCandidatesResponse> ExtractDocumentCandidatesAsync(
+        Guid tenantId,
+        Guid actorUserId,
+        Guid caseId,
+        Guid documentId,
+        CancellationToken cancellationToken)
+    {
+        var caseForAccess = await LoadCaseForTenantAsync(tenantId, caseId, cancellationToken);
+        var effectiveRole = await ResolveEffectiveCaseRoleAsync(tenantId, actorUserId, caseForAccess, cancellationToken);
+
+        var document = await _caseDocumentRepository.GetByIdAsync(documentId, cancellationToken);
+        if (document is null || document.CaseId != caseForAccess.Id || document.TenantId != tenantId)
+        {
+            throw new TenantAccessDeniedException();
+        }
+
+        var requiredRole = document.Classification == CaseDocumentClassification.Restricted
+            ? CaseRole.Manager
+            : CaseRole.Editor;
+        await EnsureCaseRoleAsync(effectiveRole, requiredRole, actorUserId, caseId, "ExtractDocumentCandidates", cancellationToken);
+
+        if (!IsSupportedExtractionContentType(document.ContentType))
+        {
+            throw new CaseStateException("Document content type is not supported for extraction.");
+        }
+
+        var extractedAt = DateTime.UtcNow;
+        var contentText = System.Text.Encoding.UTF8.GetString(document.Content);
+        var candidates = BuildExtractionCandidates(tenantId, caseForAccess.Id, document, contentText, extractedAt);
+
+        await _unitOfWork.ExecuteInTransactionAsync(
+            async token =>
+            {
+                await _extractionCandidateRepository.CreateRangeAsync(candidates, token);
+
+                await WriteAuditEventAsync(
+                    actorUserId,
+                    "CaseDocumentExtractionCompleted",
+                    new
+                    {
+                        CaseId = caseForAccess.Id,
+                        DocumentId = document.Id,
+                        document.CurrentVersionNumber,
+                        ExtractedByUserId = actorUserId,
+                        ExtractedAt = extractedAt,
+                        CandidateCount = candidates.Count,
+                        Candidates = candidates.Select(
+                            candidate => new
+                            {
+                                candidate.FieldKey,
+                                candidate.CandidateValue,
+                                candidate.ConfidenceScore,
+                                Status = candidate.Status.ToString()
+                            })
+                    },
+                    token,
+                    caseForAccess.Id);
+            },
+            cancellationToken);
+
+        return new ExtractDocumentCandidatesResponse
+        {
+            CaseId = caseForAccess.Id,
+            DocumentId = document.Id,
+            SourceVersionNumber = document.CurrentVersionNumber,
+            ExtractedAt = extractedAt,
+            Candidates = candidates.Select(MapExtractionCandidate).ToList()
+        };
     }
 
     public async Task<GenerateCasePlanResponse> RecalculateCasePlanReadinessAsync(
@@ -1882,6 +1956,72 @@ public sealed class CaseService : ICaseService
         return string.Join(Environment.NewLine, lines);
     }
 
+    private static bool IsSupportedExtractionContentType(string contentType)
+    {
+        var normalized = contentType.Trim().ToLowerInvariant();
+        return normalized.StartsWith("text/")
+               || normalized is "application/json";
+    }
+
+    private static List<ExtractionCandidate> BuildExtractionCandidates(
+        Guid tenantId,
+        Guid caseId,
+        CaseDocument document,
+        string contentText,
+        DateTime extractedAt)
+    {
+        var candidates = new List<ExtractionCandidate>();
+
+        void AddCandidate(string fieldKey, string value, decimal confidenceScore)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return;
+            }
+
+            candidates.Add(
+                new ExtractionCandidate
+                {
+                    Id = Guid.NewGuid(),
+                    TenantId = tenantId,
+                    CaseId = caseId,
+                    DocumentId = document.Id,
+                    FieldKey = fieldKey,
+                    CandidateValue = value.Trim(),
+                    ConfidenceScore = confidenceScore,
+                    SourceVersionNumber = document.CurrentVersionNumber,
+                    Status = ExtractionCandidateStatus.Pending,
+                    CreatedAt = extractedAt
+                });
+        }
+
+        AddCandidate("PrimaryContactName", TryExtractLabelValue(contentText, "PrimaryContactName"), 0.95m);
+        AddCandidate("PrimaryContactPhone", TryExtractLabelValue(contentText, "PrimaryContactPhone"), 0.95m);
+        AddCandidate("RelationshipToDeceased", TryExtractLabelValue(contentText, "RelationshipToDeceased"), 0.95m);
+        AddCandidate("DeceasedFullName", TryExtractLabelValue(contentText, "DeceasedFullName"), 0.95m);
+        AddCandidate("DateOfDeath", TryExtractLabelValue(contentText, "DateOfDeath"), 0.9m);
+
+        if (candidates.Count == 0)
+        {
+            var snippet = contentText.Length <= 200
+                ? contentText
+                : contentText[..200];
+
+            AddCandidate("RawSnippet", snippet, 0.4m);
+        }
+
+        return candidates;
+    }
+
+    private static string TryExtractLabelValue(string contentText, string fieldKey)
+    {
+        var pattern = $@"(?im)^\s*{Regex.Escape(fieldKey)}\s*[:=]\s*(?<value>.+?)\s*$";
+        var match = Regex.Match(contentText, pattern, RegexOptions.CultureInvariant);
+        return match.Success
+            ? match.Groups["value"].Value.Trim()
+            : string.Empty;
+    }
+
     private static string ReadStringOrEmpty(JsonElement root, string propertyName)
     {
         if (!root.TryGetProperty(propertyName, out var value) || value.ValueKind != JsonValueKind.String)
@@ -2176,6 +2316,19 @@ public sealed class CaseService : ICaseService
             CaseId = document.CaseId,
             Classification = document.Classification.ToString(),
             UpdatedAt = document.UpdatedAt
+        };
+    }
+
+    private static ExtractionCandidateResponse MapExtractionCandidate(ExtractionCandidate candidate)
+    {
+        return new ExtractionCandidateResponse
+        {
+            CandidateId = candidate.Id,
+            FieldKey = candidate.FieldKey,
+            CandidateValue = candidate.CandidateValue,
+            ConfidenceScore = candidate.ConfidenceScore,
+            SourceVersionNumber = candidate.SourceVersionNumber,
+            Status = candidate.Status.ToString()
         };
     }
 

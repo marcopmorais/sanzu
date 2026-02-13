@@ -1699,6 +1699,131 @@ public sealed class CaseServiceTests
     }
 
     [Fact]
+    public async Task ExtractDocumentCandidates_ShouldReturnPendingCandidatesAndAudit_WhenDocumentIsSupported()
+    {
+        var dbContext = CreateContext();
+        var (tenantId, actorUserId) = await SeedTenantWithAdminAsync(dbContext, TenantStatus.Active);
+        var service = CreateService(dbContext);
+        var createdCase = await CreateCaseAsync(service, tenantId, actorUserId, "Extraction Case");
+
+        var content = string.Join(
+            Environment.NewLine,
+            "PrimaryContactName: Ana Pereira",
+            "PrimaryContactPhone: +351910000000",
+            "RelationshipToDeceased: Daughter",
+            "DeceasedFullName: Maria Silva",
+            "DateOfDeath: 2026-01-10");
+        var uploaded = await service.UploadCaseDocumentAsync(
+            tenantId,
+            actorUserId,
+            createdCase.CaseId,
+            new UploadCaseDocumentRequest
+            {
+                FileName = "intake.txt",
+                ContentType = "text/plain",
+                ContentBase64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(content))
+            },
+            CancellationToken.None);
+
+        var extracted = await service.ExtractDocumentCandidatesAsync(
+            tenantId,
+            actorUserId,
+            createdCase.CaseId,
+            uploaded.DocumentId,
+            CancellationToken.None);
+
+        extracted.DocumentId.Should().Be(uploaded.DocumentId);
+        extracted.Candidates.Should().NotBeEmpty();
+        extracted.Candidates.Should().OnlyContain(x => x.Status == "Pending");
+        extracted.Candidates.Should().OnlyContain(x => x.ConfidenceScore > 0m && x.ConfidenceScore <= 1m);
+        dbContext.ExtractionCandidates.Should().Contain(x => x.DocumentId == uploaded.DocumentId && x.Status == ExtractionCandidateStatus.Pending);
+        dbContext.AuditEvents.Should().Contain(
+            x => x.EventType == "CaseDocumentExtractionCompleted" && x.CaseId == createdCase.CaseId && x.ActorUserId == actorUserId);
+    }
+
+    [Fact]
+    public async Task ExtractDocumentCandidates_ShouldThrowCaseStateException_WhenContentTypeIsUnsupported()
+    {
+        var dbContext = CreateContext();
+        var (tenantId, actorUserId) = await SeedTenantWithAdminAsync(dbContext, TenantStatus.Active);
+        var service = CreateService(dbContext);
+        var createdCase = await CreateCaseAsync(service, tenantId, actorUserId, "Unsupported Extraction Case");
+
+        var uploaded = await service.UploadCaseDocumentAsync(
+            tenantId,
+            actorUserId,
+            createdCase.CaseId,
+            new UploadCaseDocumentRequest
+            {
+                FileName = "scan.pdf",
+                ContentType = "application/pdf",
+                ContentBase64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("pdf-binary-simulated"))
+            },
+            CancellationToken.None);
+
+        var act = () => service.ExtractDocumentCandidatesAsync(
+            tenantId,
+            actorUserId,
+            createdCase.CaseId,
+            uploaded.DocumentId,
+            CancellationToken.None);
+
+        await act.Should().ThrowAsync<CaseStateException>()
+            .Where(e => e.Message.Contains("not supported for extraction"));
+    }
+
+    [Fact]
+    public async Task ExtractDocumentCandidates_ShouldThrowCaseAccessDeniedAndAudit_WhenRestrictedDocumentAndUserIsEditor()
+    {
+        var dbContext = CreateContext();
+        var (tenantId, actorUserId) = await SeedTenantWithAdminAsync(dbContext, TenantStatus.Active);
+        var service = CreateService(dbContext);
+        var createdCase = await CreateCaseAsync(service, tenantId, actorUserId, "Restricted Extraction Case");
+        var editorUserId = Guid.NewGuid();
+        const string editorEmail = "family.extraction.editor@agency.pt";
+        await SeedUserAsync(dbContext, editorUserId, tenantId, editorEmail, "Extraction Editor");
+        await SeedAcceptedParticipantDirectAsync(dbContext, tenantId, createdCase.CaseId, editorUserId, editorEmail, CaseRole.Editor);
+
+        var uploaded = await service.UploadCaseDocumentAsync(
+            tenantId,
+            actorUserId,
+            createdCase.CaseId,
+            new UploadCaseDocumentRequest
+            {
+                FileName = "restricted.txt",
+                ContentType = "text/plain",
+                ContentBase64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("PrimaryContactName: Ana"))
+            },
+            CancellationToken.None);
+
+        await service.UpdateCaseDocumentClassificationAsync(
+            tenantId,
+            actorUserId,
+            createdCase.CaseId,
+            uploaded.DocumentId,
+            new UpdateCaseDocumentClassificationRequest { Classification = "Restricted" },
+            CancellationToken.None);
+
+        var act = () => service.ExtractDocumentCandidatesAsync(
+            tenantId,
+            editorUserId,
+            createdCase.CaseId,
+            uploaded.DocumentId,
+            CancellationToken.None);
+
+        await act.Should().ThrowAsync<CaseAccessDeniedException>()
+            .Where(e => e.ReasonCode == "ROLE_INSUFFICIENT" && e.AttemptedAction == "ExtractDocumentCandidates");
+        AssertAccessDeniedAudit(
+            dbContext,
+            editorUserId,
+            createdCase.CaseId,
+            "ExtractDocumentCandidates",
+            "Manager",
+            "Editor",
+            "ROLE_INSUFFICIENT");
+    }
+
+    [Fact]
     public async Task GetCaseDetails_ShouldReturnDetails_WhenUserIsCaseManager()
     {
         var dbContext = CreateContext();
@@ -1859,6 +1984,7 @@ public sealed class CaseServiceTests
             new UserRepository(dbContext),
             new CaseRepository(dbContext),
             new CaseDocumentRepository(dbContext),
+            new ExtractionCandidateRepository(dbContext),
             new CaseParticipantRepository(dbContext),
             new WorkflowStepRepository(dbContext),
             new AuditRepository(dbContext),

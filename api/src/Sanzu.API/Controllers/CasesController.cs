@@ -549,6 +549,50 @@ public sealed class CasesController : ControllerBase
     }
 
     [Authorize]
+    [HttpPost("{caseId:guid}/documents/{documentId:guid}/extraction/candidates")]
+    [ProducesResponseType(typeof(ApiEnvelope<ExtractDocumentCandidatesResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> ExtractDocumentCandidates(
+        Guid tenantId,
+        Guid caseId,
+        Guid documentId,
+        CancellationToken cancellationToken)
+    {
+        if (!TryGetActorUserId(out var actorUserId))
+        {
+            return Unauthorized();
+        }
+
+        try
+        {
+            var response = await _caseService.ExtractDocumentCandidatesAsync(
+                tenantId,
+                actorUserId,
+                caseId,
+                documentId,
+                cancellationToken);
+
+            return Ok(ApiEnvelope<ExtractDocumentCandidatesResponse>.Success(response, BuildMeta()));
+        }
+        catch (TenantAccessDeniedException)
+        {
+            return Forbid();
+        }
+        catch (CaseAccessDeniedException)
+        {
+            return Forbid();
+        }
+        catch (CaseStateException exception)
+        {
+            return Problem(
+                statusCode: StatusCodes.Status409Conflict,
+                title: "Case state conflict",
+                detail: exception.Message);
+        }
+    }
+
+    [Authorize]
     [HttpPost("{caseId:guid}/plan/readiness/recalculate")]
     [ProducesResponseType(typeof(ApiEnvelope<GenerateCasePlanResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
