@@ -284,6 +284,64 @@ public sealed class CasesControllerTests : IClassFixture<CustomWebApplicationFac
     }
 
     [Fact]
+    public async Task GetCaseAuditTrail_ShouldReturn200AndEntries_WhenUserIsManager()
+    {
+        var client = _factory.CreateClient();
+        var signup = await CreateTenantAsync(client, "cases-admin-audit@agency.pt");
+        await ActivateTenantAsync(client, signup);
+        var createdCase = await CreateCaseAsync(client, signup, "Audit Integration Case");
+
+        using var preScope = _factory.Services.CreateScope();
+        var preDbContext = preScope.ServiceProvider.GetRequiredService<SanzuDbContext>();
+        var beforeCount = preDbContext.AuditEvents.Count(x => x.CaseId == createdCase.CaseId);
+
+        using var request = BuildAuthorizedRequest(
+            HttpMethod.Get,
+            $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/audit",
+            signup.UserId,
+            signup.OrganizationId,
+            "AgencyAdmin");
+        var response = await client.SendAsync(request);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var envelope = await response.Content.ReadFromJsonAsync<ApiEnvelope<CaseAuditTrailResponse>>();
+        envelope.Should().NotBeNull();
+        envelope!.Data.Should().NotBeNull();
+        envelope.Data!.CaseId.Should().Be(createdCase.CaseId);
+        envelope.Data.Entries.Should().NotBeEmpty();
+        envelope.Data.Entries[0].Action.Should().NotBeNullOrWhiteSpace();
+        envelope.Data.Entries[0].ContextJson.Should().NotBeNullOrWhiteSpace();
+
+        using var postScope = _factory.Services.CreateScope();
+        var postDbContext = postScope.ServiceProvider.GetRequiredService<SanzuDbContext>();
+        var afterCount = postDbContext.AuditEvents.Count(x => x.CaseId == createdCase.CaseId);
+        afterCount.Should().Be(beforeCount);
+    }
+
+    [Fact]
+    public async Task GetCaseAuditTrail_ShouldReturn403_WhenUserIsReader()
+    {
+        var client = _factory.CreateClient();
+        var signup = await CreateTenantAsync(client, "cases-audit-reader@agency.pt");
+        await ActivateTenantAsync(client, signup);
+        var createdCase = await CreateCaseAsync(client, signup, "Audit Reader Integration Case");
+        var readerUserId = await SeedAcceptedParticipantAsync(
+            signup.OrganizationId,
+            createdCase.CaseId,
+            "family.audit.reader@agency.pt",
+            CaseRole.Reader);
+
+        using var request = BuildAuthorizedRequest(
+            HttpMethod.Get,
+            $"/api/v1/tenants/{signup.OrganizationId}/cases/{createdCase.CaseId}/audit",
+            readerUserId,
+            signup.OrganizationId,
+            "Reader");
+        var response = await client.SendAsync(request);
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
     public async Task SubmitCaseIntake_ShouldReturn200AndPersistIntake_WhenUserIsEditor()
     {
         var client = _factory.CreateClient();

@@ -216,6 +216,12 @@ public interface ICaseService
         UpdateWorkflowTaskStatusRequest request,
         CancellationToken cancellationToken);
 
+    Task<CaseAuditTrailResponse> GetCaseAuditTrailAsync(
+        Guid tenantId,
+        Guid actorUserId,
+        Guid caseId,
+        CancellationToken cancellationToken);
+
     Task<CaseTimelineResponse> GetCaseTimelineAsync(
         Guid tenantId,
         Guid actorUserId,

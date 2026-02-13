@@ -1868,6 +1868,29 @@ public sealed class CaseService : ICaseService
         return response!;
     }
 
+    public async Task<CaseAuditTrailResponse> GetCaseAuditTrailAsync(
+        Guid tenantId,
+        Guid actorUserId,
+        Guid caseId,
+        CancellationToken cancellationToken)
+    {
+        var caseForAccess = await LoadCaseForTenantAsync(tenantId, caseId, cancellationToken);
+        var effectiveRole = await ResolveEffectiveCaseRoleAsync(tenantId, actorUserId, caseForAccess, cancellationToken);
+        await EnsureCaseRoleAsync(effectiveRole, CaseRole.Manager, actorUserId, caseId, "GetCaseAuditTrail", cancellationToken);
+
+        var events = await _auditRepository.GetByCaseIdAsync(caseForAccess.Id, cancellationToken);
+        var entries = events
+            .OrderByDescending(x => x.CreatedAt)
+            .Select(MapCaseAuditEntry)
+            .ToList();
+
+        return new CaseAuditTrailResponse
+        {
+            CaseId = caseForAccess.Id,
+            Entries = entries
+        };
+    }
+
     public async Task<CaseTimelineResponse> GetCaseTimelineAsync(
         Guid tenantId,
         Guid actorUserId,
@@ -3542,6 +3565,18 @@ public sealed class CaseService : ICaseService
         return "Case lifecycle updated";
     }
 
+    private static CaseAuditEntryResponse MapCaseAuditEntry(AuditEvent auditEvent)
+    {
+        return new CaseAuditEntryResponse
+        {
+            AuditEventId = auditEvent.Id,
+            ActorUserId = auditEvent.ActorUserId,
+            Action = auditEvent.EventType,
+            OccurredAt = auditEvent.CreatedAt,
+            ContextJson = string.IsNullOrWhiteSpace(auditEvent.Metadata) ? "{}" : auditEvent.Metadata
+        };
+    }
+
     private static CaseTimelineEventResponse MapTimelineEvent(AuditEvent auditEvent)
     {
         return new CaseTimelineEventResponse
@@ -3688,7 +3723,8 @@ public sealed class CaseService : ICaseService
             CaseId = caseId,
             ActorUserId = actorUserId,
             EventType = eventType,
-            Metadata = JsonSerializer.Serialize(metadata)
+            Metadata = JsonSerializer.Serialize(metadata),
+            CreatedAt = DateTime.UtcNow
         };
 
         return _auditRepository.CreateAsync(auditEvent, cancellationToken);

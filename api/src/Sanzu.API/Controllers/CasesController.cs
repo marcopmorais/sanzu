@@ -1217,6 +1217,48 @@ public sealed class CasesController : ControllerBase
     }
 
     [Authorize]
+    [HttpGet("{caseId:guid}/audit")]
+    [ProducesResponseType(typeof(ApiEnvelope<CaseAuditTrailResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> GetCaseAuditTrail(
+        Guid tenantId,
+        Guid caseId,
+        CancellationToken cancellationToken)
+    {
+        if (!TryGetActorUserId(out var actorUserId))
+        {
+            return Unauthorized();
+        }
+
+        try
+        {
+            var response = await _caseService.GetCaseAuditTrailAsync(
+                tenantId,
+                actorUserId,
+                caseId,
+                cancellationToken);
+
+            return Ok(ApiEnvelope<CaseAuditTrailResponse>.Success(response, BuildMeta()));
+        }
+        catch (TenantAccessDeniedException)
+        {
+            return Forbid();
+        }
+        catch (CaseAccessDeniedException)
+        {
+            return Forbid();
+        }
+        catch (CaseStateException exception)
+        {
+            return Problem(
+                statusCode: StatusCodes.Status409Conflict,
+                title: "Case state conflict",
+                detail: exception.Message);
+        }
+    }
+
+    [Authorize]
     [HttpGet("{caseId:guid}/timeline")]
     [ProducesResponseType(typeof(ApiEnvelope<CaseTimelineResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]

@@ -1222,6 +1222,73 @@ public sealed class CaseServiceTests
     }
 
     [Fact]
+    public async Task GetCaseAuditTrail_ShouldReturnEntriesAndRemainImmutable_WhenUserIsManager()
+    {
+        var dbContext = CreateContext();
+        var (tenantId, actorUserId) = await SeedTenantWithAdminAsync(dbContext, TenantStatus.Active);
+        var service = CreateService(dbContext);
+        var createdCase = await CreateCaseAsync(service, tenantId, actorUserId, "Audit Trail Case");
+
+        await service.UpdateCaseDetailsAsync(
+            tenantId,
+            actorUserId,
+            createdCase.CaseId,
+            new UpdateCaseDetailsRequest
+            {
+                DeceasedFullName = "Audit Trail Case Updated",
+                CaseType = "General",
+                Urgency = "Normal"
+            },
+            CancellationToken.None);
+
+        var beforeCount = dbContext.AuditEvents.Count(x => x.CaseId == createdCase.CaseId);
+        var auditTrail = await service.GetCaseAuditTrailAsync(
+            tenantId,
+            actorUserId,
+            createdCase.CaseId,
+            CancellationToken.None);
+        var afterCount = dbContext.AuditEvents.Count(x => x.CaseId == createdCase.CaseId);
+
+        auditTrail.CaseId.Should().Be(createdCase.CaseId);
+        auditTrail.Entries.Should().NotBeEmpty();
+        auditTrail.Entries[0].Action.Should().NotBeNullOrWhiteSpace();
+        auditTrail.Entries[0].OccurredAt.Should().NotBe(default);
+        auditTrail.Entries[0].ContextJson.Should().NotBeNullOrWhiteSpace();
+        afterCount.Should().Be(beforeCount);
+    }
+
+    [Fact]
+    public async Task GetCaseAuditTrail_ShouldThrowCaseAccessDeniedAndAudit_WhenUserIsReader()
+    {
+        var dbContext = CreateContext();
+        var (tenantId, actorUserId) = await SeedTenantWithAdminAsync(dbContext, TenantStatus.Active);
+        var service = CreateService(dbContext);
+        var createdCase = await CreateCaseAsync(service, tenantId, actorUserId, "Audit Trail Access Case");
+
+        var readerUserId = Guid.NewGuid();
+        const string readerEmail = "family.audit.reader@agency.pt";
+        await SeedUserAsync(dbContext, readerUserId, tenantId, readerEmail, "Audit Reader");
+        await SeedAcceptedParticipantDirectAsync(dbContext, tenantId, createdCase.CaseId, readerUserId, readerEmail, CaseRole.Reader);
+
+        var act = () => service.GetCaseAuditTrailAsync(
+            tenantId,
+            readerUserId,
+            createdCase.CaseId,
+            CancellationToken.None);
+
+        await act.Should().ThrowAsync<CaseAccessDeniedException>()
+            .Where(e => e.ReasonCode == "ROLE_INSUFFICIENT" && e.AttemptedAction == "GetCaseAuditTrail");
+        AssertAccessDeniedAudit(
+            dbContext,
+            readerUserId,
+            createdCase.CaseId,
+            "GetCaseAuditTrail",
+            "Manager",
+            "Reader",
+            "ROLE_INSUFFICIENT");
+    }
+
+    [Fact]
     public async Task GetCaseTimeline_ShouldReturnOrderedEventsAndCurrentOwners()
     {
         var dbContext = CreateContext();
