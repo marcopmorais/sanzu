@@ -61,4 +61,14 @@ public sealed class WorkflowStepRepository : IWorkflowStepRepository
             .Where(x => x.CaseId == caseId)
             .ToListAsync(cancellationToken);
     }
+
+    public async Task<IReadOnlyList<WorkflowStepDependency>> GetDependenciesAsync(
+        Guid stepId,
+        CancellationToken cancellationToken)
+    {
+        return await _dbContext.WorkflowStepDependencies
+            .Include(x => x.DependsOnStep)
+            .Where(x => x.StepId == stepId)
+            .ToListAsync(cancellationToken);
+    }
 }

@@ -18,6 +18,8 @@ public sealed class WorkflowStepInstance
     public string? ReadinessOverrideRationale { get; set; }
     public Guid? ReadinessOverrideByUserId { get; set; }
     public DateTime? ReadinessOverriddenAt { get; set; }
+    public BlockedReasonCode? BlockedReasonCode { get; set; }
+    public string? BlockedReasonDetail { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 

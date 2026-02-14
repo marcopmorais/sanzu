@@ -55,6 +55,13 @@ public sealed class WorkflowStepInstanceConfiguration : IEntityTypeConfiguration
         builder.Property(x => x.ReadinessOverriddenAt)
             .HasColumnType("datetime2");
 
+        builder.Property(x => x.BlockedReasonCode)
+            .HasConversion<string>()
+            .HasMaxLength(32);
+
+        builder.Property(x => x.BlockedReasonDetail)
+            .HasMaxLength(500);
+
         builder.Property(x => x.CreatedAt)
             .HasColumnType("datetime2")
             .HasDefaultValueSql("GETUTCDATE()");

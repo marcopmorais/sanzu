@@ -10,4 +10,5 @@ public interface IWorkflowStepRepository
     Task<WorkflowStepInstance?> GetByIdAsync(Guid stepId, CancellationToken cancellationToken);
     Task<IReadOnlyList<WorkflowStepInstance>> GetByCaseIdAsync(Guid caseId, CancellationToken cancellationToken);
     Task<IReadOnlyList<WorkflowStepDependency>> GetDependenciesByCaseIdAsync(Guid caseId, CancellationToken cancellationToken);
+    Task<IReadOnlyList<WorkflowStepDependency>> GetDependenciesAsync(Guid stepId, CancellationToken cancellationToken);
 }

@@ -56,6 +56,8 @@ public static class ServiceRegistration
         services.AddScoped<ITenantBillingService, TenantBillingService>();
         services.AddScoped<ICaseService, CaseService>();
         services.AddScoped<IPublicConversionService, PublicConversionService>();
+        services.AddScoped<IGlossaryService, GlossaryService>();
+        services.AddScoped<IWorkflowBlockedStateService, WorkflowBlockedStateService>();
         services.AddScoped<IValidator<CreateAgencyAccountRequest>, CreateAgencyAccountRequestValidator>();
         services.AddScoped<IValidator<CreateCaseRequest>, CreateCaseRequestValidator>();
         services.AddScoped<IValidator<SubmitCaseIntakeRequest>, SubmitCaseIntakeRequestValidator>();
@@ -89,6 +91,7 @@ public static class ServiceRegistration
         services.AddScoped<IValidator<ExecutePaymentRecoveryRequest>, ExecutePaymentRecoveryRequestValidator>();
         services.AddScoped<IValidator<SubmitDemoRequest>, SubmitDemoRequestValidator>();
         services.AddScoped<IValidator<StartAccountIntentRequest>, StartAccountIntentRequestValidator>();
+        services.AddScoped<IValidator<UpsertGlossaryTermRequest>, UpsertGlossaryTermRequestValidator>();
 
         return services;
     }
