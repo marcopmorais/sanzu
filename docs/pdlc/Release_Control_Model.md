@@ -5,8 +5,8 @@ Version: 3.5.1
 Review cadence: Weekly
 
 ## Repository Integration Override
-- ClickUp actions are disabled for PDLC workflows in this repository mode.
-- Release gates are still evaluated from local artifacts, but no ClickUp status automation should be executed.
+- ClickUp and Figma integrations are removed for PDLC workflows in this repository mode.
+- Release gates are evaluated from local artifacts only.
 
 ## QA -> Ready for Release Gate
 Transition is blocked unless all conditions pass:

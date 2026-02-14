@@ -1,6 +1,6 @@
 # Story 7.4: View KPI Dashboard with Drilldown
 
-Status: review
+Status: done
 
 ## Story
 

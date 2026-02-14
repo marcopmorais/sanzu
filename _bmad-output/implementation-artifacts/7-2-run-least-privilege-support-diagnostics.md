@@ -1,6 +1,6 @@
 # Story 7.2: Run Least-Privilege Support Diagnostics
 
-Status: review
+Status: done
 
 ## Story
 

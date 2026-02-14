@@ -5,8 +5,7 @@ Version: 3.5.1
 Review cadence: Weekly
 
 ## Repository Integration Override
-- ClickUp actions are disabled for PDLC workflows in this repository mode.
-- Treat ClickUp automation definitions below as reference-only.
+- ClickUp and Figma integrations are removed for PDLC workflows in this repository mode.
 - Enforce PDLC checks through local artifacts and local workflow logic only.
 
 ## Automation A - Discovery Exit Gate
@@ -16,16 +15,16 @@ Action on fail: revert to Discovery + comment missing fields
 
 ## Automation B - Definition to Design Gate
 Trigger: status `Definition -> Design`
-Rule: block if Figma_File_Link missing
+Rule: block if UX_Spec_Link missing
 Action on fail: revert to Definition + comment
 
 ## Automation C - Design to Architecture Review Gate
 Trigger: status `Design -> Architecture Review`
-Rule: block if UX_Maturity != Build-approved OR Figma_Flow_Link missing OR Figma_Frame_IDs missing OR Edge_States_Documented=false OR Accessibility_Checked=false OR UX_Doc_Link missing OR UX revalidation pending
+Rule: block if UX_Maturity != Build-approved OR UX_Flow_Link missing OR UX_State_Matrix_Link missing OR Edge_States_Documented=false OR Accessibility_Checked=false OR UX_Doc_Link missing OR UX revalidation pending
 Action on fail: revert to Design + comment
 
-## Automation D - Figma Version Revalidation
-Trigger: `Figma_Version` changed
+## Automation D - UX Revision Revalidation
+Trigger: `UX_Revision` changed
 Action:
 - set UX_Revalidation_Required=true
 - set UX_Revalidated=false
@@ -33,12 +32,12 @@ Action:
 
 ## Automation E - Architecture to Ready for Build Gate
 Trigger: status `Architecture Review -> Ready for Build`
-Rule: block if architecture/security/compliance/NFR flags not true OR Figma_File_Link missing OR Dev_Handoff_Confirmed=false OR (Architecture_Impact=true and Architecture_Doc_Link missing)
+Rule: block if architecture/security/compliance/NFR flags not true OR UX_Spec_Link missing OR Dev_Handoff_Confirmed=false OR (Architecture_Impact=true and Architecture_Doc_Link missing)
 Action on fail: revert to Architecture Review + comment
 
 ## Automation F - Ready for Build to Building Gate (DoR + Sensitive Scope)
 Trigger: status `Ready for Build -> Building`
-Rule: block if any DoR field is missing/false; also block Sanzu sensitive-scope work unless Role_Permission_Matrix_Updated=true, Audit_Trail_Model_Updated=true, Decision_Log_Entry_ID present, and Figma_Role_Variations_Confirmed=true
+Rule: block if any DoR field is missing/false; also block Sanzu sensitive-scope work unless Role_Permission_Matrix_Updated=true, Audit_Trail_Model_Updated=true, Decision_Log_Entry_ID present, and UX_Role_Variations_Confirmed=true
 Action on fail: revert to Ready for Build + comment; set BMBuilder_Ready=false
 
 ## Automation G - QA to Ready for Release Gate

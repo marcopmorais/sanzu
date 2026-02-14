@@ -5,16 +5,16 @@ Version: 3.5.1
 Review cadence: Weekly
 
 ## System Contract
-- ClickUp = operational execution system.
-- ClickUp Docs = knowledge and policy system.
-- Figma = experience source of truth.
+- Local artifacts under `_bmad-output/` = operational execution system.
+- Local docs under `docs/` = knowledge and policy system.
+- Local UX artifacts under `_bmad-output/design/` and `_bmad-output/planning-artifacts/` = experience source of truth.
 - BMBuilder = deterministic delivery engine.
-- Build is blocked unless all four systems are aligned.
+- Build is blocked unless all three local systems plus BMBuilder are aligned.
 
 ## Repository Integration Override
-- For this repository operating mode, ClickUp actions are disabled.
-- PDLC execution must use local artifacts under `_bmad-output/` for operational status.
-- Do not execute `clickup.*` tools from PDLC workflows.
+- ClickUp and Figma integrations are removed from repository PDLC operation.
+- PDLC execution must use local artifacts under `_bmad-output/` and `docs/` for operational status and UX traceability.
+- Do not execute `clickup.*` or `figma.*` tools from PDLC workflows.
 
 ## Phase Model
 | Phase | Objective | Mandatory artifacts | Primary owner | Entry criteria | Exit criteria | Risk reduced | Economic validation |
@@ -23,7 +23,7 @@ Review cadence: Weekly
 | 1. Strategy | Define initiative outcome and constraints | Strategic plan doc, outcome map, hypothesis | PM | Portfolio approval | Strategic_Doc_Link approved | Ambiguous direction | Expected impact defined |
 | 2. Discovery | Validate problem and evidence | Discovery notes, interviews, problem statement | PM + Research | Strategy linked | Evidence >= Medium and interviews >= 5 | Building wrong thing | Early value signal confidence set |
 | 3. Definition | Convert evidence to executable scope | PRD, epics, acceptance criteria, dependencies | PM + Eng Lead | Discovery gate pass | Acceptance criteria + dependencies complete | Scope ambiguity | Economic hypothesis attached |
-| 4. Design | Produce buildable UX with traceability | Figma file/flow/frame IDs, UX doc | UX Lead | Definition gate pass | UX_Maturity = Build-approved | UX execution risk | UX supports measurable behavior |
+| 4. Design | Produce buildable UX with traceability | UX spec/flow/state references, UX doc | UX Lead | Definition gate pass | UX_Maturity = Build-approved | UX execution risk | UX supports measurable behavior |
 | 5. Architecture Review | Validate technical/compliance impact | Architecture review, security/compliance checks | Architect | Build-approved UX | Architecture/Security/Data approvals true | Technical and compliance risk | NFR and implementation cost checked |
 | 6. Delivery (BMBuilder) | Deterministic build execution | Build plan, test pack, risk summary | Eng Lead | DoR gate pass | Build + QA complete | Build drift | Cost-to-deliver tracked |
 | 7. Release | Controlled launch with metric baseline | Release plan, rollback plan, baseline metric | Release Manager | QA gate pass | Released with monitoring | Release failure risk | Baseline vs expected impact traceable |
@@ -60,4 +60,4 @@ Any missing item = hard block.
 ## Sanzu-Specific Enforcement
 - Audit trail updates are mandatory when changing document upload, role assignment, or process state transitions.
 - Structural-impact changes require Decision_Log entry.
-- Sensitive-scope features require role-variation coverage in Figma before build.
+- Sensitive-scope features require role-variation coverage in local UX artifacts before build.

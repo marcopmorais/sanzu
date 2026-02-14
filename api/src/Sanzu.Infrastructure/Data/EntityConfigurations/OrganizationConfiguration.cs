@@ -45,6 +45,65 @@ public sealed class OrganizationConfiguration : IEntityTypeConfiguration<Organiz
         builder.Property(x => x.DefaultTemplateKey)
             .HasMaxLength(128);
 
+        builder.Property(x => x.CaseDefaultsVersion)
+            .HasDefaultValue(0L)
+            .IsRequired();
+
+        builder.Property(x => x.SubscriptionPlan)
+            .HasMaxLength(32);
+
+        builder.Property(x => x.SubscriptionBillingCycle)
+            .HasMaxLength(16);
+
+        builder.Property(x => x.PaymentMethodType)
+            .HasMaxLength(32);
+
+        builder.Property(x => x.PaymentMethodReference)
+            .HasMaxLength(128);
+
+        builder.Property(x => x.InvoiceProfileLegalName)
+            .HasMaxLength(255);
+
+        builder.Property(x => x.InvoiceProfileVatNumber)
+            .HasMaxLength(64);
+
+        builder.Property(x => x.InvoiceProfileBillingEmail)
+            .HasMaxLength(255);
+
+        builder.Property(x => x.InvoiceProfileCountryCode)
+            .HasMaxLength(2);
+
+        builder.Property(x => x.SubscriptionActivatedAt)
+            .HasColumnType("datetime2");
+
+        builder.Property(x => x.SubscriptionCancelledAt)
+            .HasColumnType("datetime2");
+
+        builder.Property(x => x.SubscriptionCancellationReason)
+            .HasMaxLength(2000);
+
+        builder.Property(x => x.PreviousSubscriptionPlan)
+            .HasMaxLength(32);
+
+        builder.Property(x => x.FailedPaymentAttempts)
+            .HasDefaultValue(0)
+            .IsRequired();
+
+        builder.Property(x => x.LastPaymentFailedAt)
+            .HasColumnType("datetime2");
+
+        builder.Property(x => x.LastPaymentFailureReason)
+            .HasMaxLength(2000);
+
+        builder.Property(x => x.NextPaymentRetryAt)
+            .HasColumnType("datetime2");
+
+        builder.Property(x => x.NextPaymentReminderAt)
+            .HasColumnType("datetime2");
+
+        builder.Property(x => x.LastPaymentReminderSentAt)
+            .HasColumnType("datetime2");
+
         builder.Property(x => x.CreatedAt)
             .HasColumnType("datetime2")
             .HasDefaultValueSql("GETUTCDATE()");

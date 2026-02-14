@@ -20,6 +20,11 @@ public sealed class UserRepository : IUserRepository
         return Task.CompletedTask;
     }
 
+    public Task<User?> GetByIdAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        return _dbContext.Users.FirstOrDefaultAsync(x => x.Id == userId, cancellationToken);
+    }
+
     public Task<User?> GetByEmailAsync(string email, CancellationToken cancellationToken)
     {
         var normalizedEmail = email.Trim().ToLowerInvariant();

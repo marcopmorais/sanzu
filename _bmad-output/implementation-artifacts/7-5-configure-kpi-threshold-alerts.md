@@ -1,6 +1,6 @@
 # Story 7.5: Configure KPI Threshold Alerts
 
-Status: review
+Status: done
 
 ## Story
 

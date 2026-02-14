@@ -1,6 +1,6 @@
 # Story 7.3: Apply Platform Policy Controls
 
-Status: review
+Status: done
 
 ## Story
 

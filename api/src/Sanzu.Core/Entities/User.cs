@@ -12,6 +12,9 @@ public sealed class User
     public Organization? Organization { get; set; }
     public ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
     public ICollection<UserRole> GrantedRoles { get; set; } = new List<UserRole>();
+    public ICollection<Case> ManagedCases { get; set; } = new List<Case>();
+    public ICollection<CaseParticipant> InvitedCaseParticipants { get; set; } = new List<CaseParticipant>();
+    public ICollection<CaseParticipant> ParticipatingCases { get; set; } = new List<CaseParticipant>();
     public ICollection<AuditEvent> ActorAuditEvents { get; set; } = new List<AuditEvent>();
     public ICollection<TenantInvitation> IssuedTenantInvitations { get; set; } = new List<TenantInvitation>();
 }

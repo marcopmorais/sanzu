@@ -23,8 +23,10 @@ public sealed class TenantOnboardingService : ITenantOnboardingService
     private readonly IValidator<CreateAgencyAccountRequest> _createAgencyAccountValidator;
     private readonly IValidator<UpdateTenantOnboardingProfileRequest> _updateProfileValidator;
     private readonly IValidator<UpdateTenantOnboardingDefaultsRequest> _updateDefaultsValidator;
+    private readonly IValidator<UpdateTenantCaseDefaultsRequest> _updateCaseDefaultsValidator;
     private readonly IValidator<CreateTenantInvitationRequest> _createInvitationValidator;
     private readonly IValidator<CompleteTenantOnboardingRequest> _completeOnboardingValidator;
+    private readonly IValidator<ActivateTenantBillingRequest> _activateBillingValidator;
 
     public TenantOnboardingService(
         IOrganizationRepository organizationRepository,
@@ -37,8 +39,10 @@ public sealed class TenantOnboardingService : ITenantOnboardingService
         IValidator<CreateAgencyAccountRequest> createAgencyAccountValidator,
         IValidator<UpdateTenantOnboardingProfileRequest> updateProfileValidator,
         IValidator<UpdateTenantOnboardingDefaultsRequest> updateDefaultsValidator,
+        IValidator<UpdateTenantCaseDefaultsRequest> updateCaseDefaultsValidator,
         IValidator<CreateTenantInvitationRequest> createInvitationValidator,
-        IValidator<CompleteTenantOnboardingRequest> completeOnboardingValidator)
+        IValidator<CompleteTenantOnboardingRequest> completeOnboardingValidator,
+        IValidator<ActivateTenantBillingRequest> activateBillingValidator)
     {
         _organizationRepository = organizationRepository;
         _userRepository = userRepository;
@@ -50,8 +54,10 @@ public sealed class TenantOnboardingService : ITenantOnboardingService
         _createAgencyAccountValidator = createAgencyAccountValidator;
         _updateProfileValidator = updateProfileValidator;
         _updateDefaultsValidator = updateDefaultsValidator;
+        _updateCaseDefaultsValidator = updateCaseDefaultsValidator;
         _createInvitationValidator = createInvitationValidator;
         _completeOnboardingValidator = completeOnboardingValidator;
+        _activateBillingValidator = activateBillingValidator;
     }
 
     public async Task<CreateAgencyAccountResponse> CreateAgencyAccountAsync(
@@ -197,11 +203,18 @@ public sealed class TenantOnboardingService : ITenantOnboardingService
                 var tenant = await LoadAuthorizedTenantAsync(tenantId, actorUserId, token);
                 EnsureOnboardingMutableState(tenant);
 
+                var previousWorkflowKey = tenant.DefaultWorkflowKey;
+                var previousTemplateKey = tenant.DefaultTemplateKey;
                 tenant.DefaultLocale = request.DefaultLocale.Trim();
                 tenant.DefaultTimeZone = request.DefaultTimeZone.Trim();
                 tenant.DefaultCurrency = request.DefaultCurrency.Trim().ToUpperInvariant();
                 tenant.DefaultWorkflowKey = request.DefaultWorkflowKey?.Trim();
                 tenant.DefaultTemplateKey = request.DefaultTemplateKey?.Trim();
+                if (!string.Equals(previousWorkflowKey, tenant.DefaultWorkflowKey, StringComparison.Ordinal)
+                    || !string.Equals(previousTemplateKey, tenant.DefaultTemplateKey, StringComparison.Ordinal))
+                {
+                    tenant.CaseDefaultsVersion += 1;
+                }
                 tenant.UpdatedAt = DateTime.UtcNow;
                 MoveToOnboardingIfPending(tenant);
 
@@ -215,7 +228,8 @@ public sealed class TenantOnboardingService : ITenantOnboardingService
                         tenant.DefaultTimeZone,
                         tenant.DefaultCurrency,
                         tenant.DefaultWorkflowKey,
-                        tenant.DefaultTemplateKey
+                        tenant.DefaultTemplateKey,
+                        tenant.CaseDefaultsVersion
                     },
                     token);
 
@@ -228,6 +242,82 @@ public sealed class TenantOnboardingService : ITenantOnboardingService
                     DefaultWorkflowKey = tenant.DefaultWorkflowKey,
                     DefaultTemplateKey = tenant.DefaultTemplateKey
                 };
+            },
+            cancellationToken);
+
+        return response!;
+    }
+
+    public async Task<TenantCaseDefaultsResponse> GetCaseDefaultsAsync(
+        Guid tenantId,
+        Guid actorUserId,
+        CancellationToken cancellationToken)
+    {
+        var tenant = await LoadAuthorizedTenantAsync(tenantId, actorUserId, cancellationToken);
+        return MapCaseDefaults(tenant);
+    }
+
+    public async Task<TenantCaseDefaultsResponse> UpdateCaseDefaultsAsync(
+        Guid tenantId,
+        Guid actorUserId,
+        UpdateTenantCaseDefaultsRequest request,
+        CancellationToken cancellationToken)
+    {
+        var validationResult = await _updateCaseDefaultsValidator.ValidateAsync(request, cancellationToken);
+        if (!validationResult.IsValid)
+        {
+            throw new ValidationException(validationResult.Errors);
+        }
+
+        TenantCaseDefaultsResponse? response = null;
+        await _unitOfWork.ExecuteInTransactionAsync(
+            async token =>
+            {
+                var tenant = await LoadAuthorizedTenantAsync(tenantId, actorUserId, token);
+                EnsureCaseDefaultsMutableState(tenant);
+
+                var nowUtc = DateTime.UtcNow;
+                var previousWorkflowKey = tenant.DefaultWorkflowKey;
+                var previousTemplateKey = tenant.DefaultTemplateKey;
+
+                if (request.DefaultWorkflowKey is not null)
+                {
+                    tenant.DefaultWorkflowKey = request.DefaultWorkflowKey.Trim();
+                }
+
+                if (request.DefaultTemplateKey is not null)
+                {
+                    tenant.DefaultTemplateKey = request.DefaultTemplateKey.Trim();
+                }
+
+                var defaultsChanged =
+                    !string.Equals(previousWorkflowKey, tenant.DefaultWorkflowKey, StringComparison.Ordinal)
+                    || !string.Equals(previousTemplateKey, tenant.DefaultTemplateKey, StringComparison.Ordinal);
+
+                if (defaultsChanged)
+                {
+                    tenant.CaseDefaultsVersion += 1;
+                }
+
+                tenant.UpdatedAt = nowUtc;
+
+                await WriteAuditEventAsync(
+                    actorUserId,
+                    "TenantCaseDefaultsUpdated",
+                    new
+                    {
+                        OrganizationId = tenant.Id,
+                        PreviousWorkflowKey = previousWorkflowKey,
+                        PreviousTemplateKey = previousTemplateKey,
+                        CurrentWorkflowKey = tenant.DefaultWorkflowKey,
+                        CurrentTemplateKey = tenant.DefaultTemplateKey,
+                        tenant.CaseDefaultsVersion,
+                        DefaultsChanged = defaultsChanged,
+                        ChangedAt = nowUtc
+                    },
+                    token);
+
+                response = MapCaseDefaults(tenant);
             },
             cancellationToken);
 
@@ -382,6 +472,72 @@ public sealed class TenantOnboardingService : ITenantOnboardingService
         return response!;
     }
 
+    public async Task<TenantBillingActivationResponse> ActivateBillingAsync(
+        Guid tenantId,
+        Guid actorUserId,
+        ActivateTenantBillingRequest request,
+        CancellationToken cancellationToken)
+    {
+        var validationResult = await _activateBillingValidator.ValidateAsync(request, cancellationToken);
+        if (!validationResult.IsValid)
+        {
+            throw new ValidationException(validationResult.Errors);
+        }
+
+        TenantBillingActivationResponse? response = null;
+        await _unitOfWork.ExecuteInTransactionAsync(
+            async token =>
+            {
+                var tenant = await LoadAuthorizedTenantAsync(tenantId, actorUserId, token);
+                EnsureBillingActivationRequirements(tenant);
+
+                var nowUtc = DateTime.UtcNow;
+                tenant.SubscriptionPlan = request.PlanCode.Trim().ToUpperInvariant();
+                tenant.SubscriptionBillingCycle = request.BillingCycle.Trim().ToUpperInvariant();
+                tenant.PaymentMethodType = request.PaymentMethodType.Trim().ToUpperInvariant();
+                tenant.PaymentMethodReference = request.PaymentMethodReference.Trim();
+                tenant.InvoiceProfileLegalName = request.InvoiceProfileLegalName.Trim();
+                tenant.InvoiceProfileVatNumber = string.IsNullOrWhiteSpace(request.InvoiceProfileVatNumber)
+                    ? null
+                    : request.InvoiceProfileVatNumber.Trim().ToUpperInvariant();
+                tenant.InvoiceProfileBillingEmail = request.InvoiceProfileBillingEmail.Trim().ToLowerInvariant();
+                tenant.InvoiceProfileCountryCode = request.InvoiceProfileCountryCode.Trim().ToUpperInvariant();
+                tenant.SubscriptionActivatedAt ??= nowUtc;
+                tenant.Status = TenantStatus.Active;
+                tenant.UpdatedAt = nowUtc;
+
+                await WriteAuditEventAsync(
+                    actorUserId,
+                    "TenantBillingActivated",
+                    new
+                    {
+                        OrganizationId = tenant.Id,
+                        tenant.SubscriptionPlan,
+                        tenant.SubscriptionBillingCycle,
+                        tenant.PaymentMethodType,
+                        tenant.InvoiceProfileBillingEmail,
+                        tenant.InvoiceProfileCountryCode,
+                        tenant.SubscriptionActivatedAt,
+                        tenant.Status
+                    },
+                    token);
+
+                response = new TenantBillingActivationResponse
+                {
+                    TenantId = tenant.Id,
+                    TenantStatus = tenant.Status,
+                    PlanCode = tenant.SubscriptionPlan!,
+                    BillingCycle = tenant.SubscriptionBillingCycle!,
+                    PaymentMethodType = tenant.PaymentMethodType!,
+                    InvoiceProfileBillingEmail = tenant.InvoiceProfileBillingEmail!,
+                    SubscriptionActivatedAt = tenant.SubscriptionActivatedAt.Value
+                };
+            },
+            cancellationToken);
+
+        return response!;
+    }
+
     private async Task<Organization> LoadAuthorizedTenantAsync(
         Guid tenantId,
         Guid actorUserId,
@@ -418,6 +574,17 @@ public sealed class TenantOnboardingService : ITenantOnboardingService
             "Onboarding setup can only be modified for tenants in Pending or Onboarding state.");
     }
 
+    private static void EnsureCaseDefaultsMutableState(Organization tenant)
+    {
+        if (tenant.Status != TenantStatus.Terminated)
+        {
+            return;
+        }
+
+        throw new TenantOnboardingStateException(
+            "Case defaults cannot be modified for terminated tenants.");
+    }
+
     private static void EnsureCompletionRequirements(Organization tenant)
     {
         if (string.IsNullOrWhiteSpace(tenant.DefaultLocale)
@@ -429,12 +596,39 @@ public sealed class TenantOnboardingService : ITenantOnboardingService
         }
     }
 
+    private static void EnsureBillingActivationRequirements(Organization tenant)
+    {
+        if (tenant.Status is not (TenantStatus.Pending or TenantStatus.Onboarding))
+        {
+            throw new TenantOnboardingStateException(
+                "Billing activation can only be completed for tenants in Pending or Onboarding state.");
+        }
+
+        if (!tenant.OnboardingCompletedAt.HasValue)
+        {
+            throw new TenantOnboardingStateException(
+                "Onboarding must be completed before billing can be activated.");
+        }
+    }
+
     private static void MoveToOnboardingIfPending(Organization tenant)
     {
         if (tenant.Status == TenantStatus.Pending)
         {
             tenant.Status = TenantStatus.Onboarding;
         }
+    }
+
+    private static TenantCaseDefaultsResponse MapCaseDefaults(Organization tenant)
+    {
+        return new TenantCaseDefaultsResponse
+        {
+            TenantId = tenant.Id,
+            DefaultWorkflowKey = tenant.DefaultWorkflowKey,
+            DefaultTemplateKey = tenant.DefaultTemplateKey,
+            Version = tenant.CaseDefaultsVersion,
+            UpdatedAt = tenant.UpdatedAt
+        };
     }
 
     private static string HashToken(string token)

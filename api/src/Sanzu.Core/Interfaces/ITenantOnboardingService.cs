@@ -21,6 +21,17 @@ public interface ITenantOnboardingService
         UpdateTenantOnboardingDefaultsRequest request,
         CancellationToken cancellationToken);
 
+    Task<TenantCaseDefaultsResponse> GetCaseDefaultsAsync(
+        Guid tenantId,
+        Guid actorUserId,
+        CancellationToken cancellationToken);
+
+    Task<TenantCaseDefaultsResponse> UpdateCaseDefaultsAsync(
+        Guid tenantId,
+        Guid actorUserId,
+        UpdateTenantCaseDefaultsRequest request,
+        CancellationToken cancellationToken);
+
     Task<TenantInvitationResponse> CreateInvitationAsync(
         Guid tenantId,
         Guid actorUserId,
@@ -31,5 +42,11 @@ public interface ITenantOnboardingService
         Guid tenantId,
         Guid actorUserId,
         CompleteTenantOnboardingRequest request,
+        CancellationToken cancellationToken);
+
+    Task<TenantBillingActivationResponse> ActivateBillingAsync(
+        Guid tenantId,
+        Guid actorUserId,
+        ActivateTenantBillingRequest request,
         CancellationToken cancellationToken);
 }

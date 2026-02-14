@@ -70,6 +70,62 @@ public sealed class TenantOnboardingServiceTests
         await act.Should().ThrowAsync<DuplicateEmailException>();
     }
 
+    [Fact]
+    public async Task UpdateCaseDefaults_ShouldIncrementVersionAndWriteAudit_WhenDefaultsChange()
+    {
+        var dbContext = CreateContext();
+        var service = CreateService(dbContext);
+        var signup = await service.CreateAgencyAccountAsync(BuildValidRequest(), CancellationToken.None);
+        var tenant = await dbContext.Organizations.SingleAsync(x => x.Id == signup.OrganizationId);
+        tenant.Status = TenantStatus.Active;
+        await dbContext.SaveChangesAsync();
+
+        var result = await service.UpdateCaseDefaultsAsync(
+            signup.OrganizationId,
+            signup.UserId,
+            new UpdateTenantCaseDefaultsRequest
+            {
+                DefaultWorkflowKey = "workflow.v2",
+                DefaultTemplateKey = "template.v4"
+            },
+            CancellationToken.None);
+
+        result.TenantId.Should().Be(signup.OrganizationId);
+        result.DefaultWorkflowKey.Should().Be("workflow.v2");
+        result.DefaultTemplateKey.Should().Be("template.v4");
+        result.Version.Should().Be(1);
+
+        var persistedTenant = await dbContext.Organizations.SingleAsync(x => x.Id == signup.OrganizationId);
+        persistedTenant.DefaultWorkflowKey.Should().Be("workflow.v2");
+        persistedTenant.DefaultTemplateKey.Should().Be("template.v4");
+        persistedTenant.CaseDefaultsVersion.Should().Be(1);
+        dbContext.AuditEvents.Should().Contain(x => x.EventType == "TenantCaseDefaultsUpdated");
+    }
+
+    [Fact]
+    public async Task GetCaseDefaults_ShouldReturnCurrentDefaultsAndVersion_WhenTenantAdminAuthorized()
+    {
+        var dbContext = CreateContext();
+        var service = CreateService(dbContext);
+        var signup = await service.CreateAgencyAccountAsync(BuildValidRequest(), CancellationToken.None);
+        var tenant = await dbContext.Organizations.SingleAsync(x => x.Id == signup.OrganizationId);
+        tenant.DefaultWorkflowKey = "workflow.v1";
+        tenant.DefaultTemplateKey = "template.v2";
+        tenant.CaseDefaultsVersion = 3;
+        tenant.UpdatedAt = DateTime.UtcNow;
+        await dbContext.SaveChangesAsync();
+
+        var result = await service.GetCaseDefaultsAsync(
+            signup.OrganizationId,
+            signup.UserId,
+            CancellationToken.None);
+
+        result.TenantId.Should().Be(signup.OrganizationId);
+        result.DefaultWorkflowKey.Should().Be("workflow.v1");
+        result.DefaultTemplateKey.Should().Be("template.v2");
+        result.Version.Should().Be(3);
+    }
+
     private static SanzuDbContext CreateContext()
     {
         var options = new DbContextOptionsBuilder<SanzuDbContext>()
@@ -94,8 +150,10 @@ public sealed class TenantOnboardingServiceTests
             validator,
             new UpdateTenantOnboardingProfileRequestValidator(),
             new UpdateTenantOnboardingDefaultsRequestValidator(),
+            new UpdateTenantCaseDefaultsRequestValidator(),
             new CreateTenantInvitationRequestValidator(),
-            new CompleteTenantOnboardingRequestValidator());
+            new CompleteTenantOnboardingRequestValidator(),
+            new ActivateTenantBillingRequestValidator());
     }
 
     private static CreateAgencyAccountRequest BuildValidRequest()

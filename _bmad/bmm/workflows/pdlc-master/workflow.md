@@ -34,8 +34,8 @@ If any expected artifacts are missing, proceed best-effort and clearly state gap
 - `_bmad-output/status/pdlc_state.md`
 
 Do NOT write to folders `01-*` through `10-*`.
-Do NOT call ClickUp tools or perform ClickUp API actions in this workflow.
-Use local artifacts under `_bmad-output/` as the operational source while ClickUp remains disabled.
+Do NOT call ClickUp or Figma tools in this workflow.
+Use local artifacts under `_bmad-output/` as the operational source.
 
 ## Gate Rules
 

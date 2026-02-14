@@ -107,6 +107,74 @@ public sealed class TenantOnboardingSetupServiceTests
         dbContext.AuditEvents.Should().Contain(x => x.EventType == "TenantOnboardingCompleted");
     }
 
+    [Fact]
+    public async Task ActivateBilling_ShouldFail_WhenOnboardingIsNotCompleted()
+    {
+        var dbContext = CreateContext();
+        var seed = await SeedTenantAdminAsync(dbContext);
+        var service = CreateService(dbContext);
+
+        var act = () => service.ActivateBillingAsync(
+            seed.TenantId,
+            seed.AdminUserId,
+            new ActivateTenantBillingRequest
+            {
+                PlanCode = "Starter",
+                BillingCycle = "Monthly",
+                PaymentMethodType = "Card",
+                PaymentMethodReference = "pm_123",
+                InvoiceProfileLegalName = "Agency Lda",
+                InvoiceProfileBillingEmail = "billing@agency.pt",
+                InvoiceProfileCountryCode = "PT"
+            },
+            CancellationToken.None);
+
+        await act.Should().ThrowAsync<TenantOnboardingStateException>();
+    }
+
+    [Fact]
+    public async Task ActivateBilling_ShouldSetTenantActiveAndWriteAudit_WhenOnboardingIsCompleted()
+    {
+        var dbContext = CreateContext();
+        var seed = await SeedTenantAdminAsync(dbContext);
+        var service = CreateService(dbContext);
+        var tenant = await dbContext.Organizations.SingleAsync(x => x.Id == seed.TenantId);
+        tenant.DefaultLocale = "pt-PT";
+        tenant.DefaultTimeZone = "Europe/Lisbon";
+        tenant.DefaultCurrency = "EUR";
+        await dbContext.SaveChangesAsync();
+
+        await service.CompleteOnboardingAsync(
+            seed.TenantId,
+            seed.AdminUserId,
+            new CompleteTenantOnboardingRequest { ConfirmCompletion = true },
+            CancellationToken.None);
+
+        var result = await service.ActivateBillingAsync(
+            seed.TenantId,
+            seed.AdminUserId,
+            new ActivateTenantBillingRequest
+            {
+                PlanCode = "Growth",
+                BillingCycle = "Annual",
+                PaymentMethodType = "Sepa_Direct_Debit",
+                PaymentMethodReference = "pm_123",
+                InvoiceProfileLegalName = "Agency Lda",
+                InvoiceProfileVatNumber = "PT123456789",
+                InvoiceProfileBillingEmail = "billing@agency.pt",
+                InvoiceProfileCountryCode = "PT"
+            },
+            CancellationToken.None);
+
+        var updatedTenant = await dbContext.Organizations.SingleAsync(x => x.Id == seed.TenantId);
+        updatedTenant.Status.Should().Be(TenantStatus.Active);
+        updatedTenant.SubscriptionActivatedAt.Should().NotBeNull();
+        updatedTenant.SubscriptionPlan.Should().Be("GROWTH");
+        updatedTenant.PaymentMethodType.Should().Be("SEPA_DIRECT_DEBIT");
+        result.TenantStatus.Should().Be(TenantStatus.Active);
+        dbContext.AuditEvents.Should().Contain(x => x.EventType == "TenantBillingActivated");
+    }
+
     private static SanzuDbContext CreateContext()
     {
         var options = new DbContextOptionsBuilder<SanzuDbContext>()
@@ -165,8 +233,10 @@ public sealed class TenantOnboardingSetupServiceTests
             new CreateAgencyAccountRequestValidator(),
             new UpdateTenantOnboardingProfileRequestValidator(),
             new UpdateTenantOnboardingDefaultsRequestValidator(),
+            new UpdateTenantCaseDefaultsRequestValidator(),
             new CreateTenantInvitationRequestValidator(),
-            new CompleteTenantOnboardingRequestValidator());
+            new CompleteTenantOnboardingRequestValidator(),
+            new ActivateTenantBillingRequestValidator());
     }
 
     private sealed class NullNotificationSender : ITenantInvitationNotificationSender
