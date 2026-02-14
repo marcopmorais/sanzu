@@ -37,6 +37,7 @@ public static class ServiceRegistration
         services.AddScoped<ITenantPolicyControlRepository, TenantPolicyControlRepository>();
         services.AddScoped<IKpiThresholdRepository, KpiThresholdRepository>();
         services.AddScoped<IKpiAlertLogRepository, KpiAlertLogRepository>();
+        services.AddScoped<IPublicLeadRepository, PublicLeadRepository>();
         services.AddScoped<ITenantInvitationNotificationSender, NoOpTenantInvitationNotificationSender>();
         services.AddScoped<IUnitOfWork, EfUnitOfWork>();
 

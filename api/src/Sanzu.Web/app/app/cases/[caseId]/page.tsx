@@ -14,11 +14,15 @@ export default function CaseLifecyclePage({ params }: CasePageProps) {
     <main>
       <h1>Case Lifecycle and RBAC Collaboration</h1>
       <p className="meta">Story 2.5 route for lifecycle transitions and role-scoped participant actions.</p>
+      <div className="hero">
+        <h2>Ownership context: Process Manager Marina R.</h2>
+        <p className="meta">Lifecycle changes are role-gated and logged to the case milestone timeline.</p>
+      </div>
       <div className="panel grid">
         <section className="panel">
           <h2>Case #{caseId}</h2>
-          <p className="meta">Current state: Active | Owner: Process Manager</p>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <p className="meta">Current state: Active | Owner: Process Manager | Last transition: Intake Completed</p>
+          <div className="actions">
             <Button label="Move to Review" />
             <Button label="Archive Case" variant="secondary" />
             <Button label="Invite Participant" variant="secondary" />
@@ -26,33 +30,43 @@ export default function CaseLifecyclePage({ params }: CasePageProps) {
           <div style={{ marginTop: 10 }}>
             <StatusBanner kind="warn" text="Reader role cannot archive this case. Escalate to manager." />
           </div>
+          <ul className="list-tight" aria-label="Lifecycle guidance">
+            <li>Transition guard: blocked if required tasks are incomplete.</li>
+            <li>Confirmation modal required before archive transition is committed.</li>
+          </ul>
         </section>
 
         <section className="panel">
           <h2>Participants</h2>
-          <table aria-label="Case participants" style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+          <table aria-label="Case participants" className="table">
             <thead>
               <tr>
-                <th style={{ border: "1px solid var(--line)", padding: 8, textAlign: "left" }}>Name</th>
-                <th style={{ border: "1px solid var(--line)", padding: 8, textAlign: "left" }}>Role</th>
-                <th style={{ border: "1px solid var(--line)", padding: 8, textAlign: "left" }}>Access</th>
+                <th>Name</th>
+                <th>Role</th>
+                <th>Access</th>
               </tr>
             </thead>
             <tbody>
               <tr>
-                <td style={{ border: "1px solid var(--line)", padding: 8 }}>Marina R.</td>
-                <td style={{ border: "1px solid var(--line)", padding: 8 }}>Manager</td>
-                <td style={{ border: "1px solid var(--line)", padding: 8 }}>Full</td>
+                <td>Marina R.</td>
+                <td>
+                  <span className="badge ok">Manager</span>
+                </td>
+                <td>Full</td>
               </tr>
               <tr>
-                <td style={{ border: "1px solid var(--line)", padding: 8 }}>Diego F.</td>
-                <td style={{ border: "1px solid var(--line)", padding: 8 }}>Editor</td>
-                <td style={{ border: "1px solid var(--line)", padding: 8 }}>Edit Allowed</td>
+                <td>Diego F.</td>
+                <td>
+                  <span className="badge info">Editor</span>
+                </td>
+                <td>Edit Allowed</td>
               </tr>
               <tr>
-                <td style={{ border: "1px solid var(--line)", padding: 8 }}>Jules K.</td>
-                <td style={{ border: "1px solid var(--line)", padding: 8 }}>Reader</td>
-                <td style={{ border: "1px solid var(--line)", padding: 8 }}>Read Only</td>
+                <td>Jules K.</td>
+                <td>
+                  <span className="badge warn">Reader</span>
+                </td>
+                <td>Read Only</td>
               </tr>
             </tbody>
           </table>

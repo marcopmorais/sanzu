@@ -1,13 +1,17 @@
 :root {
   --bg: #f4f6f4;
   --surface: #ffffff;
+  --surface-alt: #eef2ee;
   --ink: #1f2a24;
   --muted: #5f6d65;
   --line: #d7ddd9;
   --brand-forest: #164a3b;
+  --brand-deep: #0f362a;
   --brand-sand: #f2e5c9;
+  --brand-mint: #d9efe3;
   --ok: #1e8f4d;
   --warn: #b85a2a;
+  --info: #2f5c8f;
   --radius: 12px;
 }
 
@@ -19,7 +23,7 @@ html,
 body {
   margin: 0;
   padding: 0;
-  font-family: "Segoe UI", sans-serif;
+  font-family: "Avenir Next", "Trebuchet MS", "Segoe UI", sans-serif;
   background: var(--bg);
   color: var(--ink);
 }
@@ -35,6 +39,7 @@ main {
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 16px;
+  box-shadow: 0 8px 28px rgba(9, 21, 16, 0.05);
 }
 
 .grid {
@@ -51,8 +56,116 @@ main {
   font-size: 13px;
 }
 
+h1,
+h2,
+h3 {
+  margin-top: 0;
+  letter-spacing: 0.01em;
+}
+
+a {
+  color: var(--brand-forest);
+}
+
+.hero {
+  background: linear-gradient(140deg, var(--brand-deep), var(--brand-forest) 58%, #2b6d58);
+  border-radius: var(--radius);
+  color: #f7fbf9;
+  padding: 20px;
+  border: 1px solid #285745;
+}
+
+.hero .meta {
+  color: #d7ece2;
+}
+
+.kpi-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.kpi-card {
+  background: var(--surface-alt);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px;
+}
+
+.kpi-card strong {
+  display: block;
+  font-size: 22px;
+  line-height: 1.2;
+}
+
+.badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  border-radius: 999px;
+  padding: 4px 8px;
+  border: 1px solid var(--line);
+  background: #fff;
+}
+
+.badge.ok {
+  color: var(--ok);
+  border-color: #9ec6af;
+  background: #edf8f1;
+}
+
+.badge.warn {
+  color: var(--warn);
+  border-color: #e0b49b;
+  background: #fff3eb;
+}
+
+.badge.info {
+  color: var(--info);
+  border-color: #aec6df;
+  background: #edf4fb;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.list-tight {
+  margin: 8px 0 0;
+  padding-left: 18px;
+}
+
+.list-tight li {
+  margin-bottom: 6px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.table th,
+.table td {
+  border: 1px solid var(--line);
+  padding: 8px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.table th {
+  background: var(--surface-alt);
+}
+
 @media (max-width: 900px) {
   .grid.two {
+    grid-template-columns: 1fr;
+  }
+
+  .kpi-grid {
     grid-template-columns: 1fr;
   }
 }

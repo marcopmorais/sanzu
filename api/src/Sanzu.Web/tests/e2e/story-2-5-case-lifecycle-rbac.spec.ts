@@ -5,4 +5,5 @@ test("Story 2.5 route smoke", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Case Lifecycle and RBAC Collaboration" })).toBeVisible();
   await expect(page.getByRole("table", { name: "Case participants" })).toBeVisible();
   await expect(page.getByText("Reader role cannot archive this case. Escalate to manager.")).toBeVisible();
+  await expect(page.getByRole("list", { name: "Lifecycle guidance" })).toBeVisible();
 });

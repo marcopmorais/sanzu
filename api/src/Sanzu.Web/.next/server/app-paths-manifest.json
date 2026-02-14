@@ -1,0 +1,13 @@
+{
+  "/app/onboarding/page": "app/app/onboarding/page.js",
+  "/app/governance/oversight/page": "app/app/governance/oversight/page.js",
+  "/app/onboarding/billing/page": "app/app/onboarding/billing/page.js",
+  "/app/cases/[caseId]/workflow/page": "app/app/cases/[caseId]/workflow/page.js",
+  "/app/cases/[caseId]/handoffs/inbox/page": "app/app/cases/[caseId]/handoffs/inbox/page.js",
+  "/page": "app/page.js",
+  "/app/admin/platform-governance/page": "app/app/admin/platform-governance/page.js",
+  "/app/cases/[caseId]/page": "app/app/cases/[caseId]/page.js",
+  "/demo/page": "app/demo/page.js",
+  "/start/page": "app/start/page.js",
+  "/app/cases/[caseId]/documents/[documentId]/review/page": "app/app/cases/[caseId]/documents/[documentId]/review/page.js"
+}

@@ -32,6 +32,7 @@ public sealed class SanzuDbContext : DbContext
     public DbSet<TenantPolicyControl> TenantPolicyControls => Set<TenantPolicyControl>();
     public DbSet<KpiThresholdDefinition> KpiThresholds => Set<KpiThresholdDefinition>();
     public DbSet<KpiAlertLog> KpiAlerts => Set<KpiAlertLog>();
+    public DbSet<PublicLead> PublicLeads => Set<PublicLead>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

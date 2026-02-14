@@ -7,7 +7,11 @@ export default function OnboardingPage() {
     <main>
       <h1>Onboarding Workspace</h1>
       <p className="meta">Story 1.7 route: onboarding profile, defaults, and invitations.</p>
-      <div className="panel grid">
+      <div className="hero">
+        <h2>Tenant setup progress: 2 of 4 complete</h2>
+        <p className="meta">Complete profile and invitations before billing activation is unlocked.</p>
+      </div>
+      <div className="panel grid" style={{ marginTop: 14 }}>
         <OnboardingStepper />
         <div className="grid two">
           <section className="panel">
@@ -25,15 +29,20 @@ export default function OnboardingPage() {
                   style={{ width: "100%", marginTop: 6, padding: 8 }}
                 />
               </label>
+              <p className="meta">Validation: agency legal name and billing email must be present to continue.</p>
             </div>
           </section>
           <section className="panel">
             <h2>Team Invitations</h2>
             <p className="meta">Bound to onboarding invitations contract.</p>
-            <div style={{ display: "flex", gap: 8 }}>
+            <div className="actions">
               <Button label="Invite Team Member" variant="secondary" />
               <Button label="Validate Invitations" />
             </div>
+            <ul className="list-tight" aria-label="Invitation checks">
+              <li>At least one Process Manager invite is required.</li>
+              <li>Duplicate invite emails are blocked before submit.</li>
+            </ul>
           </section>
         </div>
         <Link href="/app/onboarding/billing">Continue to Billing</Link>
