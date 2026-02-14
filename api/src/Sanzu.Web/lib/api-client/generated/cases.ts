@@ -132,3 +132,40 @@ export async function applyExtractionReview(tenantId: TenantId, caseId: CaseId, 
     body: JSON.stringify(payload)
   });
 }
+
+export async function generateHandoffPacket(tenantId: TenantId, caseId: CaseId, payload: unknown) {
+  return fetch(`/api/v1/tenants/${tenantId}/cases/${caseId}/handoffs/packet`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+}
+
+export async function getHandoffState(tenantId: TenantId, caseId: CaseId) {
+  return fetch(`/api/v1/tenants/${tenantId}/cases/${caseId}/handoffs/state`, { method: "GET" });
+}
+
+export async function updateHandoffState(
+  tenantId: TenantId,
+  caseId: CaseId,
+  handoffId: string,
+  state: string
+) {
+  return fetch(`/api/v1/tenants/${tenantId}/cases/${caseId}/handoffs/${handoffId}/state`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ state })
+  });
+}
+
+export async function getProcessAlias(tenantId: TenantId, caseId: CaseId) {
+  return fetch(`/api/v1/tenants/${tenantId}/cases/${caseId}/process-alias`, { method: "GET" });
+}
+
+export async function provisionProcessAlias(tenantId: TenantId, caseId: CaseId) {
+  return fetch(`/api/v1/tenants/${tenantId}/cases/${caseId}/process-alias/provision`, { method: "POST" });
+}
+
+export async function getProcessInbox(tenantId: TenantId, caseId: CaseId) {
+  return fetch(`/api/v1/tenants/${tenantId}/cases/${caseId}/process-inbox`, { method: "GET" });
+}
