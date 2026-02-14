@@ -28,8 +28,8 @@ Where: GitHub Repository Settings -> Secrets and variables -> Actions -> Secrets
 1. Push to `main` or run workflow manually from Actions tab.
 2. Confirm `build-and-test` and `package` jobs pass.
 3. Confirm `deploy-azure` runs and does not fail configuration validation.
-4. Confirm the post-deploy smoke test passes for `https://<AZURE_WEBAPP_NAME>.azurewebsites.net/swagger/index.html`.
-5. Open `https://<AZURE_WEBAPP_NAME>.azurewebsites.net/swagger` and verify API is reachable.
+4. Confirm the post-deploy smoke test passes for `<deployed-webapp-url>/index.html`.
+5. Open the App Service URL shown in workflow logs and verify the Sanzu frontend index page is reachable.
 
 ## Security Guardrails
 

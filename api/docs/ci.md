@@ -1,6 +1,6 @@
 # CI/CD Pipeline
 
-This repository now includes a GitHub Actions pipeline at `.github/workflows/ci.yml` to run quality checks early and deploy Sanzu API to Azure App Service as soon as `main` is updated.
+This repository now includes a GitHub Actions pipeline at `.github/workflows/ci.yml` to run quality checks early and deploy the Sanzu frontend web app to Azure App Service as soon as `main` is updated.
 
 ## What Runs
 
@@ -9,7 +9,7 @@ This repository now includes a GitHub Actions pipeline at `.github/workflows/ci.
 3. Unit tests (`FullyQualifiedName~Unit`)
 4. Integration tests (`FullyQualifiedName~Integration`)
 5. Burn-in loop (10 integration test iterations on PR/schedule/manual runs)
-6. Package and deploy (`main` and manual dispatch) to Azure App Service
+6. Package and deploy frontend static site (`main` and manual dispatch) to Azure App Service
 
 ## Triggers
 
@@ -26,7 +26,8 @@ Deployment job: `deploy-azure`
 - Deployment target: Azure App Service (`AZURE_WEBAPP_NAME`)
 - Auth model: GitHub OIDC with `azure/login@v2`
 - Deployment action: `azure/webapps-deploy@v3`
-- Post-deploy verification: smoke test against `https://<AZURE_WEBAPP_NAME>.azurewebsites.net/swagger/index.html`
+- Deployed package source: `web/sanzu-brand-frontend`
+- Post-deploy verification: smoke test against `<deployed-webapp-url>/index.html`
 
 If required Azure settings are missing or invalid, the deploy job fails with a clear configuration error so `main` cannot silently pass without a publishable app.
 
