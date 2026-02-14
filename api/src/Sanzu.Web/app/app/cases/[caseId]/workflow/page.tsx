@@ -37,6 +37,11 @@ export default function CaseWorkflowPage({ params }: WorkflowPageProps) {
         <h2>Task Queue and Timeline</h2>
         <p className="meta">Prioritized tasks with due-date urgency and timeline context.</p>
         <StatusBanner kind="warn" text="Blocked: Missing dependency document. Next best action highlighted." />
+        <ul aria-label="Workflow next actions" style={{ marginTop: 10 }}>
+          <li>Collect missing dependency document</li>
+          <li>Re-run readiness calculation</li>
+          <li>Advance first unblocked task</li>
+        </ul>
       </div>
     </main>
   );
