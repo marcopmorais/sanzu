@@ -32,6 +32,11 @@ export default function DocumentExtractionReviewPage({ params }: DocumentReviewP
           <h2>Extraction Candidates</h2>
           <p className="meta">Confidence-gated candidates require reviewer decision before apply.</p>
           <StatusBanner kind="warn" text="Low-confidence fields detected. Manual confirmation required." />
+          <ul aria-label="Extraction candidate decisions" style={{ marginTop: 10 }}>
+            <li>Applicant full name - confidence 96% - approve</li>
+            <li>Passport number - confidence 62% - review required</li>
+            <li>Issue date - confidence 58% - review required</li>
+          </ul>
           <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
             <Button label="Apply Approved Fields" />
             <Button label="Reject and Re-run" variant="secondary" />
