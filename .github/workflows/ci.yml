@@ -267,9 +267,13 @@ jobs:
             echo "ready=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Skip deploy when Azure settings are missing
+      - name: Fail deploy when Azure settings are missing or invalid
         if: steps.deploy_check.outputs.ready != 'true'
-        run: echo "Azure deployment skipped until required secrets/variables are configured."
+        shell: bash
+        run: |
+          echo "Azure deployment is blocked because required settings are missing or invalid."
+          echo "Configure AZURE_WEBAPP_NAME, AZURE_CLIENT_ID, AZURE_TENANT_ID, and AZURE_SUBSCRIPTION_ID."
+          exit 1
 
       - name: Azure login
         if: steps.deploy_check.outputs.ready == 'true'
@@ -286,3 +290,22 @@ jobs:
         with:
           app-name: ${{ vars.AZURE_WEBAPP_NAME }}
           package: ./app-package
+
+      - name: Post-deploy smoke test
+        if: steps.deploy_check.outputs.ready == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          app_url="https://${{ vars.AZURE_WEBAPP_NAME }}.azurewebsites.net/swagger/index.html"
+          echo "Running smoke test: ${app_url}"
+          for attempt in {1..10}; do
+            status="$(curl -sS -o /dev/null -w "%{http_code}" "${app_url}" || true)"
+            if [ "${status}" = "200" ]; then
+              echo "Smoke test passed."
+              exit 0
+            fi
+            echo "Attempt ${attempt}/10 failed with HTTP ${status}. Retrying in 15s..."
+            sleep 15
+          done
+          echo "Smoke test failed after deployment."
+          exit 1

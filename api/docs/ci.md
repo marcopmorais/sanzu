@@ -26,8 +26,9 @@ Deployment job: `deploy-azure`
 - Deployment target: Azure App Service (`AZURE_WEBAPP_NAME`)
 - Auth model: GitHub OIDC with `azure/login@v2`
 - Deployment action: `azure/webapps-deploy@v3`
+- Post-deploy verification: smoke test against `https://<AZURE_WEBAPP_NAME>.azurewebsites.net/swagger/index.html`
 
-If required Azure settings are missing, CI remains valid and deployment is skipped with a clear log message.
+If required Azure settings are missing or invalid, the deploy job fails with a clear configuration error so `main` cannot silently pass without a publishable app.
 
 ## Local Mirror Commands
 
