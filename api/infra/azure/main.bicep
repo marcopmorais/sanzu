@@ -131,3 +131,4 @@ output frontendWebAppName string = frontendWebApp.name
 output apiUrl string = 'https://${apiWebApp.properties.defaultHostName}'
 output frontendUrl string = 'https://${frontendWebApp.properties.defaultHostName}'
 output sqlServerFqdn string = '${sqlServer.name}.database.windows.net'
+output sqlDatabaseName string = sqlDatabase.name
