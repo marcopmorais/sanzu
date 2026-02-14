@@ -285,6 +285,7 @@ jobs:
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Deploy package to Azure Web App
+        id: deploy_webapp
         if: steps.deploy_check.outputs.ready == 'true'
         uses: azure/webapps-deploy@v3
         with:
@@ -296,7 +297,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          app_url="https://${{ vars.AZURE_WEBAPP_NAME }}.azurewebsites.net/swagger/index.html"
+          app_base_url="${{ steps.deploy_webapp.outputs.webapp-url }}"
+          if [ -z "${app_base_url}" ]; then
+            app_base_url="https://${{ vars.AZURE_WEBAPP_NAME }}.azurewebsites.net"
+          fi
+          app_url="${app_base_url%/}/swagger/index.html"
           echo "Running smoke test: ${app_url}"
           for attempt in {1..10}; do
             status="$(curl -sS -o /dev/null -w "%{http_code}" "${app_url}" || true)"
