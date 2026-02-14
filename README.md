@@ -1,11 +1,11 @@
 # Sanzu Repository
 
-This repository tracks the Sanzu API codebase and CI/CD automation.
+This repository tracks the Sanzu API, Sanzu frontend, and CI/CD automation.
 
 ## Tracked Content
 
 - `.github/` (GitHub Actions workflows)
-- `api/` (.NET solution, source, tests, scripts, and API docs)
+- `api/` (.NET solution, API, frontend, tests, scripts, infra template, and docs)
 - `.gitignore`
 - `README.md`
 
@@ -14,7 +14,7 @@ All other top-level project folders are intentionally ignored in this repository
 ## CI/CD
 
 - Workflow: `.github/workflows/ci.yml`
-- Pipeline covers lint/format checks, build, tests, burn-in stability checks, packaging, and Azure App Service deployment.
+- Pipeline covers lint/format checks, API + frontend build/tests, Azure infrastructure provisioning, database migrations, and backend/frontend deployment.
 - Azure setup details: `api/docs/ci-secrets-checklist.md`
 
 ## Local Development

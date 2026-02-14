@@ -17,6 +17,7 @@ if (app.Environment.IsDevelopment())
 app.UseAuthentication();
 app.UseMiddleware<TenantContextMiddleware>();
 app.UseAuthorization();
+app.MapGet("/health", () => Results.Ok(new { status = "ok", app = "Sanzu.API" }));
 app.MapControllers();
 app.Run();
 

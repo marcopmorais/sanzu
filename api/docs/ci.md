@@ -1,15 +1,17 @@
 # CI/CD Pipeline
 
-This repository now includes a GitHub Actions pipeline at `.github/workflows/ci.yml` to run quality checks early and deploy the Sanzu frontend web app to Azure App Service as soon as `main` is updated.
+This repository includes a full-stack GitHub Actions pipeline at `.github/workflows/ci.yml` to deploy Sanzu online from `main`: infrastructure, database, backend API, and frontend.
 
 ## What Runs
 
 1. Lint and format validation (`dotnet format --verify-no-changes`)
-2. Build (`dotnet build` on `Sanzu.sln`)
-3. Unit tests (`FullyQualifiedName~Unit`)
-4. Integration tests (`FullyQualifiedName~Integration`)
-5. Burn-in loop (10 integration test iterations on PR/schedule/manual runs)
-6. Package and deploy frontend static site (`main` and manual dispatch) to Azure App Service
+2. API build and tests (`dotnet build`, unit, integration, optional burn-in)
+3. Frontend build and tests (`npm ci`, `npm run test`, `npm run build`)
+4. Package API and frontend artifacts
+5. Provision/Update Azure infrastructure via Bicep (`api/infra/azure/main.bicep`)
+6. Apply EF Core migrations to Azure SQL
+7. Deploy API web app and frontend web app
+8. Smoke tests (`/health` for API and `/` for frontend)
 
 ## Triggers
 
@@ -20,14 +22,17 @@ This repository now includes a GitHub Actions pipeline at `.github/workflows/ci.
 
 ## Azure Deployment Path
 
-Deployment job: `deploy-azure`
+Deployment path:
 
-- Environment: `azure-dev`
-- Deployment target: Azure App Service (`AZURE_WEBAPP_NAME`)
-- Auth model: GitHub OIDC with `azure/login@v2`
-- Deployment action: `azure/webapps-deploy@v3`
-- Deployed package source: `web/sanzu-brand-frontend`
-- Post-deploy verification: smoke test against `<deployed-webapp-url>/index.html`
+- `provision-infra`: resource group, app service plan, API web app, frontend web app, Azure SQL server/database
+- `migrate-database`: `dotnet ef database update`
+- `deploy-api`: deploy published .NET API package
+- `deploy-frontend`: deploy Next.js frontend package
+- `smoke-tests`: validate endpoints are reachable
+
+Auth model:
+
+- GitHub OIDC via `azure/login@v2` (no publish profile required)
 
 If required Azure settings are missing or invalid, the deploy job fails with a clear configuration error so `main` cannot silently pass without a publishable app.
 
