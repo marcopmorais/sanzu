@@ -21,6 +21,7 @@ export default function CaseLifecyclePage({ params }: CasePageProps) {
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             <Button label="Move to Review" />
             <Button label="Archive Case" variant="secondary" />
+            <Button label="Invite Participant" variant="secondary" />
           </div>
           <div style={{ marginTop: 10 }}>
             <StatusBanner kind="warn" text="Reader role cannot archive this case. Escalate to manager." />
@@ -29,7 +30,7 @@ export default function CaseLifecyclePage({ params }: CasePageProps) {
 
         <section className="panel">
           <h2>Participants</h2>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+          <table aria-label="Case participants" style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
             <thead>
               <tr>
                 <th style={{ border: "1px solid var(--line)", padding: 8, textAlign: "left" }}>Name</th>
@@ -55,6 +56,9 @@ export default function CaseLifecyclePage({ params }: CasePageProps) {
               </tr>
             </tbody>
           </table>
+          <p className="meta" style={{ marginTop: 8 }}>
+            Empty-state behavior: when no participants are present, show invitation CTA and role guidance.
+          </p>
         </section>
       </div>
     </main>
