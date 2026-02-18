@@ -13,10 +13,12 @@ namespace Sanzu.API.Controllers;
 public sealed class CopilotController : ControllerBase
 {
     private readonly ICopilotDraftService _copilotDraftService;
+    private readonly IRecoveryPlanService _recoveryPlanService;
 
-    public CopilotController(ICopilotDraftService copilotDraftService)
+    public CopilotController(ICopilotDraftService copilotDraftService, IRecoveryPlanService recoveryPlanService)
     {
         _copilotDraftService = copilotDraftService;
+        _recoveryPlanService = recoveryPlanService;
     }
 
     [Authorize(Policy = "TenantAdmin")]
@@ -60,6 +62,32 @@ public sealed class CopilotController : ControllerBase
         {
             var response = await _copilotDraftService.AcceptDraftAsync(actorUserId, tenantId, request, cancellationToken);
             return Ok(ApiEnvelope<CopilotDraftAcceptedResponse>.Success(response, BuildMeta()));
+        }
+        catch (TenantAccessDeniedException)
+        {
+            return Forbid();
+        }
+    }
+
+    [Authorize(Policy = "TenantAdmin")]
+    [HttpPost("recovery-plan")]
+    [ProducesResponseType(typeof(ApiEnvelope<RecoveryPlanResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> RequestRecoveryPlan(
+        Guid tenantId,
+        [FromBody] RequestRecoveryPlanRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        if (!TryGetActorUserId(out var actorUserId))
+            return Unauthorized();
+
+        try
+        {
+            var response = await _recoveryPlanService.GenerateRecoveryPlanAsync(actorUserId, tenantId, request, cancellationToken);
+            return Ok(ApiEnvelope<RecoveryPlanResponse>.Success(response, BuildMeta()));
+        }
+        catch (CaseStateException ex)
+        {
+            return Problem(statusCode: StatusCodes.Status409Conflict, title: "Recovery plan failed", detail: ex.Message);
         }
         catch (TenantAccessDeniedException)
         {

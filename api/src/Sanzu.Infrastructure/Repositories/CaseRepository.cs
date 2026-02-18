@@ -25,6 +25,11 @@ public sealed class CaseRepository : ICaseRepository
         return _dbContext.Cases.FirstOrDefaultAsync(x => x.Id == caseId, cancellationToken);
     }
 
+    public Task<Case?> GetByIdForPlatformAsync(Guid caseId, CancellationToken cancellationToken)
+    {
+        return _dbContext.Cases.IgnoreQueryFilters().FirstOrDefaultAsync(x => x.Id == caseId, cancellationToken);
+    }
+
     public async Task<IReadOnlyList<Case>> GetByTenantIdAsync(Guid tenantId, CancellationToken cancellationToken)
     {
         return await _dbContext.Cases
