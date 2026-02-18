@@ -26,6 +26,7 @@ public sealed class CaseService : ICaseService
     private readonly ICaseParticipantRepository _caseParticipantRepository;
     private readonly IWorkflowStepRepository _workflowStepRepository;
     private readonly ITenantPolicyControlRepository _tenantPolicyControlRepository;
+    private readonly IAgencyPlaybookRepository _agencyPlaybookRepository;
     private readonly IAuditRepository _auditRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IValidator<CreateCaseRequest> _createCaseValidator;
@@ -56,6 +57,7 @@ public sealed class CaseService : ICaseService
         ICaseParticipantRepository caseParticipantRepository,
         IWorkflowStepRepository workflowStepRepository,
         ITenantPolicyControlRepository tenantPolicyControlRepository,
+        IAgencyPlaybookRepository agencyPlaybookRepository,
         IAuditRepository auditRepository,
         IUnitOfWork unitOfWork,
         IValidator<CreateCaseRequest> createCaseValidator,
@@ -85,6 +87,7 @@ public sealed class CaseService : ICaseService
         _caseParticipantRepository = caseParticipantRepository;
         _workflowStepRepository = workflowStepRepository;
         _tenantPolicyControlRepository = tenantPolicyControlRepository;
+        _agencyPlaybookRepository = agencyPlaybookRepository;
         _auditRepository = auditRepository;
         _unitOfWork = unitOfWork;
         _createCaseValidator = createCaseValidator;
@@ -125,6 +128,9 @@ public sealed class CaseService : ICaseService
                 EnsureCaseCreationState(tenant);
                 await EnsureTenantPolicyAllowsCaseCreationAsync(tenantId, token);
 
+                // Resolve active playbook for this tenant (may be null)
+                var activePlaybook = await _agencyPlaybookRepository.GetActiveAsync(tenantId, token);
+
                 var nextSequence = await _caseRepository.GetNextCaseSequenceAsync(tenantId, token);
                 var nowUtc = DateTime.UtcNow;
                 var caseEntity = new Case
@@ -141,6 +147,8 @@ public sealed class CaseService : ICaseService
                     Status = CaseStatus.Draft,
                     Notes = string.IsNullOrWhiteSpace(request.Notes) ? null : request.Notes.Trim(),
                     ManagerUserId = actorUserId,
+                    PlaybookId = activePlaybook?.Id,
+                    PlaybookVersion = activePlaybook?.Version,
                     CreatedAt = nowUtc,
                     UpdatedAt = nowUtc
                 };
@@ -163,10 +171,29 @@ public sealed class CaseService : ICaseService
                         caseEntity.TemplateKey,
                         caseEntity.Status,
                         caseEntity.ManagerUserId,
+                        caseEntity.PlaybookId,
+                        caseEntity.PlaybookVersion,
                         caseEntity.CreatedAt
                     },
                     token,
                     caseEntity.Id);
+
+                if (activePlaybook is not null)
+                {
+                    await WriteAuditEventAsync(
+                        actorUserId,
+                        "PlaybookApplied",
+                        new
+                        {
+                            CaseId = caseEntity.Id,
+                            caseEntity.TenantId,
+                            PlaybookId = activePlaybook.Id,
+                            PlaybookName = activePlaybook.Name,
+                            PlaybookVersion = activePlaybook.Version
+                        },
+                        token,
+                        caseEntity.Id);
+                }
 
                 response = MapCreateCase(caseEntity);
             },
@@ -1978,6 +2005,7 @@ public sealed class CaseService : ICaseService
                     "CaseCreated"
                     or "CaseStatusChanged"
                     or "CasePlanGenerated"
+                    or "PlaybookApplied"
                     or "WorkflowTaskOwnershipInitialized"
                     or "WorkflowTaskStatusUpdated"
                     or "CaseNotificationQueued")
@@ -3215,6 +3243,8 @@ public sealed class CaseService : ICaseService
             TemplateKey = caseEntity.TemplateKey,
             Status = caseEntity.Status,
             ManagerUserId = caseEntity.ManagerUserId,
+            PlaybookId = caseEntity.PlaybookId,
+            PlaybookVersion = caseEntity.PlaybookVersion,
             CreatedAt = caseEntity.CreatedAt
         };
     }
@@ -3235,6 +3265,8 @@ public sealed class CaseService : ICaseService
             Notes = caseEntity.Notes,
             Status = caseEntity.Status,
             ManagerUserId = caseEntity.ManagerUserId,
+            PlaybookId = caseEntity.PlaybookId,
+            PlaybookVersion = caseEntity.PlaybookVersion,
             CreatedAt = caseEntity.CreatedAt,
             UpdatedAt = caseEntity.UpdatedAt,
             ClosedAt = caseEntity.ClosedAt,
@@ -3773,6 +3805,18 @@ public sealed class CaseService : ICaseService
                     ? aliasEmailValue.GetString()
                     : "unknown@sanzy.ai";
                 return $"Process alias archived: {aliasEmail}";
+            }
+
+            if (auditEvent.EventType == "PlaybookApplied")
+            {
+                var playbookName = root.TryGetProperty("PlaybookName", out var nameValue)
+                    ? nameValue.GetString()
+                    : "Unknown";
+                var playbookVersion = root.TryGetProperty("PlaybookVersion", out var versionValue)
+                    && versionValue.ValueKind == JsonValueKind.Number
+                    ? versionValue.GetInt32()
+                    : 0;
+                return $"Playbook applied: {playbookName} v{playbookVersion}";
             }
         }
         catch (JsonException)

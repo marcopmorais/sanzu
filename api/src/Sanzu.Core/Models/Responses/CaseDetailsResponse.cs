@@ -16,6 +16,8 @@ public sealed class CaseDetailsResponse
     public string? Notes { get; init; }
     public CaseStatus Status { get; init; }
     public Guid ManagerUserId { get; init; }
+    public Guid? PlaybookId { get; init; }
+    public int? PlaybookVersion { get; init; }
     public DateTime CreatedAt { get; init; }
     public DateTime UpdatedAt { get; init; }
     public DateTime? ClosedAt { get; init; }

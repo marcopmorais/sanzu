@@ -15,5 +15,7 @@ public sealed class CreateCaseResponse
     public string? TemplateKey { get; init; }
     public CaseStatus Status { get; init; }
     public Guid ManagerUserId { get; init; }
+    public Guid? PlaybookId { get; init; }
+    public int? PlaybookVersion { get; init; }
     public DateTime CreatedAt { get; init; }
 }

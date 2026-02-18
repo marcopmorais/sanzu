@@ -62,6 +62,10 @@ public sealed class CaseConfiguration : IEntityTypeConfiguration<Case>
 
         builder.Property(x => x.IntakeCompletedByUserId);
 
+        builder.Property(x => x.PlaybookId);
+
+        builder.Property(x => x.PlaybookVersion);
+
         builder.Property(x => x.ClosedAt)
             .HasColumnType("datetime2");
 

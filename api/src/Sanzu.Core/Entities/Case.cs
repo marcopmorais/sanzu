@@ -19,6 +19,8 @@ public sealed class Case
     public string? IntakeData { get; set; }
     public DateTime? IntakeCompletedAt { get; set; }
     public Guid? IntakeCompletedByUserId { get; set; }
+    public Guid? PlaybookId { get; set; }
+    public int? PlaybookVersion { get; set; }
     public DateTime? ClosedAt { get; set; }
     public DateTime? ArchivedAt { get; set; }
     public DateTime CreatedAt { get; set; }

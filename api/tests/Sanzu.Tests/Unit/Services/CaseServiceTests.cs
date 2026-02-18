@@ -3031,6 +3031,7 @@ public sealed class CaseServiceTests
             new CaseParticipantRepository(dbContext),
             new WorkflowStepRepository(dbContext),
             new TenantPolicyControlRepository(dbContext),
+            new AgencyPlaybookRepository(dbContext),
             new AuditRepository(dbContext),
             new EfUnitOfWork(dbContext),
             new CreateCaseRequestValidator(),
