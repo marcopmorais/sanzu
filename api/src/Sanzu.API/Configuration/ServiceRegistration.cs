@@ -58,6 +58,7 @@ public static class ServiceRegistration
         services.AddScoped<IPublicConversionService, PublicConversionService>();
         services.AddScoped<IGlossaryService, GlossaryService>();
         services.AddScoped<IAgencyPlaybookService, AgencyPlaybookService>();
+        services.AddScoped<ITrustTelemetryService, TrustTelemetryService>();
         services.AddScoped<IWorkflowBlockedStateService, WorkflowBlockedStateService>();
         services.AddScoped<IValidator<CreateAgencyAccountRequest>, CreateAgencyAccountRequestValidator>();
         services.AddScoped<IValidator<CreateCaseRequest>, CreateCaseRequestValidator>();

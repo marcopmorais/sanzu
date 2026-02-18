@@ -27,4 +27,32 @@ public sealed class AuditRepository : IAuditRepository
             .OrderBy(x => x.CreatedAt)
             .ToListAsync(cancellationToken);
     }
+
+    public async Task<IReadOnlyList<AuditEvent>> GetByTenantIdInPeriodAsync(
+        Guid tenantId,
+        DateTime periodStart,
+        DateTime periodEnd,
+        CancellationToken cancellationToken)
+    {
+        return await _dbContext.AuditEvents
+            .Join(
+                _dbContext.Cases.Where(c => c.TenantId == tenantId),
+                audit => audit.CaseId,
+                caseEntity => caseEntity.Id,
+                (audit, _) => audit)
+            .Where(x => x.CreatedAt >= periodStart && x.CreatedAt < periodEnd)
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<AuditEvent>> GetAllInPeriodAsync(
+        DateTime periodStart,
+        DateTime periodEnd,
+        CancellationToken cancellationToken)
+    {
+        return await _dbContext.AuditEvents
+            .Where(x => x.CreatedAt >= periodStart && x.CreatedAt < periodEnd)
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
+    }
 }

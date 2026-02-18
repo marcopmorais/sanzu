@@ -71,4 +71,27 @@ public sealed class WorkflowStepRepository : IWorkflowStepRepository
             .Where(x => x.StepId == stepId)
             .ToListAsync(cancellationToken);
     }
+
+    public async Task<IReadOnlyList<WorkflowStepInstance>> GetByTenantIdInPeriodAsync(
+        Guid tenantId,
+        DateTime periodStart,
+        DateTime periodEnd,
+        CancellationToken cancellationToken)
+    {
+        return await _dbContext.WorkflowStepInstances
+            .Where(x => x.TenantId == tenantId && x.UpdatedAt >= periodStart && x.UpdatedAt < periodEnd)
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<WorkflowStepInstance>> GetAllInPeriodAsync(
+        DateTime periodStart,
+        DateTime periodEnd,
+        CancellationToken cancellationToken)
+    {
+        return await _dbContext.WorkflowStepInstances
+            .Where(x => x.UpdatedAt >= periodStart && x.UpdatedAt < periodEnd)
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
+    }
 }
