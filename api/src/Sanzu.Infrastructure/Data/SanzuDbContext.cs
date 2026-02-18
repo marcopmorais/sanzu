@@ -35,6 +35,7 @@ public sealed class SanzuDbContext : DbContext
     public DbSet<PublicLead> PublicLeads => Set<PublicLead>();
     public DbSet<GlossaryTerm> GlossaryTerms => Set<GlossaryTerm>();
     public DbSet<AgencyPlaybook> AgencyPlaybooks => Set<AgencyPlaybook>();
+    public DbSet<RemediationAction> RemediationActions => Set<RemediationAction>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

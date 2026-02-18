@@ -40,6 +40,7 @@ public static class ServiceRegistration
         services.AddScoped<IPublicLeadRepository, PublicLeadRepository>();
         services.AddScoped<IGlossaryTermRepository, GlossaryTermRepository>();
         services.AddScoped<IAgencyPlaybookRepository, AgencyPlaybookRepository>();
+        services.AddScoped<IRemediationRepository, RemediationRepository>();
         services.AddScoped<ITenantInvitationNotificationSender, NoOpTenantInvitationNotificationSender>();
         services.AddScoped<IUnitOfWork, EfUnitOfWork>();
 
