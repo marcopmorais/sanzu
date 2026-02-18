@@ -36,7 +36,7 @@ public sealed class AuditRepository : IAuditRepository
     {
         return await _dbContext.AuditEvents
             .Join(
-                _dbContext.Cases.Where(c => c.TenantId == tenantId),
+                _dbContext.Cases.IgnoreQueryFilters().Where(c => c.TenantId == tenantId),
                 audit => audit.CaseId,
                 caseEntity => caseEntity.Id,
                 (audit, _) => audit)
