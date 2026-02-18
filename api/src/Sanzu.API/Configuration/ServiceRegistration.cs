@@ -63,6 +63,7 @@ public static class ServiceRegistration
         services.AddScoped<IFleetPostureService, FleetPostureService>();
         services.AddScoped<IAdminQueueService, AdminQueueService>();
         services.AddScoped<IRemediationService, RemediationService>();
+        services.AddScoped<ICopilotDraftService, CopilotDraftService>();
         services.AddScoped<IWorkflowBlockedStateService, WorkflowBlockedStateService>();
         services.AddScoped<IValidator<CreateAgencyAccountRequest>, CreateAgencyAccountRequestValidator>();
         services.AddScoped<IValidator<CreateCaseRequest>, CreateCaseRequestValidator>();
