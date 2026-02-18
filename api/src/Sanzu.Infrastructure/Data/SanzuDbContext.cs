@@ -34,6 +34,7 @@ public sealed class SanzuDbContext : DbContext
     public DbSet<KpiAlertLog> KpiAlerts => Set<KpiAlertLog>();
     public DbSet<PublicLead> PublicLeads => Set<PublicLead>();
     public DbSet<GlossaryTerm> GlossaryTerms => Set<GlossaryTerm>();
+    public DbSet<AgencyPlaybook> AgencyPlaybooks => Set<AgencyPlaybook>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -94,5 +95,8 @@ public sealed class SanzuDbContext : DbContext
 
         modelBuilder.Entity<GlossaryTerm>()
             .HasQueryFilter(term => CurrentOrganizationId == null || term.TenantId == CurrentOrganizationId);
+
+        modelBuilder.Entity<AgencyPlaybook>()
+            .HasQueryFilter(p => CurrentOrganizationId == null || p.TenantId == CurrentOrganizationId);
     }
 }

@@ -39,6 +39,7 @@ public static class ServiceRegistration
         services.AddScoped<IKpiAlertLogRepository, KpiAlertLogRepository>();
         services.AddScoped<IPublicLeadRepository, PublicLeadRepository>();
         services.AddScoped<IGlossaryTermRepository, GlossaryTermRepository>();
+        services.AddScoped<IAgencyPlaybookRepository, AgencyPlaybookRepository>();
         services.AddScoped<ITenantInvitationNotificationSender, NoOpTenantInvitationNotificationSender>();
         services.AddScoped<IUnitOfWork, EfUnitOfWork>();
 

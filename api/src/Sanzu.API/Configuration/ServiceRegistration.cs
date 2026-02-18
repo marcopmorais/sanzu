@@ -57,6 +57,7 @@ public static class ServiceRegistration
         services.AddScoped<ICaseService, CaseService>();
         services.AddScoped<IPublicConversionService, PublicConversionService>();
         services.AddScoped<IGlossaryService, GlossaryService>();
+        services.AddScoped<IAgencyPlaybookService, AgencyPlaybookService>();
         services.AddScoped<IWorkflowBlockedStateService, WorkflowBlockedStateService>();
         services.AddScoped<IValidator<CreateAgencyAccountRequest>, CreateAgencyAccountRequestValidator>();
         services.AddScoped<IValidator<CreateCaseRequest>, CreateCaseRequestValidator>();
@@ -92,6 +93,8 @@ public static class ServiceRegistration
         services.AddScoped<IValidator<SubmitDemoRequest>, SubmitDemoRequestValidator>();
         services.AddScoped<IValidator<StartAccountIntentRequest>, StartAccountIntentRequestValidator>();
         services.AddScoped<IValidator<UpsertGlossaryTermRequest>, UpsertGlossaryTermRequestValidator>();
+        services.AddScoped<IValidator<CreatePlaybookRequest>, CreatePlaybookRequestValidator>();
+        services.AddScoped<IValidator<UpdatePlaybookRequest>, UpdatePlaybookRequestValidator>();
 
         return services;
     }
