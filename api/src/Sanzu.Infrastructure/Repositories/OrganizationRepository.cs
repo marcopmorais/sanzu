@@ -33,6 +33,13 @@ public sealed class OrganizationRepository : IOrganizationRepository
             .ToListAsync(cancellationToken);
     }
 
+    public Task<Organization?> GetByIdForPlatformAsync(Guid id, CancellationToken cancellationToken)
+    {
+        return _dbContext.Organizations
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+    }
+
     public Task<bool> ExistsByNameAsync(string name, CancellationToken cancellationToken)
     {
         return _dbContext.Organizations.AnyAsync(x => x.Name == name, cancellationToken);

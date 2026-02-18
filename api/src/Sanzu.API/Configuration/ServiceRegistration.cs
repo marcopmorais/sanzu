@@ -60,6 +60,7 @@ public static class ServiceRegistration
         services.AddScoped<IAgencyPlaybookService, AgencyPlaybookService>();
         services.AddScoped<ITrustTelemetryService, TrustTelemetryService>();
         services.AddScoped<ICaseAuditExportService, CaseAuditExportService>();
+        services.AddScoped<IFleetPostureService, FleetPostureService>();
         services.AddScoped<IWorkflowBlockedStateService, WorkflowBlockedStateService>();
         services.AddScoped<IValidator<CreateAgencyAccountRequest>, CreateAgencyAccountRequestValidator>();
         services.AddScoped<IValidator<CreateCaseRequest>, CreateCaseRequestValidator>();

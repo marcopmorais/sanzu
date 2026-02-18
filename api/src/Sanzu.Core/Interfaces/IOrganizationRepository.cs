@@ -8,4 +8,5 @@ public interface IOrganizationRepository
     Task<Organization?> GetByIdAsync(Guid id, CancellationToken cancellationToken);
     Task<IReadOnlyList<Organization>> GetAllAsync(CancellationToken cancellationToken);
     Task<bool> ExistsByNameAsync(string name, CancellationToken cancellationToken);
+    Task<Organization?> GetByIdForPlatformAsync(Guid id, CancellationToken cancellationToken);
 }
