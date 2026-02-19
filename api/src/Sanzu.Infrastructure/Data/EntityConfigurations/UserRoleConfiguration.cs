@@ -47,7 +47,7 @@ public sealed class UserRoleConfiguration : IEntityTypeConfiguration<UserRole>
             {
                 tableBuilder.HasCheckConstraint(
                     "CK_UserRoles_RoleType",
-                    "[RoleType] IN ('AgencyAdmin','SanzuAdmin')");
+                    "[RoleType] IN ('AgencyAdmin','SanzuAdmin','SanzuOps','SanzuFinance','SanzuSupport','SanzuViewer')");
             });
     }
 }

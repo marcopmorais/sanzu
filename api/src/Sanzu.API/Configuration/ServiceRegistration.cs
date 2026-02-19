@@ -42,6 +42,58 @@ public static class ServiceRegistration
                             .AddAuthenticationSchemes(HeaderAuthenticationHandler.SchemeName)
                             .RequireAuthenticatedUser()
                             .RequireRole(nameof(PlatformRole.SanzuAdmin)));
+
+                options.AddPolicy(
+                    "AdminFull",
+                    policy =>
+                        policy
+                            .AddAuthenticationSchemes(HeaderAuthenticationHandler.SchemeName)
+                            .RequireAuthenticatedUser()
+                            .RequireRole(nameof(PlatformRole.SanzuAdmin)));
+
+                options.AddPolicy(
+                    "AdminOps",
+                    policy =>
+                        policy
+                            .AddAuthenticationSchemes(HeaderAuthenticationHandler.SchemeName)
+                            .RequireAuthenticatedUser()
+                            .RequireRole(
+                                nameof(PlatformRole.SanzuAdmin),
+                                nameof(PlatformRole.SanzuOps)));
+
+                options.AddPolicy(
+                    "AdminFinance",
+                    policy =>
+                        policy
+                            .AddAuthenticationSchemes(HeaderAuthenticationHandler.SchemeName)
+                            .RequireAuthenticatedUser()
+                            .RequireRole(
+                                nameof(PlatformRole.SanzuAdmin),
+                                nameof(PlatformRole.SanzuFinance)));
+
+                options.AddPolicy(
+                    "AdminSupport",
+                    policy =>
+                        policy
+                            .AddAuthenticationSchemes(HeaderAuthenticationHandler.SchemeName)
+                            .RequireAuthenticatedUser()
+                            .RequireRole(
+                                nameof(PlatformRole.SanzuAdmin),
+                                nameof(PlatformRole.SanzuOps),
+                                nameof(PlatformRole.SanzuSupport)));
+
+                options.AddPolicy(
+                    "AdminViewer",
+                    policy =>
+                        policy
+                            .AddAuthenticationSchemes(HeaderAuthenticationHandler.SchemeName)
+                            .RequireAuthenticatedUser()
+                            .RequireRole(
+                                nameof(PlatformRole.SanzuAdmin),
+                                nameof(PlatformRole.SanzuOps),
+                                nameof(PlatformRole.SanzuFinance),
+                                nameof(PlatformRole.SanzuSupport),
+                                nameof(PlatformRole.SanzuViewer)));
             });
 
         services.AddScoped<ITenantOnboardingService, TenantOnboardingService>();
