@@ -133,11 +133,11 @@ development_status:
   # ADMIN COCKPIT — Epics 12-21 (epics-admin.md, FR-A1–FR-A44)
   # ═══════════════════════════════════════════════════════════
 
-  epic-12: in-progress
+  epic-12: done
   12-1-internal-admin-rbac-and-permissions-endpoint: done
   12-2-admin-layout-and-audit-foundation: done
   12-3-platform-operations-summary: done
-  12-4-internal-team-management: backlog
+  12-4-internal-team-management: done
   epic-12-retrospective: optional
 
   epic-13: backlog

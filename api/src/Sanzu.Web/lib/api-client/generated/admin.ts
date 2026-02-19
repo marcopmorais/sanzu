@@ -50,3 +50,48 @@ export async function getPlatformSummary(): Promise<PlatformOperationsSummaryRes
   const envelope = await response.json();
   return envelope.data;
 }
+
+export interface AdminTeamMemberResponse {
+  userId: string;
+  email: string;
+  fullName: string;
+  role: string;
+  grantedAt: string;
+}
+
+export async function listTeamMembers(): Promise<AdminTeamMemberResponse[]> {
+  const response = await fetch('/api/v1/admin/team', {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to list team members: ${response.statusText}`);
+  }
+
+  const envelope = await response.json();
+  return envelope.data;
+}
+
+export async function grantAdminRole(userId: string, role: string): Promise<void> {
+  const response = await fetch(`/api/v1/admin/team/${userId}/roles`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ role }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to grant role: ${response.statusText}`);
+  }
+}
+
+export async function revokeAdminRole(userId: string, role: string): Promise<void> {
+  const response = await fetch(`/api/v1/admin/team/${userId}/roles/${role}`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to revoke role: ${response.statusText}`);
+  }
+}

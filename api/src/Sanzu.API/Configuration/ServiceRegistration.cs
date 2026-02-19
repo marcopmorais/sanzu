@@ -113,6 +113,7 @@ public static class ServiceRegistration
         services.AddScoped<ITrustTelemetryService, TrustTelemetryService>();
         services.AddScoped<ICaseAuditExportService, CaseAuditExportService>();
         services.AddScoped<IPlatformSummaryService, PlatformSummaryService>();
+        services.AddScoped<IAdminTeamService, AdminTeamService>();
         services.AddScoped<IFleetPostureService, FleetPostureService>();
         services.AddScoped<IAdminQueueService, AdminQueueService>();
         services.AddScoped<IRemediationService, RemediationService>();
@@ -155,6 +156,7 @@ public static class ServiceRegistration
         services.AddScoped<IValidator<UpsertGlossaryTermRequest>, UpsertGlossaryTermRequestValidator>();
         services.AddScoped<IValidator<CreatePlaybookRequest>, CreatePlaybookRequestValidator>();
         services.AddScoped<IValidator<UpdatePlaybookRequest>, UpdatePlaybookRequestValidator>();
+        services.AddScoped<IValidator<GrantAdminRoleRequest>, GrantAdminRoleRequestValidator>();
 
         return services;
     }

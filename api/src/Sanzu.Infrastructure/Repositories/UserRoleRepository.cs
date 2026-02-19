@@ -35,4 +35,23 @@ public sealed class UserRoleRepository : IUserRoleRepository
             x => x.UserId == userId && x.TenantId == tenantId && x.RoleType == roleType,
             cancellationToken);
     }
+
+    public async Task<IReadOnlyList<UserRole>> GetAllPlatformScopedAsync(CancellationToken cancellationToken)
+    {
+        return await _dbContext.UserRoles
+            .Include(x => x.User)
+            .Where(x => x.TenantId == null)
+            .OrderBy(x => x.User!.FullName)
+            .ThenBy(x => x.RoleType)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task DeleteAsync(Guid userRoleId, CancellationToken cancellationToken)
+    {
+        var role = await _dbContext.UserRoles.FindAsync(new object[] { userRoleId }, cancellationToken);
+        if (role != null)
+        {
+            _dbContext.UserRoles.Remove(role);
+        }
+    }
 }
