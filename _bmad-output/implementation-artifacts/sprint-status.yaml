@@ -140,9 +140,9 @@ development_status:
   12-4-internal-team-management: done
   epic-12-retrospective: optional
 
-  epic-13: in-progress
+  epic-13: done
   13-1-health-score-data-model-and-pluggable-input-interface: done
-  13-2-health-score-background-service-and-classification: ready-for-dev
+  13-2-health-score-background-service-and-classification: done
   epic-13-retrospective: optional
 
   epic-14: backlog

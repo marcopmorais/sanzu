@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authentication;
 using FluentValidation;
 using Sanzu.API.Authentication;
+using Sanzu.API.Services;
 using Sanzu.Core.Enums;
 using Sanzu.Core.Interfaces;
 using Sanzu.Core.Models.Requests;
@@ -161,6 +162,7 @@ public static class ServiceRegistration
         services.AddScoped<IHealthScoreInput, BillingStatusInput>();
         services.AddScoped<IHealthScoreInput, CaseCompletionInput>();
         services.AddScoped<IHealthScoreInput, OnboardingCompletionInput>();
+        services.AddHostedService<HealthScoreBackgroundService>();
 
         return services;
     }

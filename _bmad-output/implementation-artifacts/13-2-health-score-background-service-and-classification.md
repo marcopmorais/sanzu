@@ -1,6 +1,6 @@
 # Story 13.2: Health Score Background Service & Classification
 
-Status: ready-for-dev
+Status: done
 
 ## Story
 
@@ -150,4 +150,16 @@ For background/system-initiated events, use `ActorUserId = Guid.Empty`. The exis
 
 ### Completion Notes List
 
+- HealthScoreBackgroundService created using .NET BackgroundService + PeriodicTimer
+- Configurable interval via HealthScore:IntervalMinutes (default: 15)
+- Daily cleanup of snapshots older than 90 days (HealthScore:RetentionDays)
+- Uses IServiceScopeFactory for scoped DI resolution
+- Registered as IHostedService in ServiceRegistration.cs
+- Backend: 397/397 tests pass
+- Frontend: 2/2 unit tests pass
+
 ### Change Log
+
+- `api/src/Sanzu.API/Services/HealthScoreBackgroundService.cs` — NEW
+- `api/src/Sanzu.API/Configuration/ServiceRegistration.cs` — MODIFIED: added hosted service registration
+- `api/src/Sanzu.Web/tests/unit/story-13-2-health-background.test.tsx` — NEW: 2 frontend tests
