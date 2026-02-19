@@ -112,6 +112,7 @@ public static class ServiceRegistration
         services.AddScoped<IAgencyPlaybookService, AgencyPlaybookService>();
         services.AddScoped<ITrustTelemetryService, TrustTelemetryService>();
         services.AddScoped<ICaseAuditExportService, CaseAuditExportService>();
+        services.AddScoped<IPlatformSummaryService, PlatformSummaryService>();
         services.AddScoped<IFleetPostureService, FleetPostureService>();
         services.AddScoped<IAdminQueueService, AdminQueueService>();
         services.AddScoped<IRemediationService, RemediationService>();

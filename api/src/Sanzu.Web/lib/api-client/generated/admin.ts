@@ -25,3 +25,28 @@ export async function getAdminPermissions(): Promise<AdminPermissionsResponse> {
   const envelope = await response.json();
   return envelope.data;
 }
+
+export interface PlatformOperationsSummaryResponse {
+  totalActiveTenants: number;
+  totalActiveCases: number;
+  workflowStepsCompleted: number;
+  workflowStepsActive: number;
+  workflowStepsBlocked: number;
+  totalDocuments: number;
+}
+
+export async function getPlatformSummary(): Promise<PlatformOperationsSummaryResponse> {
+  const response = await fetch('/api/v1/admin/platform/summary', {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to get platform summary: ${response.statusText}`);
+  }
+
+  const envelope = await response.json();
+  return envelope.data;
+}

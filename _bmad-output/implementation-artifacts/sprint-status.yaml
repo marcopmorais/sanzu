@@ -136,7 +136,7 @@ development_status:
   epic-12: in-progress
   12-1-internal-admin-rbac-and-permissions-endpoint: done
   12-2-admin-layout-and-audit-foundation: done
-  12-3-platform-operations-summary: backlog
+  12-3-platform-operations-summary: done
   12-4-internal-team-management: backlog
   epic-12-retrospective: optional
 
