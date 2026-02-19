@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Sanzu.Infrastructure.Data;
 
@@ -11,9 +12,11 @@ using Sanzu.Infrastructure.Data;
 namespace Sanzu.Infrastructure.Migrations
 {
     [DbContext(typeof(SanzuDbContext))]
-    partial class SanzuDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260219012948_Story13_1_TenantHealthScore")]
+    partial class Story13_1_TenantHealthScore
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

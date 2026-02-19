@@ -95,3 +95,43 @@ export async function revokeAdminRole(userId: string, role: string): Promise<voi
     throw new Error(`Failed to revoke role: ${response.statusText}`);
   }
 }
+
+export type HealthBand = 'Green' | 'Yellow' | 'Red';
+
+export interface TenantHealthScoreResponse {
+  id: string;
+  tenantId: string;
+  tenantName: string;
+  overallScore: number;
+  billingScore: number;
+  caseCompletionScore: number;
+  onboardingScore: number;
+  healthBand: HealthBand;
+  primaryIssue?: string;
+  computedAt: string;
+}
+
+export async function getHealthScores(): Promise<TenantHealthScoreResponse[]> {
+  const response = await fetch('/api/v1/admin/health-scores', {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to get health scores: ${response.statusText}`);
+  }
+
+  const envelope = await response.json();
+  return envelope.data;
+}
+
+export async function triggerHealthScoreCompute(): Promise<void> {
+  const response = await fetch('/api/v1/admin/health-scores/compute', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to trigger health score compute: ${response.statusText}`);
+  }
+}

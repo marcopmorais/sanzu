@@ -30,7 +30,7 @@
 # ===============
 # - Epics 1-11: Core platform (epics.md, FR1-FR68)
 # - Epics 12-21: Admin cockpit (epics-admin.md, FR-A1 through FR-A44)
-# - Epics 1-9 done, Epic 10-11 in-progress, Epics 12-21 backlog (Admin)
+# - Epics 1-12 done, Epics 13-21 backlog (Admin)
 # - Old epic 12-13 entries (pre-Admin restructuring) have been replaced
 
 generated: 2026-02-19
@@ -119,14 +119,14 @@ development_status:
   9-2-show-reason-coded-blocked-states-and-guided-recovery-actions: done
   epic-9-retrospective: optional
 
-  epic-10: in-progress
-  10-1-define-and-version-agency-playbooks: in-progress
-  10-2-apply-playbooks-to-newly-created-cases: in-progress
+  epic-10: done
+  10-1-define-and-version-agency-playbooks: done
+  10-2-apply-playbooks-to-newly-created-cases: done
   epic-10-retrospective: optional
 
-  epic-11: in-progress
-  11-1-export-case-audit-and-evidence-package: in-progress
-  11-2-provide-trust-telemetry-for-pilot-learning-and-oversight: in-progress
+  epic-11: done
+  11-1-export-case-audit-and-evidence-package: done
+  11-2-provide-trust-telemetry-for-pilot-learning-and-oversight: done
   epic-11-retrospective: optional
 
   # ═══════════════════════════════════════════════════════════
@@ -140,9 +140,9 @@ development_status:
   12-4-internal-team-management: done
   epic-12-retrospective: optional
 
-  epic-13: backlog
-  13-1-health-score-data-model-and-pluggable-input-interface: backlog
-  13-2-health-score-background-service-and-classification: backlog
+  epic-13: in-progress
+  13-1-health-score-data-model-and-pluggable-input-interface: done
+  13-2-health-score-background-service-and-classification: ready-for-dev
   epic-13-retrospective: optional
 
   epic-14: backlog

@@ -157,6 +157,10 @@ public static class ServiceRegistration
         services.AddScoped<IValidator<CreatePlaybookRequest>, CreatePlaybookRequestValidator>();
         services.AddScoped<IValidator<UpdatePlaybookRequest>, UpdatePlaybookRequestValidator>();
         services.AddScoped<IValidator<GrantAdminRoleRequest>, GrantAdminRoleRequestValidator>();
+        services.AddScoped<IHealthScoreComputeService, HealthScoreComputeService>();
+        services.AddScoped<IHealthScoreInput, BillingStatusInput>();
+        services.AddScoped<IHealthScoreInput, CaseCompletionInput>();
+        services.AddScoped<IHealthScoreInput, OnboardingCompletionInput>();
 
         return services;
     }

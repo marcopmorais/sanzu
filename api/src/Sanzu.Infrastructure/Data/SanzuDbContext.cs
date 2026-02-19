@@ -36,6 +36,7 @@ public sealed class SanzuDbContext : DbContext
     public DbSet<GlossaryTerm> GlossaryTerms => Set<GlossaryTerm>();
     public DbSet<AgencyPlaybook> AgencyPlaybooks => Set<AgencyPlaybook>();
     public DbSet<RemediationAction> RemediationActions => Set<RemediationAction>();
+    public DbSet<TenantHealthScore> TenantHealthScores => Set<TenantHealthScore>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -99,5 +100,8 @@ public sealed class SanzuDbContext : DbContext
 
         modelBuilder.Entity<AgencyPlaybook>()
             .HasQueryFilter(p => CurrentOrganizationId == null || p.TenantId == CurrentOrganizationId);
+
+        modelBuilder.Entity<TenantHealthScore>()
+            .HasQueryFilter(score => CurrentOrganizationId == null || score.TenantId == CurrentOrganizationId);
     }
 }
