@@ -2,7 +2,6 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Sanzu.Core.Enums;
-using Sanzu.Core.Interfaces;
 using Sanzu.Core.Models.Responses;
 
 namespace Sanzu.API.Controllers.Admin;
@@ -11,45 +10,20 @@ namespace Sanzu.API.Controllers.Admin;
 [Route("api/v1/admin/me")]
 public sealed class AdminPermissionsController : ControllerBase
 {
-    private readonly IAuditRepository _auditRepository;
-    private readonly IUnitOfWork _unitOfWork;
-
-    public AdminPermissionsController(IAuditRepository auditRepository, IUnitOfWork unitOfWork)
-    {
-        _auditRepository = auditRepository;
-        _unitOfWork = unitOfWork;
-    }
-
     [Authorize(Policy = "AdminViewer")]
     [HttpGet("permissions")]
     [ProducesResponseType(typeof(ApiEnvelope<AdminPermissionsResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
-    public async Task<IActionResult> GetPermissions(CancellationToken cancellationToken)
+    public IActionResult GetPermissions()
     {
-        if (!TryGetActorUserId(out var actorUserId))
+        if (!TryGetActorUserId(out _))
         {
             return Unauthorized();
         }
 
         var role = User.FindFirstValue(ClaimTypes.Role) ?? string.Empty;
         var permissions = BuildPermissionsForRole(role);
-
-        await _unitOfWork.ExecuteInTransactionAsync(
-            async ct =>
-            {
-                await _auditRepository.CreateAsync(
-                    new Core.Entities.AuditEvent
-                    {
-                        Id = Guid.NewGuid(),
-                        ActorUserId = actorUserId,
-                        EventType = "Admin.Permissions.Accessed",
-                        Metadata = $"{{\"role\":\"{role}\"}}",
-                        CreatedAt = DateTime.UtcNow
-                    },
-                    ct);
-            },
-            cancellationToken);
 
         return Ok(ApiEnvelope<AdminPermissionsResponse>.Success(permissions, BuildMeta()));
     }

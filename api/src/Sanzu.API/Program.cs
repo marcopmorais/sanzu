@@ -1,9 +1,13 @@
 using Sanzu.API.Configuration;
+using Sanzu.API.Filters;
 using Sanzu.API.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
+builder.Services.AddControllers(options =>
+{
+    options.Filters.Add<AdminAuditActionFilter>();
+});
 builder.Services.AddOpenApi();
 builder.Services.AddSanzuServices(builder.Configuration);
 

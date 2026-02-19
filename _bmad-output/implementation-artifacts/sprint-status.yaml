@@ -1,0 +1,195 @@
+# generated: 2026-02-19
+# project: Sanzu
+# project_key: sanzu
+# tracking_system: file-system
+# story_location: _bmad-output/implementation-artifacts
+
+# STATUS DEFINITIONS:
+# ==================
+# Epic Status:
+#   - backlog: Epic not yet started
+#   - in-progress: Epic actively being worked on
+#   - done: All stories in epic completed
+#
+# Epic Status Transitions:
+#   - backlog -> in-progress: when active work starts on first story
+#   - in-progress -> done: when all stories for the epic are done
+#
+# Story Status:
+#   - backlog: Story only exists in epic file
+#   - ready-for-dev: Story file created in implementation artifacts
+#   - in-progress: Developer actively implementing
+#   - review: Implementation complete, ready for review
+#   - done: Story completed
+#
+# Retrospective Status:
+#   - optional: Can be completed but not required
+#   - done: Retrospective completed
+#
+# WORKFLOW NOTES:
+# ===============
+# - Epics 1-11: Core platform (epics.md, FR1-FR68)
+# - Epics 12-21: Admin cockpit (epics-admin.md, FR-A1 through FR-A44)
+# - Epics 1-9 done, Epic 10-11 in-progress, Epics 12-21 backlog (Admin)
+# - Old epic 12-13 entries (pre-Admin restructuring) have been replaced
+
+generated: 2026-02-19
+project: Sanzu
+project_key: sanzu
+tracking_system: file-system
+story_location: _bmad-output/implementation-artifacts
+
+development_status:
+  # ═══════════════════════════════════════════════════════════
+  # CORE PLATFORM — Epics 1-11 (epics.md, FR1-FR68)
+  # ═══════════════════════════════════════════════════════════
+
+  epic-1: done
+  1-1-create-agency-account-and-tenant-workspace: done
+  1-2-complete-tenant-onboarding-setup: done
+  1-3-activate-plan-payment-method-and-invoice-profile: done
+  1-4-change-plan-or-cancel-subscription: done
+  1-5-view-billing-history-charges-and-usage: done
+  1-6-handle-failed-payments-and-recovery: done
+  1-7-frontend-onboarding-and-billing-activation-experience: done
+  epic-1-retrospective: optional
+
+  epic-2: done
+  2-1-create-case-with-required-metadata: done
+  2-2-update-close-archive-and-view-lifecycle-milestones: done
+  2-3-invite-participants-and-assign-roles: done
+  2-4-enforce-editor-and-reader-access-boundaries: done
+  2-5-frontend-case-lifecycle-and-role-collaboration-experience: done
+  epic-2-retrospective: optional
+
+  epic-3: done
+  3-1-complete-structured-intake: done
+  3-2-generate-case-plan-with-dependency-graph: done
+  3-3-recalculate-readiness-and-support-managed-override: done
+  3-4-execute-prioritized-tasks-with-due-date-signals: done
+  3-5-provide-timeline-ownership-and-notifications: done
+  3-6-frontend-intake-plan-and-task-progress-experience: done
+  epic-3-retrospective: optional
+
+  epic-4: done
+  4-1-upload-and-download-case-documents: done
+  4-2-track-document-versions-and-classification: done
+  4-3-generate-standardized-outbound-templates: done
+  4-4-extract-candidate-data-from-uploaded-documents: done
+  4-5-review-and-apply-extraction-decisions: done
+  4-6-frontend-document-and-extraction-review-experience: done
+  epic-4-retrospective: optional
+
+  epic-5: done
+  5-1-build-structured-advisor-handoff-packets: done
+  5-2-track-external-handoff-state-in-case-context: done
+  5-3-provision-and-govern-process-alias: done
+  5-4-view-process-inbox-threads-and-metadata: done
+  5-5-enforce-role-and-case-scoped-inbox-access: done
+  5-6-frontend-external-handoff-and-process-inbox-experience: done
+  epic-5-retrospective: optional
+
+  epic-6: done
+  6-1-review-case-audit-trail: done
+  6-2-monitor-compliance-and-retention-policy-status: done
+  6-3-configure-tenant-workflow-and-template-defaults: done
+  6-4-view-operational-usage-indicators: done
+  6-5-frontend-governance-and-operational-oversight-experience: done
+  epic-6-retrospective: optional
+
+  epic-7: done
+  7-1-manage-tenant-lifecycle-states: done
+  7-2-run-least-privilege-support-diagnostics: done
+  7-3-apply-platform-policy-controls: done
+  7-4-view-kpi-dashboard-with-drilldown: done
+  7-5-configure-kpi-threshold-alerts: done
+  7-6-frontend-platform-administration-and-kpi-governance-experience: done
+  epic-7-retrospective: optional
+
+  epic-8: done
+  8-1-publish-public-value-trust-pricing-and-resource-pages: done
+  8-2-submit-demo-request-or-start-account-creation: done
+  8-3-publish-legal-and-policy-pages: done
+  8-4-route-qualified-leads-to-onboarding-crm: done
+  8-5-frontend-public-web-and-conversion-journey-experience: done
+  epic-8-retrospective: optional
+
+  epic-9: done
+  9-1-provide-plain-language-glossary-and-contextual-explanations: done
+  9-2-show-reason-coded-blocked-states-and-guided-recovery-actions: done
+  epic-9-retrospective: optional
+
+  epic-10: in-progress
+  10-1-define-and-version-agency-playbooks: in-progress
+  10-2-apply-playbooks-to-newly-created-cases: in-progress
+  epic-10-retrospective: optional
+
+  epic-11: in-progress
+  11-1-export-case-audit-and-evidence-package: in-progress
+  11-2-provide-trust-telemetry-for-pilot-learning-and-oversight: in-progress
+  epic-11-retrospective: optional
+
+  # ═══════════════════════════════════════════════════════════
+  # ADMIN COCKPIT — Epics 12-21 (epics-admin.md, FR-A1–FR-A44)
+  # ═══════════════════════════════════════════════════════════
+
+  epic-12: in-progress
+  12-1-internal-admin-rbac-and-permissions-endpoint: done
+  12-2-admin-layout-and-audit-foundation: done
+  12-3-platform-operations-summary: backlog
+  12-4-internal-team-management: backlog
+  epic-12-retrospective: optional
+
+  epic-13: backlog
+  13-1-health-score-data-model-and-pluggable-input-interface: backlog
+  13-2-health-score-background-service-and-classification: backlog
+  epic-13-retrospective: optional
+
+  epic-14: backlog
+  14-1-dashboard-snapshot-data-model-and-background-service: backlog
+  14-2-dashboard-api-endpoint-with-staleness-detection: backlog
+  14-3-dashboard-cockpit-frontend-with-widgets: backlog
+  epic-14-retrospective: optional
+
+  epic-15: backlog
+  15-1-tenant-list-api-and-search-filter: backlog
+  15-2-tenant-360-composable-api-endpoints: backlog
+  15-3-tenant-portfolio-and-360-frontend: backlog
+  epic-15-retrospective: optional
+
+  epic-16: backlog
+  16-1-revenue-dashboard-api: backlog
+  16-2-revenue-and-billing-csv-export: backlog
+  16-3-revenue-dashboard-frontend: backlog
+  epic-16-retrospective: optional
+
+  epic-17: backlog
+  17-1-alert-data-model-and-evaluation-background-service: backlog
+  17-2-alert-routing-and-delivery: backlog
+  17-3-alert-inbox-and-lifecycle-management: backlog
+  17-4-manual-follow-up-alerts-and-delivery-configuration: backlog
+  epic-17-retrospective: optional
+
+  epic-18: backlog
+  18-1-audit-event-search-and-export-api: backlog
+  18-2-audit-event-viewer-frontend: backlog
+  epic-18-retrospective: optional
+
+  epic-19: backlog
+  19-1-workflow-override-and-grace-period-extension-apis: backlog
+  19-2-re-onboarding-and-tenant-impersonation: backlog
+  19-3-tenant-communication-and-communication-log: backlog
+  19-4-support-actions-frontend: backlog
+  epic-19-retrospective: optional
+
+  epic-20: backlog
+  20-1-alert-threshold-and-health-weight-configuration: backlog
+  20-2-communication-template-management: backlog
+  20-3-business-summary-and-compliance-report-generation: backlog
+  epic-20-retrospective: optional
+
+  epic-21: backlog
+  21-1-health-score-trend-and-history-display: backlog
+  21-2-tenant-acquisition-funnel-api: backlog
+  21-3-funnel-analytics-frontend: backlog
+  epic-21-retrospective: optional

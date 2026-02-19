@@ -147,7 +147,7 @@ public sealed class AdminRbacTests : IClassFixture<CustomWebApplicationFactory>
         using var scope = _factory.Services.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<SanzuDbContext>();
         dbContext.AuditEvents.Should().Contain(
-            x => x.EventType == "Admin.Permissions.Accessed"
+            x => x.EventType == "Admin.Permissions.GetPermissions"
                  && x.ActorUserId == userId);
     }
 
