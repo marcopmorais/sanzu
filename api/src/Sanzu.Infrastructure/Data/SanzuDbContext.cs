@@ -42,6 +42,7 @@ public sealed class SanzuDbContext : DbContext
     public DbSet<AlertDeliveryConfig> AlertDeliveryConfigs => Set<AlertDeliveryConfig>();
     public DbSet<TenantCommunication> TenantCommunications => Set<TenantCommunication>();
     public DbSet<AdminPlatformConfig> AdminPlatformConfigs => Set<AdminPlatformConfig>();
+    public DbSet<CommunicationTemplate> CommunicationTemplates => Set<CommunicationTemplate>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
