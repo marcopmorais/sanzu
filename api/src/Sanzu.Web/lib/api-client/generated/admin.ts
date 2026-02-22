@@ -207,3 +207,199 @@ export async function getDashboardSummary(): Promise<DashboardResponse<AdminDash
   const envelope = await response.json();
   return envelope.data;
 }
+
+// ── Tenant Portfolio & 360 Types ──
+
+export interface TenantListItem {
+  id: string;
+  name: string;
+  status: string;
+  planTier: string | null;
+  healthScore: number | null;
+  healthBand: HealthBand | null;
+  signupDate: string;
+  region: string | null;
+}
+
+export interface PaginatedResponse<T> {
+  items: T[];
+  page: number;
+  pageSize: number;
+  totalCount: number;
+  totalPages: number;
+}
+
+export interface TenantListParams {
+  name?: string;
+  status?: string;
+  healthBand?: string;
+  planTier?: string;
+  signupDateFrom?: string;
+  signupDateTo?: string;
+  sort?: string;
+  order?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export async function getTenants(params: TenantListParams = {}): Promise<PaginatedResponse<TenantListItem>> {
+  const query = new URLSearchParams();
+  if (params.name) query.set('name', params.name);
+  if (params.status) query.set('status', params.status);
+  if (params.healthBand) query.set('healthBand', params.healthBand);
+  if (params.planTier) query.set('planTier', params.planTier);
+  if (params.signupDateFrom) query.set('signupDateFrom', params.signupDateFrom);
+  if (params.signupDateTo) query.set('signupDateTo', params.signupDateTo);
+  if (params.sort) query.set('sort', params.sort);
+  if (params.order) query.set('order', params.order);
+  if (params.page) query.set('page', String(params.page));
+  if (params.pageSize) query.set('pageSize', String(params.pageSize));
+
+  const qs = query.toString();
+  const url = `/api/v1/admin/tenants${qs ? `?${qs}` : ''}`;
+
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to get tenants: ${response.statusText}`);
+  }
+
+  const envelope = await response.json();
+  return envelope.data;
+}
+
+// ── Tenant 360 Types ──
+
+export interface TenantSummary {
+  id: string;
+  name: string;
+  status: string;
+  planTier: string | null;
+  signupDate: string;
+  region: string | null;
+  contactEmail: string | null;
+  healthScore: number | null;
+  healthBand: HealthBand | null;
+}
+
+export interface TenantBillingInvoice {
+  invoiceNumber: string;
+  billingCycleStart: string;
+  billingCycleEnd: string;
+  totalAmount: number;
+  currency: string;
+  status: string;
+  createdAt: string;
+}
+
+export interface TenantBilling {
+  subscriptionPlan: string | null;
+  billingCycle: string | null;
+  subscriptionActivatedAt: string | null;
+  billingHealth: string;
+  lastPaymentDate: string | null;
+  nextRenewalDate: string | null;
+  gracePeriodActive: boolean;
+  gracePeriodRetryAt: string | null;
+  recentInvoices: TenantBillingInvoice[];
+}
+
+export interface TenantCaseWorkflowProgress {
+  totalSteps: number;
+  completedSteps: number;
+  inProgressSteps: number;
+  blockedSteps: number;
+}
+
+export interface TenantCaseBlockedStep {
+  stepKey: string;
+  title: string;
+  blockedReasonCode: string | null;
+  blockedReasonDetail: string | null;
+}
+
+export interface TenantCaseItem {
+  caseId: string;
+  caseNumber: string;
+  deceasedFullName: string;
+  status: string;
+  createdAt: string;
+  workflowKey: string | null;
+  workflowProgress: TenantCaseWorkflowProgress;
+  blockedSteps: TenantCaseBlockedStep[];
+}
+
+export interface TenantCases {
+  cases: TenantCaseItem[];
+}
+
+export interface TenantActivityItem {
+  eventType: string;
+  actorUserId: string;
+  timestamp: string;
+  caseId: string | null;
+  metadata: string;
+}
+
+export interface TenantActivity {
+  events: TenantActivityItem[];
+}
+
+export async function getTenantSummary(tenantId: string): Promise<TenantSummary> {
+  const response = await fetch(`/api/v1/admin/tenants/${tenantId}/summary`, {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to get tenant summary: ${response.statusText}`);
+  }
+
+  const envelope = await response.json();
+  return envelope.data;
+}
+
+export async function getTenantBilling(tenantId: string): Promise<TenantBilling> {
+  const response = await fetch(`/api/v1/admin/tenants/${tenantId}/billing`, {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to get tenant billing: ${response.statusText}`);
+  }
+
+  const envelope = await response.json();
+  return envelope.data;
+}
+
+export async function getTenantCases(tenantId: string): Promise<TenantCases> {
+  const response = await fetch(`/api/v1/admin/tenants/${tenantId}/cases`, {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to get tenant cases: ${response.statusText}`);
+  }
+
+  const envelope = await response.json();
+  return envelope.data;
+}
+
+export async function getTenantActivity(tenantId: string): Promise<TenantActivity> {
+  const response = await fetch(`/api/v1/admin/tenants/${tenantId}/activity`, {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to get tenant activity: ${response.statusText}`);
+  }
+
+  const envelope = await response.json();
+  return envelope.data;
+}
