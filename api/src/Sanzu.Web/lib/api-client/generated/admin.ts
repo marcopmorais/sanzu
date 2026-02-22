@@ -135,3 +135,75 @@ export async function triggerHealthScoreCompute(): Promise<void> {
     throw new Error(`Failed to trigger health score compute: ${response.statusText}`);
   }
 }
+
+// ── Dashboard Summary Types ──
+
+export interface TenantCounts {
+  total: number;
+  active: number;
+  trial: number;
+  churning: number;
+  suspended: number;
+}
+
+export interface RevenuePulse {
+  mrr: number;
+  arr: number;
+  churnRate: number;
+  growthRate: number;
+}
+
+export interface AtRiskTenant {
+  tenantId: string;
+  name: string;
+  score: number;
+  primaryIssue: string | null;
+}
+
+export interface HealthDistribution {
+  green: number;
+  yellow: number;
+  red: number;
+  topAtRisk: AtRiskTenant[];
+}
+
+export interface AlertCounts {
+  critical: number;
+  warning: number;
+  info: number;
+  unacknowledged: number;
+}
+
+export interface OnboardingStatus {
+  completionRate: number;
+  stalled: number;
+}
+
+export interface AdminDashboardSummary {
+  computedAt: string;
+  tenants: TenantCounts;
+  revenue: RevenuePulse;
+  health: HealthDistribution;
+  alerts: AlertCounts;
+  onboarding: OnboardingStatus;
+}
+
+export interface DashboardResponse<T> {
+  data: T;
+  computedAt: string;
+  isStale: boolean;
+}
+
+export async function getDashboardSummary(): Promise<DashboardResponse<AdminDashboardSummary>> {
+  const response = await fetch('/api/v1/admin/dashboard/summary', {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to get dashboard summary: ${response.statusText}`);
+  }
+
+  const envelope = await response.json();
+  return envelope.data;
+}

@@ -145,10 +145,10 @@ development_status:
   13-2-health-score-background-service-and-classification: done
   epic-13-retrospective: optional
 
-  epic-14: backlog
-  14-1-dashboard-snapshot-data-model-and-background-service: backlog
-  14-2-dashboard-api-endpoint-with-staleness-detection: backlog
-  14-3-dashboard-cockpit-frontend-with-widgets: backlog
+  epic-14: done
+  14-1-dashboard-snapshot-data-model-and-background-service: done
+  14-2-dashboard-api-endpoint-with-staleness-detection: done
+  14-3-dashboard-cockpit-frontend-with-widgets: done
   epic-14-retrospective: optional
 
   epic-15: backlog
