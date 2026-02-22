@@ -643,6 +643,81 @@ export async function exportAuditEvents(format: 'csv' | 'json', filters?: AuditF
   URL.revokeObjectURL(url);
 }
 
+// ── Support Actions ──
+
+export async function overrideBlockedStep(tenantId: string, caseId: string, stepId: string, rationale: string): Promise<void> {
+  const response = await fetch(`/api/v1/admin/tenants/${tenantId}/actions/override-blocked-step`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ caseId, stepId, rationale }),
+  });
+  if (!response.ok) throw new Error(`Failed to override blocked step: ${response.statusText}`);
+}
+
+export async function extendGracePeriod(tenantId: string, days: number, rationale: string): Promise<void> {
+  const response = await fetch(`/api/v1/admin/tenants/${tenantId}/actions/extend-grace-period`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ days, rationale }),
+  });
+  if (!response.ok) throw new Error(`Failed to extend grace period: ${response.statusText}`);
+}
+
+export async function triggerReOnboarding(tenantId: string): Promise<void> {
+  const response = await fetch(`/api/v1/admin/tenants/${tenantId}/actions/re-onboard`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+  });
+  if (!response.ok) throw new Error(`Failed to trigger re-onboarding: ${response.statusText}`);
+}
+
+export interface ImpersonationResult {
+  token: string;
+  expiresAt: string;
+  tenantId: string;
+  tenantName: string;
+}
+
+export async function startImpersonation(tenantId: string): Promise<ImpersonationResult> {
+  const response = await fetch(`/api/v1/admin/tenants/${tenantId}/actions/impersonate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+  });
+  if (!response.ok) throw new Error(`Failed to start impersonation: ${response.statusText}`);
+  const envelope = await response.json();
+  return envelope.data;
+}
+
+export interface CommItem {
+  id: string;
+  tenantId: string;
+  senderUserId: string;
+  senderName: string;
+  messageType: string;
+  subject: string;
+  body: string;
+  createdAt: string;
+}
+
+export async function sendCommunication(tenantId: string, subject: string, body: string, messageType: string, templateId?: string): Promise<void> {
+  const response = await fetch(`/api/v1/admin/tenants/${tenantId}/actions/send-communication`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ subject, body, messageType, templateId }),
+  });
+  if (!response.ok) throw new Error(`Failed to send communication: ${response.statusText}`);
+}
+
+export async function getTenantComms(tenantId: string): Promise<CommItem[]> {
+  const response = await fetch(`/api/v1/admin/tenants/${tenantId}/comms`, {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' },
+  });
+  if (!response.ok) throw new Error(`Failed to get tenant comms: ${response.statusText}`);
+  const envelope = await response.json();
+  return envelope.data;
+}
+
 export async function exportBillingHealthCsv(): Promise<void> {
   const response = await fetch('/api/v1/admin/revenue/billing-health/export', {
     method: 'GET',

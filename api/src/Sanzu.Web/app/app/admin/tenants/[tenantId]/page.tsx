@@ -8,14 +8,21 @@ import {
   getTenantBilling,
   getTenantCases,
   getTenantActivity,
+  getTenantComms,
+  overrideBlockedStep,
+  extendGracePeriod,
+  triggerReOnboarding,
+  startImpersonation,
+  sendCommunication,
   type TenantSummary,
   type TenantBilling,
   type TenantCases,
   type TenantActivity,
+  type CommItem,
 } from "@/lib/api-client/generated/admin";
 import { HealthGauge } from "@/components/admin/widgets/HealthGauge";
 
-type TabKey = "summary" | "billing" | "cases" | "activity";
+type TabKey = "summary" | "billing" | "cases" | "activity" | "actions" | "comms";
 
 interface TabDef {
   key: TabKey;
@@ -28,6 +35,8 @@ const TABS: TabDef[] = [
   { key: "billing", label: "Billing", endpointPattern: "/admin/tenants/*/billing" },
   { key: "cases", label: "Cases", endpointPattern: "/admin/tenants/*/cases" },
   { key: "activity", label: "Activity", endpointPattern: "/admin/tenants/*/activity" },
+  { key: "actions", label: "Actions", endpointPattern: "/admin/tenants/*/actions" },
+  { key: "comms", label: "Comms", endpointPattern: "/admin/tenants/*/comms" },
 ];
 
 const BILLING_HEALTH_COLORS: Record<string, string> = {
@@ -48,6 +57,7 @@ export default function Tenant360Page() {
   const [billing, setBilling] = useState<TenantBilling | null>(null);
   const [cases, setCases] = useState<TenantCases | null>(null);
   const [activity, setActivity] = useState<TenantActivity | null>(null);
+  const [comms, setComms] = useState<CommItem[] | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -91,6 +101,9 @@ export default function Tenant360Page() {
         } else if (activeTab === "activity" && !activity) {
           const data = await getTenantActivity(tenantId);
           if (!cancelled) setActivity(data);
+        } else if (activeTab === "comms" && !comms) {
+          const data = await getTenantComms(tenantId);
+          if (!cancelled) setComms(data);
         }
       } catch (err) {
         if (!cancelled) {
@@ -101,7 +114,7 @@ export default function Tenant360Page() {
 
     loadTabData();
     return () => { cancelled = true; };
-  }, [activeTab, tenantId, billing, cases, activity]);
+  }, [activeTab, tenantId, billing, cases, activity, comms]);
 
   if (loading) {
     return (
@@ -158,6 +171,8 @@ export default function Tenant360Page() {
         {activeTab === "billing" && <BillingTabContent billing={billing} />}
         {activeTab === "cases" && <CasesTabContent cases={cases} />}
         {activeTab === "activity" && <ActivityTabContent activity={activity} />}
+        {activeTab === "actions" && <ActionsTabContent tenantId={tenantId} />}
+        {activeTab === "comms" && <CommsTabContent tenantId={tenantId} comms={comms} onRefresh={() => getTenantComms(tenantId).then(setComms)} />}
       </div>
     </main>
   );
@@ -341,6 +356,182 @@ function ActivityTabContent({ activity }: { activity: TenantActivity | null }) {
                 <td className="meta">{event.actorUserId.substring(0, 8)}...</td>
                 <td>{new Date(event.timestamp).toLocaleString()}</td>
                 <td>{event.caseId ? event.caseId.substring(0, 8) + "..." : "—"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </section>
+  );
+}
+
+function ActionsTabContent({ tenantId }: { tenantId: string }) {
+  const [actionMsg, setActionMsg] = useState<string | null>(null);
+
+  const [graceRationale, setGraceRationale] = useState("");
+  const [graceDays, setGraceDays] = useState(7);
+  const [overrideCaseId, setOverrideCaseId] = useState("");
+  const [overrideStepId, setOverrideStepId] = useState("");
+  const [overrideRationale, setOverrideRationale] = useState("");
+
+  async function handleExtendGrace() {
+    if (!graceRationale.trim()) { setActionMsg("Rationale is required"); return; }
+    try {
+      await extendGracePeriod(tenantId, graceDays, graceRationale);
+      setActionMsg("Grace period extended successfully");
+      setGraceRationale("");
+    } catch (err) {
+      setActionMsg(err instanceof Error ? err.message : "Failed");
+    }
+  }
+
+  async function handleOverrideStep() {
+    if (!overrideRationale.trim()) { setActionMsg("Rationale is required"); return; }
+    try {
+      await overrideBlockedStep(tenantId, overrideCaseId, overrideStepId, overrideRationale);
+      setActionMsg("Blocked step overridden successfully");
+      setOverrideRationale("");
+    } catch (err) {
+      setActionMsg(err instanceof Error ? err.message : "Failed");
+    }
+  }
+
+  async function handleReOnboard() {
+    if (!confirm("Are you sure you want to trigger re-onboarding for this tenant?")) return;
+    try {
+      await triggerReOnboarding(tenantId);
+      setActionMsg("Re-onboarding triggered successfully");
+    } catch (err) {
+      setActionMsg(err instanceof Error ? err.message : "Failed");
+    }
+  }
+
+  async function handleImpersonate() {
+    try {
+      const result = await startImpersonation(tenantId);
+      setActionMsg(`Impersonation started — expires at ${new Date(result.expiresAt).toLocaleTimeString()}`);
+    } catch (err) {
+      setActionMsg(err instanceof Error ? err.message : "Failed");
+    }
+  }
+
+  const actionBtnStyle: React.CSSProperties = {
+    padding: "6px 14px", fontSize: 13, border: "1px solid var(--border, #ccc)",
+    borderRadius: 4, background: "transparent", cursor: "pointer", marginTop: 8,
+  };
+
+  const inputStyle: React.CSSProperties = {
+    padding: "4px 8px", fontSize: 13, border: "1px solid var(--border, #ccc)",
+    borderRadius: 4, width: "100%",
+  };
+
+  return (
+    <section className="panel" data-testid="tab-content-actions">
+      <h2>Support Actions</h2>
+      {actionMsg && <p className="meta" style={{ marginBottom: 10 }}>{actionMsg}</p>}
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginTop: 10 }}>
+        <div style={{ border: "1px solid #e0e0e0", borderRadius: 6, padding: 14 }}>
+          <h3>Override Blocked Step</h3>
+          <label className="meta">Case ID<br /><input style={inputStyle} value={overrideCaseId} onChange={(e) => setOverrideCaseId(e.target.value)} /></label>
+          <label className="meta" style={{ marginTop: 6, display: "block" }}>Step ID<br /><input style={inputStyle} value={overrideStepId} onChange={(e) => setOverrideStepId(e.target.value)} /></label>
+          <label className="meta" style={{ marginTop: 6, display: "block" }}>Rationale (required)<br /><textarea style={{ ...inputStyle, minHeight: 60 }} value={overrideRationale} onChange={(e) => setOverrideRationale(e.target.value)} /></label>
+          <button style={actionBtnStyle} onClick={handleOverrideStep}>Override Step</button>
+        </div>
+
+        <div style={{ border: "1px solid #e0e0e0", borderRadius: 6, padding: 14 }}>
+          <h3>Extend Grace Period</h3>
+          <label className="meta">Days<br /><input type="number" style={inputStyle} value={graceDays} onChange={(e) => setGraceDays(Number(e.target.value))} min={1} max={90} /></label>
+          <label className="meta" style={{ marginTop: 6, display: "block" }}>Rationale (required)<br /><textarea style={{ ...inputStyle, minHeight: 60 }} value={graceRationale} onChange={(e) => setGraceRationale(e.target.value)} /></label>
+          <button style={actionBtnStyle} onClick={handleExtendGrace}>Extend Grace Period</button>
+        </div>
+
+        <div style={{ border: "1px solid #e0e0e0", borderRadius: 6, padding: 14 }}>
+          <h3>Re-Onboarding</h3>
+          <p className="meta">Reset the tenant onboarding flow to allow re-onboarding.</p>
+          <button style={actionBtnStyle} onClick={handleReOnboard}>Trigger Re-Onboarding</button>
+        </div>
+
+        <div style={{ border: "1px solid #e0e0e0", borderRadius: 6, padding: 14 }}>
+          <h3>Impersonate Tenant</h3>
+          <p className="meta">Start a read-only impersonation session (30 min).</p>
+          <button style={actionBtnStyle} onClick={handleImpersonate}>Start Impersonation</button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function CommsTabContent({ tenantId, comms, onRefresh }: { tenantId: string; comms: CommItem[] | null; onRefresh: () => void }) {
+  const [subject, setSubject] = useState("");
+  const [body, setBody] = useState("");
+  const [messageType, setMessageType] = useState("support");
+  const [sending, setSending] = useState(false);
+
+  async function handleSend() {
+    if (!subject.trim() || !body.trim()) return;
+    setSending(true);
+    try {
+      await sendCommunication(tenantId, subject, body, messageType);
+      setSubject("");
+      setBody("");
+      onRefresh();
+    } catch {
+      // Silent
+    } finally {
+      setSending(false);
+    }
+  }
+
+  const inputStyle: React.CSSProperties = {
+    padding: "4px 8px", fontSize: 13, border: "1px solid var(--border, #ccc)", borderRadius: 4, width: "100%",
+  };
+
+  return (
+    <section className="panel" data-testid="tab-content-comms">
+      <h2>Communications</h2>
+
+      <div style={{ border: "1px solid #e0e0e0", borderRadius: 6, padding: 14, marginBottom: 14 }}>
+        <h3>Send Communication</h3>
+        <div style={{ display: "flex", gap: 10, marginBottom: 8 }}>
+          <label className="meta">Type{" "}
+            <select value={messageType} onChange={(e) => setMessageType(e.target.value)} style={inputStyle}>
+              <option value="support">Support</option>
+              <option value="billing">Billing</option>
+              <option value="onboarding">Onboarding</option>
+              <option value="escalation">Escalation</option>
+            </select>
+          </label>
+        </div>
+        <label className="meta">Subject<br /><input style={inputStyle} value={subject} onChange={(e) => setSubject(e.target.value)} /></label>
+        <label className="meta" style={{ marginTop: 6, display: "block" }}>Message<br /><textarea style={{ ...inputStyle, minHeight: 80 }} value={body} onChange={(e) => setBody(e.target.value)} /></label>
+        <button style={{ padding: "6px 14px", fontSize: 13, border: "1px solid var(--border, #ccc)", borderRadius: 4, background: "transparent", cursor: "pointer", marginTop: 8 }} onClick={handleSend} disabled={sending}>
+          {sending ? "Sending..." : "Send"}
+        </button>
+      </div>
+
+      <h3>Communication History</h3>
+      {!comms ? (
+        <p className="meta">Loading communications...</p>
+      ) : comms.length === 0 ? (
+        <p className="meta">No communications found.</p>
+      ) : (
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
+          <thead>
+            <tr>
+              <th style={{ textAlign: "left", padding: "8px 12px", borderBottom: "2px solid #e0e0e0", fontWeight: 600 }}>Date</th>
+              <th style={{ textAlign: "left", padding: "8px 12px", borderBottom: "2px solid #e0e0e0", fontWeight: 600 }}>Sender</th>
+              <th style={{ textAlign: "left", padding: "8px 12px", borderBottom: "2px solid #e0e0e0", fontWeight: 600 }}>Type</th>
+              <th style={{ textAlign: "left", padding: "8px 12px", borderBottom: "2px solid #e0e0e0", fontWeight: 600 }}>Subject</th>
+            </tr>
+          </thead>
+          <tbody>
+            {comms.map((c) => (
+              <tr key={c.id}>
+                <td style={{ padding: "8px 12px", borderBottom: "1px solid #e0e0e0" }}>{new Date(c.createdAt).toLocaleString()}</td>
+                <td style={{ padding: "8px 12px", borderBottom: "1px solid #e0e0e0" }}>{c.senderName}</td>
+                <td style={{ padding: "8px 12px", borderBottom: "1px solid #e0e0e0" }}>{c.messageType}</td>
+                <td style={{ padding: "8px 12px", borderBottom: "1px solid #e0e0e0" }}>{c.subject}</td>
               </tr>
             ))}
           </tbody>
