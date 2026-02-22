@@ -1,3 +1,4 @@
+using System.Text;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Sanzu.Core.Interfaces;
@@ -47,6 +48,51 @@ public sealed class AdminRevenueController : ControllerBase
     {
         var health = await _revenueService.GetBillingHealthAsync(cancellationToken);
         return Ok(ApiEnvelope<BillingHealthResponse>.Success(health, BuildMeta()));
+    }
+
+    [HttpGet("export")]
+    [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> ExportRevenue(CancellationToken cancellationToken)
+    {
+        var rows = await _revenueService.GetRevenueExportDataAsync(cancellationToken);
+
+        var sb = new StringBuilder();
+        sb.AppendLine("TenantName,PlanTier,MrrContribution,BillingStatus,LastPaymentDate,NextRenewal");
+        foreach (var r in rows)
+        {
+            sb.AppendLine($"{CsvEscape(r.TenantName)},{CsvEscape(r.PlanTier)},{r.MrrContribution},{CsvEscape(r.BillingStatus)},{r.LastPaymentDate:yyyy-MM-dd},{r.NextRenewal:yyyy-MM-dd}");
+        }
+
+        var bytes = Encoding.UTF8.GetBytes(sb.ToString());
+        return File(bytes, "text/csv", "revenue-export.csv");
+    }
+
+    [HttpGet("billing-health/export")]
+    [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> ExportBillingHealth(CancellationToken cancellationToken)
+    {
+        var rows = await _revenueService.GetBillingHealthExportDataAsync(cancellationToken);
+
+        var sb = new StringBuilder();
+        sb.AppendLine("TenantName,IssueType,FailedAmount,LastFailedAt,GracePeriodRetryAt,NextRenewalDate");
+        foreach (var r in rows)
+        {
+            sb.AppendLine($"{CsvEscape(r.TenantName)},{CsvEscape(r.IssueType)},{r.FailedAmount},{r.LastFailedAt:yyyy-MM-dd},{r.GracePeriodRetryAt:yyyy-MM-dd},{r.NextRenewalDate:yyyy-MM-dd}");
+        }
+
+        var bytes = Encoding.UTF8.GetBytes(sb.ToString());
+        return File(bytes, "text/csv", "billing-health-export.csv");
+    }
+
+    private static string CsvEscape(string value)
+    {
+        if (value.Contains(',') || value.Contains('"') || value.Contains('\n'))
+            return $"\"{value.Replace("\"", "\"\"")}\"";
+        return value;
     }
 
     private static Dictionary<string, object?> BuildMeta()

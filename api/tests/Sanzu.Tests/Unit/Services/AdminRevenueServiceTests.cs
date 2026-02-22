@@ -133,6 +133,69 @@ public sealed class AdminRevenueServiceTests
         result.FailedPayments[0].TenantId.Should().Be(failedOrg.Id);
     }
 
+    // ── GetRevenueExportDataAsync ──
+
+    [Fact]
+    public async Task GetRevenueExportData_Should_ReturnRowsForNonTerminatedTenants()
+    {
+        _orgRepo.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Organization>
+            {
+                MakeOrg(TenantStatus.Active, "Starter"),
+                MakeOrg(TenantStatus.Active, "Professional"),
+                MakeOrg(TenantStatus.Terminated, "Starter") // excluded
+            });
+        _billingRepo.Setup(r => r.GetAllForPlatformAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<BillingRecord>());
+
+        var result = await _sut.GetRevenueExportDataAsync(CancellationToken.None);
+
+        result.Should().HaveCount(2);
+        result[0].MrrContribution.Should().Be(149m);
+        result[1].MrrContribution.Should().Be(399m);
+    }
+
+    [Fact]
+    public async Task GetRevenueExportData_Should_DeriveCorrectBillingStatus()
+    {
+        var failedOrg = MakeOrg(TenantStatus.Active, "Starter");
+        failedOrg.FailedPaymentAttempts = 2;
+        failedOrg.LastPaymentFailedAt = DateTime.UtcNow.AddDays(-1);
+
+        _orgRepo.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Organization> { failedOrg });
+        _billingRepo.Setup(r => r.GetAllForPlatformAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<BillingRecord>());
+
+        var result = await _sut.GetRevenueExportDataAsync(CancellationToken.None);
+
+        result.Should().HaveCount(1);
+        result[0].BillingStatus.Should().Be("Failed");
+    }
+
+    // ── GetBillingHealthExportDataAsync ──
+
+    [Fact]
+    public async Task GetBillingHealthExportData_Should_CombineAllIssueTypes()
+    {
+        var failedOrg = MakeOrg(TenantStatus.Active, "Starter");
+        failedOrg.FailedPaymentAttempts = 1;
+        failedOrg.LastPaymentFailedAt = DateTime.UtcNow.AddDays(-2);
+
+        var graceOrg = MakeOrg(TenantStatus.Active, "Professional");
+        graceOrg.NextPaymentRetryAt = DateTime.UtcNow.AddDays(5);
+
+        _orgRepo.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Organization> { failedOrg, graceOrg });
+        _billingRepo.Setup(r => r.GetAllForPlatformAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<BillingRecord>());
+
+        var result = await _sut.GetBillingHealthExportDataAsync(CancellationToken.None);
+
+        result.Should().Contain(r => r.IssueType == "FailedPayment");
+        result.Should().Contain(r => r.IssueType == "GracePeriod");
+    }
+
     // ── Helpers ──
 
     private static Organization MakeOrg(TenantStatus status, string? plan, DateTime? updatedAt = null)

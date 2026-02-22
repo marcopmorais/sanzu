@@ -164,6 +164,79 @@ public sealed class AdminRevenueService : IAdminRevenueService
         };
     }
 
+    public async Task<IReadOnlyList<RevenueExportRow>> GetRevenueExportDataAsync(CancellationToken cancellationToken)
+    {
+        var allOrgs = await _organizationRepository.GetAllAsync(cancellationToken);
+        var billingRecords = await _billingRecordRepository.GetAllForPlatformAsync(cancellationToken);
+        var now = DateTime.UtcNow;
+
+        var latestBillingByTenant = billingRecords
+            .GroupBy(r => r.TenantId)
+            .ToDictionary(
+                g => g.Key,
+                g => g.OrderByDescending(r => r.BillingCycleEnd).First());
+
+        var activeOrgs = allOrgs.Where(o => o.Status != TenantStatus.Terminated);
+
+        return activeOrgs.Select(o =>
+        {
+            var billingStatus = o.FailedPaymentAttempts > 0 ? "Failed"
+                : o.NextPaymentRetryAt != null && o.NextPaymentRetryAt > now ? "GracePeriod"
+                : "Current";
+
+            latestBillingByTenant.TryGetValue(o.Id, out var latestBilling);
+
+            return new RevenueExportRow
+            {
+                TenantName = o.Name,
+                PlanTier = o.SubscriptionPlan ?? "Unknown",
+                MrrContribution = GetMonthlyAmount(o.SubscriptionPlan),
+                BillingStatus = billingStatus,
+                LastPaymentDate = latestBilling?.CreatedAt,
+                NextRenewal = latestBilling?.BillingCycleEnd
+            };
+        }).ToList();
+    }
+
+    public async Task<IReadOnlyList<BillingHealthExportRow>> GetBillingHealthExportDataAsync(CancellationToken cancellationToken)
+    {
+        var health = await GetBillingHealthAsync(cancellationToken);
+        var rows = new List<BillingHealthExportRow>();
+
+        foreach (var item in health.FailedPayments)
+        {
+            rows.Add(new BillingHealthExportRow
+            {
+                TenantName = item.TenantName,
+                IssueType = "FailedPayment",
+                FailedAmount = item.FailedAmount,
+                LastFailedAt = item.LastFailedAt
+            });
+        }
+
+        foreach (var item in health.GracePeriodTenants)
+        {
+            rows.Add(new BillingHealthExportRow
+            {
+                TenantName = item.TenantName,
+                IssueType = "GracePeriod",
+                GracePeriodRetryAt = item.GracePeriodRetryAt
+            });
+        }
+
+        foreach (var item in health.UpcomingRenewals)
+        {
+            rows.Add(new BillingHealthExportRow
+            {
+                TenantName = item.TenantName,
+                IssueType = "UpcomingRenewal",
+                NextRenewalDate = item.NextRenewalDate
+            });
+        }
+
+        return rows;
+    }
+
     internal static decimal GetMonthlyAmount(string? plan) => plan switch
     {
         "Starter" => 149m,
