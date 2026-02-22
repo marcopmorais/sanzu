@@ -509,6 +509,62 @@ export async function exportRevenueCsv(): Promise<void> {
   URL.revokeObjectURL(url);
 }
 
+// ── Alerts ──
+
+export interface AdminAlertItem {
+  id: string;
+  tenantId?: string;
+  alertType: string;
+  severity: string;
+  title: string;
+  detail: string;
+  status: string;
+  routedToRole: string;
+  ownedByUserId?: string;
+  firedAt: string;
+  acknowledgedAt?: string;
+  resolvedAt?: string;
+  tenantName?: string;
+}
+
+export interface AlertFilters {
+  status?: string;
+  severity?: string;
+  alertType?: string;
+}
+
+export async function getAlerts(filters?: AlertFilters): Promise<AdminAlertItem[]> {
+  const params = new URLSearchParams();
+  if (filters?.status) params.set('status', filters.status);
+  if (filters?.severity) params.set('severity', filters.severity);
+  if (filters?.alertType) params.set('alertType', filters.alertType);
+
+  const url = `/api/v1/admin/alerts${params.toString() ? '?' + params.toString() : ''}`;
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to get alerts: ${response.statusText}`);
+  }
+
+  const envelope = await response.json();
+  return envelope.data;
+}
+
+export async function updateAlertStatus(alertId: string, status: 'Acknowledged' | 'Resolved'): Promise<void> {
+  const response = await fetch(`/api/v1/admin/alerts/${alertId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to update alert: ${response.statusText}`);
+  }
+}
+
 export async function exportBillingHealthCsv(): Promise<void> {
   const response = await fetch('/api/v1/admin/revenue/billing-health/export', {
     method: 'GET',
