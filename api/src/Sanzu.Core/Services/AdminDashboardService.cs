@@ -13,6 +13,7 @@ public sealed class AdminDashboardService : IAdminDashboardService
     private readonly ITenantHealthScoreRepository _healthScoreRepository;
     private readonly IAuditRepository _auditRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IAdminRevenueService _revenueService;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -24,13 +25,15 @@ public sealed class AdminDashboardService : IAdminDashboardService
         IOrganizationRepository organizationRepository,
         ITenantHealthScoreRepository healthScoreRepository,
         IAuditRepository auditRepository,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        IAdminRevenueService revenueService)
     {
         _snapshotRepository = snapshotRepository;
         _organizationRepository = organizationRepository;
         _healthScoreRepository = healthScoreRepository;
         _auditRepository = auditRepository;
         _unitOfWork = unitOfWork;
+        _revenueService = revenueService;
     }
 
     public async Task ComputeSnapshotAsync(CancellationToken cancellationToken)
@@ -100,7 +103,7 @@ public sealed class AdminDashboardService : IAdminDashboardService
         var now = DateTime.UtcNow;
 
         var tenantCounts = await ComputeTenantCountsAsync(cancellationToken);
-        var revenue = ComputeRevenuePulse();
+        var revenue = await ComputeRevenuePulseAsync(cancellationToken);
         var health = await ComputeHealthDistributionAsync(cancellationToken);
         var alerts = ComputeAlertCounts();
         var onboarding = await ComputeOnboardingStatusAsync(cancellationToken);
@@ -121,11 +124,10 @@ public sealed class AdminDashboardService : IAdminDashboardService
         return new TenantCounts(total, active, trial, churning, suspended);
     }
 
-    private static RevenuePulse ComputeRevenuePulse()
+    private async Task<RevenuePulse> ComputeRevenuePulseAsync(CancellationToken cancellationToken)
     {
-        // TODO: Epic 16 — Revenue & Billing Visibility will implement actual revenue computation
-        // For now, return zeroed values since billing aggregation endpoints don't exist yet
-        return new RevenuePulse(0m, 0m, 0m, 0m);
+        var overview = await _revenueService.GetRevenueOverviewAsync(cancellationToken);
+        return new RevenuePulse(overview.Mrr, overview.Arr, overview.ChurnRate, overview.GrowthRate);
     }
 
     private async Task<HealthDistribution> ComputeHealthDistributionAsync(CancellationToken cancellationToken)
