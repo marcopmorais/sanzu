@@ -14,6 +14,7 @@ public sealed class AdminDashboardService : IAdminDashboardService
     private readonly IAuditRepository _auditRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IAdminRevenueService _revenueService;
+    private readonly IAdminAlertRepository _alertRepository;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -26,7 +27,8 @@ public sealed class AdminDashboardService : IAdminDashboardService
         ITenantHealthScoreRepository healthScoreRepository,
         IAuditRepository auditRepository,
         IUnitOfWork unitOfWork,
-        IAdminRevenueService revenueService)
+        IAdminRevenueService revenueService,
+        IAdminAlertRepository alertRepository)
     {
         _snapshotRepository = snapshotRepository;
         _organizationRepository = organizationRepository;
@@ -34,6 +36,7 @@ public sealed class AdminDashboardService : IAdminDashboardService
         _auditRepository = auditRepository;
         _unitOfWork = unitOfWork;
         _revenueService = revenueService;
+        _alertRepository = alertRepository;
     }
 
     public async Task ComputeSnapshotAsync(CancellationToken cancellationToken)
@@ -105,7 +108,7 @@ public sealed class AdminDashboardService : IAdminDashboardService
         var tenantCounts = await ComputeTenantCountsAsync(cancellationToken);
         var revenue = await ComputeRevenuePulseAsync(cancellationToken);
         var health = await ComputeHealthDistributionAsync(cancellationToken);
-        var alerts = ComputeAlertCounts();
+        var alerts = await ComputeAlertCountsAsync(cancellationToken);
         var onboarding = await ComputeOnboardingStatusAsync(cancellationToken);
 
         return new AdminDashboardSummary(now, tenantCounts, revenue, health, alerts, onboarding);
@@ -154,11 +157,15 @@ public sealed class AdminDashboardService : IAdminDashboardService
         return new HealthDistribution(green, yellow, red, topAtRisk);
     }
 
-    private static AlertCounts ComputeAlertCounts()
+    private async Task<AlertCounts> ComputeAlertCountsAsync(CancellationToken cancellationToken)
     {
-        // TODO: Epic 17 — Operational Alerting will implement actual alert counts
-        // AdminAlert table doesn't exist yet
-        return new AlertCounts(0, 0, 0, 0);
+        var firedAlerts = await _alertRepository.GetAllAsync(Enums.AlertStatus.Fired, null, null, cancellationToken);
+        var critical = firedAlerts.Count(a => a.Severity == Enums.AlertSeverity.Critical);
+        var warning = firedAlerts.Count(a => a.Severity == Enums.AlertSeverity.Warning);
+        var info = firedAlerts.Count(a => a.Severity == Enums.AlertSeverity.Info);
+        var unacknowledged = firedAlerts.Count;
+
+        return new AlertCounts(critical, warning, info, unacknowledged);
     }
 
     private async Task<OnboardingStatus> ComputeOnboardingStatusAsync(CancellationToken cancellationToken)

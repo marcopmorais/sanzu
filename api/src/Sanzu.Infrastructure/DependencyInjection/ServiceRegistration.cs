@@ -43,6 +43,7 @@ public static class ServiceRegistration
         services.AddScoped<IRemediationRepository, RemediationRepository>();
         services.AddScoped<ITenantHealthScoreRepository, TenantHealthScoreRepository>();
         services.AddScoped<IAdminDashboardSnapshotRepository, AdminDashboardSnapshotRepository>();
+        services.AddScoped<IAdminAlertRepository, AdminAlertRepository>();
         services.AddScoped<ITenantInvitationNotificationSender, NoOpTenantInvitationNotificationSender>();
         services.AddScoped<IUnitOfWork, EfUnitOfWork>();
 
