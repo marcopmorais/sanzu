@@ -1,9 +1,12 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc;
+using Sanzu.Core.Entities;
 using Sanzu.Core.Enums;
 using Sanzu.Core.Interfaces;
 using Sanzu.Core.Models.Responses;
+using Sanzu.Infrastructure.Data;
 
 namespace Sanzu.API.Controllers.Admin;
 
@@ -14,13 +17,16 @@ public sealed class AdminAlertsController : ControllerBase
 {
     private readonly IAdminAlertService _alertService;
     private readonly IOrganizationRepository _organizationRepository;
+    private readonly SanzuDbContext _dbContext;
 
     public AdminAlertsController(
         IAdminAlertService alertService,
-        IOrganizationRepository organizationRepository)
+        IOrganizationRepository organizationRepository,
+        SanzuDbContext dbContext)
     {
         _alertService = alertService;
         _organizationRepository = organizationRepository;
+        _dbContext = dbContext;
     }
 
     [HttpGet]
@@ -97,6 +103,75 @@ public sealed class AdminAlertsController : ControllerBase
         return NoContent();
     }
 
+    [HttpPost("manual")]
+    [Authorize(Policy = "AdminOps")]
+    [ProducesResponseType(typeof(ApiEnvelope<AdminAlertResponse>), StatusCodes.Status201Created)]
+    public async Task<IActionResult> CreateManualAlert(
+        [FromBody] CreateManualAlertRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (!TryGetActorUserId(out var actorUserId))
+            return Unauthorized();
+
+        var alert = await _alertService.CreateManualAlertAsync(
+            request.TenantId, request.Note ?? "", request.DueDate, actorUserId, cancellationToken);
+
+        string? tenantName = null;
+        if (alert.TenantId.HasValue)
+        {
+            var allOrgs = await _organizationRepository.GetAllAsync(cancellationToken);
+            tenantName = allOrgs.FirstOrDefault(o => o.Id == alert.TenantId.Value)?.Name;
+        }
+
+        var response = new AdminAlertResponse
+        {
+            Id = alert.Id,
+            TenantId = alert.TenantId,
+            AlertType = alert.AlertType,
+            Severity = alert.Severity.ToString(),
+            Title = alert.Title,
+            Detail = alert.Detail,
+            Status = alert.Status.ToString(),
+            RoutedToRole = alert.RoutedToRole,
+            FiredAt = alert.FiredAt,
+            TenantName = tenantName
+        };
+
+        return Created($"/api/v1/admin/alerts/{alert.Id}",
+            ApiEnvelope<AdminAlertResponse>.Success(response, BuildMeta()));
+    }
+
+    [HttpPost("delivery-config")]
+    [Authorize(Policy = "AdminFull")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> ConfigureDelivery(
+        [FromBody] ConfigureDeliveryRequest request,
+        CancellationToken cancellationToken)
+    {
+        var existing = await _dbContext.AlertDeliveryConfigs
+            .FirstOrDefaultAsync(c => c.Channel == request.Channel, cancellationToken);
+
+        if (existing != null)
+        {
+            existing.Target = request.Target ?? "";
+            existing.UpdatedAt = DateTime.UtcNow;
+        }
+        else
+        {
+            _dbContext.AlertDeliveryConfigs.Add(new AlertDeliveryConfig
+            {
+                Id = Guid.NewGuid(),
+                Channel = request.Channel ?? "",
+                Target = request.Target ?? "",
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            });
+        }
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+        return NoContent();
+    }
+
     private bool TryGetActorUserId(out Guid userId)
     {
         userId = Guid.Empty;
@@ -113,4 +188,17 @@ public sealed class AdminAlertsController : ControllerBase
 public sealed class UpdateAlertStatusRequest
 {
     public string? Status { get; set; }
+}
+
+public sealed class CreateManualAlertRequest
+{
+    public Guid? TenantId { get; set; }
+    public string? Note { get; set; }
+    public DateTime DueDate { get; set; }
+}
+
+public sealed class ConfigureDeliveryRequest
+{
+    public string? Channel { get; set; }
+    public string? Target { get; set; }
 }

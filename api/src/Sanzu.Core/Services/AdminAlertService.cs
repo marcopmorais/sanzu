@@ -91,6 +91,30 @@ public sealed class AdminAlertService : IAdminAlertService
             $"{{\"alertId\":\"{alertId}\",\"resolvedAt\":\"{alert.ResolvedAt:O}\"}}", cancellationToken);
     }
 
+    public async Task<AdminAlert> CreateManualAlertAsync(
+        Guid? tenantId, string note, DateTime dueDate, Guid actorUserId, CancellationToken cancellationToken)
+    {
+        var alert = new AdminAlert
+        {
+            Id = Guid.NewGuid(),
+            TenantId = tenantId,
+            AlertType = "ManualFollowUp",
+            Severity = AlertSeverity.Info,
+            Title = $"Follow-up: {note}",
+            Detail = note,
+            Status = AlertStatus.Fired,
+            RoutedToRole = "SanzuOps",
+            FiredAt = dueDate
+        };
+
+        await _alertRepository.CreateAsync(alert, cancellationToken);
+
+        await LogAuditAsync("Admin.Alert.ManualCreated", actorUserId,
+            $"{{\"alertId\":\"{alert.Id}\",\"tenantId\":\"{tenantId}\",\"dueDate\":\"{dueDate:O}\",\"createdByUserId\":\"{actorUserId}\"}}", cancellationToken);
+
+        return alert;
+    }
+
     private async Task EvaluateHealthDropAsync(Organization org, CancellationToken cancellationToken)
     {
         var latestScores = await _healthScoreRepository.GetLatestForAllTenantsAsync(cancellationToken);
