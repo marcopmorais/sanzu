@@ -71,6 +71,30 @@ public sealed class AdminDashboardService : IAdminDashboardService
         return JsonSerializer.Deserialize<AdminDashboardSummary>(snapshot.JsonPayload, JsonOptions);
     }
 
+    public async Task<DashboardResponse<AdminDashboardSummary>> GetDashboardAsync(int snapshotIntervalMinutes, CancellationToken cancellationToken)
+    {
+        var snapshot = await _snapshotRepository.GetLatestByTypeAsync("DashboardSummary", cancellationToken);
+
+        if (snapshot is null)
+        {
+            var empty = new AdminDashboardSummary(
+                DateTime.MinValue,
+                new TenantCounts(0, 0, 0, 0, 0),
+                new RevenuePulse(0m, 0m, 0m, 0m),
+                new HealthDistribution(0, 0, 0, []),
+                new AlertCounts(0, 0, 0, 0),
+                new OnboardingStatus(0m, 0));
+
+            return new DashboardResponse<AdminDashboardSummary>(empty, DateTime.MinValue, true);
+        }
+
+        var summary = JsonSerializer.Deserialize<AdminDashboardSummary>(snapshot.JsonPayload, JsonOptions)!;
+        var age = DateTime.UtcNow - snapshot.ComputedAt;
+        var isStale = age > TimeSpan.FromMinutes(snapshotIntervalMinutes * 2);
+
+        return new DashboardResponse<AdminDashboardSummary>(summary, snapshot.ComputedAt, isStale);
+    }
+
     private async Task<AdminDashboardSummary> ComputeSummaryAsync(CancellationToken cancellationToken)
     {
         var now = DateTime.UtcNow;
