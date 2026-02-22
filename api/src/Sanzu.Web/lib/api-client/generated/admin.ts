@@ -718,6 +718,79 @@ export async function getTenantComms(tenantId: string): Promise<CommItem[]> {
   return envelope.data;
 }
 
+// ── Funnel Analytics ──
+
+export interface FunnelStage {
+  stageName: string;
+  count: number;
+  dropOffCount: number;
+  dropOffPercentage: number;
+}
+
+export interface FunnelResponse {
+  stages: FunnelStage[];
+  cohort?: string;
+  cohortValue?: string;
+}
+
+export interface FunnelTenantItem {
+  tenantId: string;
+  name: string;
+  signupDate: string;
+  daysAtStage: number;
+}
+
+export async function getFunnelData(cohort?: string, cohortValue?: string): Promise<FunnelResponse> {
+  const params = new URLSearchParams();
+  if (cohort) params.set('cohort', cohort);
+  if (cohortValue) params.set('cohortValue', cohortValue);
+  const qs = params.toString() ? `?${params.toString()}` : '';
+
+  const response = await fetch(`/api/v1/admin/analytics/funnel${qs}`, {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' },
+  });
+  if (!response.ok) throw new Error(`Failed to get funnel data: ${response.statusText}`);
+  const envelope = await response.json();
+  return envelope.data;
+}
+
+export async function getFunnelStageTenants(stageName: string): Promise<FunnelTenantItem[]> {
+  const response = await fetch(`/api/v1/admin/analytics/funnel/stages/${stageName}/tenants`, {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' },
+  });
+  if (!response.ok) throw new Error(`Failed to get stage tenants: ${response.statusText}`);
+  const envelope = await response.json();
+  return envelope.data;
+}
+
+// ── Health History ──
+
+export interface HealthHistoryDataPoint {
+  date: string;
+  score: number;
+  healthBand: string;
+}
+
+export interface HealthHistoryResponse {
+  tenantId: string;
+  period: string;
+  trend: string;
+  dataPoints: HealthHistoryDataPoint[];
+}
+
+export async function getHealthHistory(tenantId: string, period?: string): Promise<HealthHistoryResponse> {
+  const qs = period ? `?period=${period}` : '';
+  const response = await fetch(`/api/v1/admin/tenants/${tenantId}/health-history${qs}`, {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' },
+  });
+  if (!response.ok) throw new Error(`Failed to get health history: ${response.statusText}`);
+  const envelope = await response.json();
+  return envelope.data;
+}
+
 export async function exportBillingHealthCsv(): Promise<void> {
   const response = await fetch('/api/v1/admin/revenue/billing-health/export', {
     method: 'GET',
