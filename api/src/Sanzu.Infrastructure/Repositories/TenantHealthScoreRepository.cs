@@ -35,6 +35,19 @@ public sealed class TenantHealthScoreRepository : ITenantHealthScoreRepository
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyList<TenantHealthScore>> GetHistoryByTenantIdAsync(
+        Guid tenantId,
+        int days,
+        CancellationToken cancellationToken)
+    {
+        var cutoff = DateTime.UtcNow.AddDays(-days);
+        return await _dbContext.TenantHealthScores
+            .AsNoTracking()
+            .Where(x => x.TenantId == tenantId && x.ComputedAt >= cutoff)
+            .OrderBy(x => x.ComputedAt)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task CreateAsync(TenantHealthScore score, CancellationToken cancellationToken)
     {
         _dbContext.TenantHealthScores.Add(score);
