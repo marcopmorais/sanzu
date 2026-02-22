@@ -40,6 +40,7 @@ public sealed class SanzuDbContext : DbContext
     public DbSet<AdminDashboardSnapshot> AdminDashboardSnapshots => Set<AdminDashboardSnapshot>();
     public DbSet<AdminAlert> AdminAlerts => Set<AdminAlert>();
     public DbSet<AlertDeliveryConfig> AlertDeliveryConfigs => Set<AlertDeliveryConfig>();
+    public DbSet<TenantCommunication> TenantCommunications => Set<TenantCommunication>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
