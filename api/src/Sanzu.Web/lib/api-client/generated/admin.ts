@@ -403,3 +403,126 @@ export async function getTenantActivity(tenantId: string): Promise<TenantActivit
   const envelope = await response.json();
   return envelope.data;
 }
+
+// ── Revenue & Billing ──
+
+export interface RevenueOverview {
+  mrr: number;
+  arr: number;
+  churnRate: number;
+  growthRate: number;
+  planBreakdown: PlanRevenueItem[];
+}
+
+export interface PlanRevenueItem {
+  planName: string;
+  tenantCount: number;
+  mrr: number;
+  percentage: number;
+}
+
+export interface RevenueTrends {
+  dataPoints: RevenueTrendPoint[];
+}
+
+export interface RevenueTrendPoint {
+  periodLabel: string;
+  mrr: number;
+  tenantCount: number;
+}
+
+export interface BillingHealth {
+  failedPaymentCount: number;
+  overdueInvoiceCount: number;
+  gracePeriodCount: number;
+  failedPayments: BillingHealthTenantItem[];
+  gracePeriodTenants: BillingHealthTenantItem[];
+  upcomingRenewals: BillingHealthTenantItem[];
+}
+
+export interface BillingHealthTenantItem {
+  tenantId: string;
+  tenantName: string;
+  failedAmount?: number;
+  lastFailedAt?: string;
+  gracePeriodRetryAt?: string;
+  nextRenewalDate?: string;
+}
+
+export async function getRevenueOverview(): Promise<RevenueOverview> {
+  const response = await fetch('/api/v1/admin/revenue', {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to get revenue overview: ${response.statusText}`);
+  }
+
+  const envelope = await response.json();
+  return envelope.data;
+}
+
+export async function getRevenueTrends(period: string = 'monthly'): Promise<RevenueTrends> {
+  const response = await fetch(`/api/v1/admin/revenue/trends?period=${period}`, {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to get revenue trends: ${response.statusText}`);
+  }
+
+  const envelope = await response.json();
+  return envelope.data;
+}
+
+export async function getBillingHealth(): Promise<BillingHealth> {
+  const response = await fetch('/api/v1/admin/revenue/billing-health', {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to get billing health: ${response.statusText}`);
+  }
+
+  const envelope = await response.json();
+  return envelope.data;
+}
+
+export async function exportRevenueCsv(): Promise<void> {
+  const response = await fetch('/api/v1/admin/revenue/export', {
+    method: 'GET',
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to export revenue CSV: ${response.statusText}`);
+  }
+
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'revenue-export.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+export async function exportBillingHealthCsv(): Promise<void> {
+  const response = await fetch('/api/v1/admin/revenue/billing-health/export', {
+    method: 'GET',
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to export billing health CSV: ${response.statusText}`);
+  }
+
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'billing-health-export.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
