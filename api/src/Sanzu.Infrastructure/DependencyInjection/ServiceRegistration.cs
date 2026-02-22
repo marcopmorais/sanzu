@@ -44,6 +44,7 @@ public static class ServiceRegistration
         services.AddScoped<ITenantHealthScoreRepository, TenantHealthScoreRepository>();
         services.AddScoped<IAdminDashboardSnapshotRepository, AdminDashboardSnapshotRepository>();
         services.AddScoped<IAdminAlertRepository, AdminAlertRepository>();
+        services.AddScoped<IAdminConfigRepository, AdminConfigRepository>();
         services.AddScoped<ITenantInvitationNotificationSender, NoOpTenantInvitationNotificationSender>();
         services.AddScoped<IUnitOfWork, EfUnitOfWork>();
 
