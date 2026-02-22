@@ -54,4 +54,15 @@ public sealed class CaseRepository : ICaseRepository
         var count = await _dbContext.Cases.CountAsync(x => x.TenantId == tenantId, cancellationToken);
         return count + 1;
     }
+
+    public async Task<IReadOnlyList<Case>> GetByTenantIdWithStepsForPlatformAsync(Guid tenantId, CancellationToken cancellationToken)
+    {
+        return await _dbContext.Cases
+            .IgnoreQueryFilters()
+            .Include(c => c.WorkflowSteps)
+            .Where(x => x.TenantId == tenantId)
+            .OrderByDescending(x => x.UpdatedAt)
+            .ThenByDescending(x => x.CreatedAt)
+            .ToListAsync(cancellationToken);
+    }
 }

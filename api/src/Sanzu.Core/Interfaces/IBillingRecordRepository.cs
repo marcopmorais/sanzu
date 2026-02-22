@@ -8,4 +8,5 @@ public interface IBillingRecordRepository
     Task<IReadOnlyList<BillingRecord>> GetByTenantIdAsync(Guid tenantId, CancellationToken cancellationToken);
     Task<BillingRecord?> GetByIdAsync(Guid id, CancellationToken cancellationToken);
     Task<int> GetNextInvoiceNumberAsync(Guid tenantId, CancellationToken cancellationToken);
+    Task<IReadOnlyList<BillingRecord>> GetByTenantIdForPlatformAsync(Guid tenantId, CancellationToken cancellationToken);
 }

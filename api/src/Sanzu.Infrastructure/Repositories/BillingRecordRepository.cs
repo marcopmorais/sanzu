@@ -40,4 +40,13 @@ public sealed class BillingRecordRepository : IBillingRecordRepository
 
         return count + 1;
     }
+
+    public async Task<IReadOnlyList<BillingRecord>> GetByTenantIdForPlatformAsync(Guid tenantId, CancellationToken cancellationToken)
+    {
+        return await _dbContext.BillingRecords
+            .IgnoreQueryFilters()
+            .Where(x => x.TenantId == tenantId)
+            .OrderByDescending(x => x.CreatedAt)
+            .ToListAsync(cancellationToken);
+    }
 }

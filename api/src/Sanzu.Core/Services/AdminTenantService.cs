@@ -10,13 +10,22 @@ public sealed class AdminTenantService : IAdminTenantService
 {
     private readonly IOrganizationRepository _organizationRepository;
     private readonly ITenantHealthScoreRepository _healthScoreRepository;
+    private readonly IBillingRecordRepository _billingRecordRepository;
+    private readonly ICaseRepository _caseRepository;
+    private readonly IAuditRepository _auditRepository;
 
     public AdminTenantService(
         IOrganizationRepository organizationRepository,
-        ITenantHealthScoreRepository healthScoreRepository)
+        ITenantHealthScoreRepository healthScoreRepository,
+        IBillingRecordRepository billingRecordRepository,
+        ICaseRepository caseRepository,
+        IAuditRepository auditRepository)
     {
         _organizationRepository = organizationRepository;
         _healthScoreRepository = healthScoreRepository;
+        _billingRecordRepository = billingRecordRepository;
+        _caseRepository = caseRepository;
+        _auditRepository = auditRepository;
     }
 
     public async Task<PaginatedResponse<TenantListItemResponse>> ListTenantsAsync(
@@ -40,10 +49,104 @@ public sealed class AdminTenantService : IAdminTenantService
 
         var (items, totalCount) = await _organizationRepository.SearchForPlatformAsync(request, cancellationToken);
 
-        var mapped = items.Select(o => MapToResponse(o, scoreLookup)).ToList();
+        var mapped = items.Select(o => MapToListResponse(o, scoreLookup)).ToList();
 
         var totalPages = (int)Math.Ceiling((double)totalCount / pageSize);
         return new PaginatedResponse<TenantListItemResponse>(mapped, page, pageSize, totalCount, totalPages);
+    }
+
+    public async Task<TenantSummaryResponse?> GetTenantSummaryAsync(Guid tenantId, CancellationToken cancellationToken)
+    {
+        var org = await _organizationRepository.GetByIdForPlatformAsync(tenantId, cancellationToken);
+        if (org is null) return null;
+
+        var healthScore = await _healthScoreRepository.GetLatestByTenantIdAsync(tenantId, cancellationToken);
+
+        return new TenantSummaryResponse
+        {
+            Id = org.Id,
+            Name = org.Name,
+            Status = org.Status.ToString(),
+            PlanTier = org.SubscriptionPlan,
+            SignupDate = org.CreatedAt,
+            Region = string.IsNullOrWhiteSpace(org.Location) ? null : org.Location,
+            ContactEmail = org.InvoiceProfileBillingEmail,
+            HealthScore = healthScore?.OverallScore,
+            HealthBand = healthScore?.HealthBand.ToString()
+        };
+    }
+
+    public async Task<TenantBillingResponse?> GetTenantBillingAsync(Guid tenantId, CancellationToken cancellationToken)
+    {
+        var org = await _organizationRepository.GetByIdForPlatformAsync(tenantId, cancellationToken);
+        if (org is null) return null;
+
+        var billingRecords = await _billingRecordRepository.GetByTenantIdForPlatformAsync(tenantId, cancellationToken);
+
+        var billingHealth = DeriveBillingHealth(org);
+        var gracePeriodActive = org.NextPaymentRetryAt != null && org.NextPaymentRetryAt > DateTime.UtcNow;
+        var latestRecord = billingRecords.FirstOrDefault();
+
+        return new TenantBillingResponse
+        {
+            SubscriptionPlan = org.SubscriptionPlan,
+            BillingCycle = org.SubscriptionBillingCycle,
+            SubscriptionActivatedAt = org.SubscriptionActivatedAt,
+            BillingHealth = billingHealth,
+            LastPaymentDate = latestRecord?.CreatedAt,
+            NextRenewalDate = latestRecord?.BillingCycleEnd,
+            GracePeriodActive = gracePeriodActive,
+            GracePeriodRetryAt = org.NextPaymentRetryAt,
+            RecentInvoices = billingRecords
+                .Take(5)
+                .Select(r => new TenantBillingInvoiceItem(
+                    r.InvoiceNumber,
+                    r.BillingCycleStart,
+                    r.BillingCycleEnd,
+                    r.TotalAmount,
+                    r.Currency,
+                    r.Status,
+                    r.CreatedAt))
+                .ToList()
+        };
+    }
+
+    public async Task<TenantCasesResponse?> GetTenantCasesAsync(Guid tenantId, CancellationToken cancellationToken)
+    {
+        var org = await _organizationRepository.GetByIdForPlatformAsync(tenantId, cancellationToken);
+        if (org is null) return null;
+
+        var cases = await _caseRepository.GetByTenantIdWithStepsForPlatformAsync(tenantId, cancellationToken);
+
+        return new TenantCasesResponse
+        {
+            Cases = cases.Select(MapToCaseItem).ToList()
+        };
+    }
+
+    public async Task<TenantActivityResponse?> GetTenantActivityAsync(Guid tenantId, CancellationToken cancellationToken)
+    {
+        var org = await _organizationRepository.GetByIdForPlatformAsync(tenantId, cancellationToken);
+        if (org is null) return null;
+
+        var periodEnd = DateTime.UtcNow;
+        var periodStart = periodEnd.AddDays(-30);
+        var events = await _auditRepository.GetByTenantIdInPeriodAsync(tenantId, periodStart, periodEnd, cancellationToken);
+
+        return new TenantActivityResponse
+        {
+            Events = events
+                .OrderByDescending(e => e.CreatedAt)
+                .Select(e => new TenantActivityItem
+                {
+                    EventType = e.EventType,
+                    ActorUserId = e.ActorUserId,
+                    Timestamp = e.CreatedAt,
+                    CaseId = e.CaseId,
+                    Metadata = e.Metadata
+                })
+                .ToList()
+        };
     }
 
     private async Task<PaginatedResponse<TenantListItemResponse>> ListWithHealthJoinAsync(
@@ -101,14 +204,14 @@ public sealed class AdminTenantService : IAdminTenantService
         var paged = sorted
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .Select(x => MapToResponse(x.Org, scoreLookup))
+            .Select(x => MapToListResponse(x.Org, scoreLookup))
             .ToList();
 
         var totalPages = (int)Math.Ceiling((double)totalCount / pageSize);
         return new PaginatedResponse<TenantListItemResponse>(paged, page, pageSize, totalCount, totalPages);
     }
 
-    private static TenantListItemResponse MapToResponse(
+    private static TenantListItemResponse MapToListResponse(
         Organization org,
         Dictionary<Guid, TenantHealthScore> scoreLookup)
     {
@@ -124,6 +227,58 @@ public sealed class AdminTenantService : IAdminTenantService
             HealthBand = score?.HealthBand.ToString(),
             SignupDate = org.CreatedAt,
             Region = string.IsNullOrWhiteSpace(org.Location) ? null : org.Location
+        };
+    }
+
+    private static string DeriveBillingHealth(Organization org)
+    {
+        if (org.FailedPaymentAttempts == 0 || org.LastPaymentFailedAt is null)
+            return "Paid";
+
+        if (org.NextPaymentRetryAt != null && org.NextPaymentRetryAt > DateTime.UtcNow)
+            return "Overdue";
+
+        return "Failed";
+    }
+
+    private static TenantCaseItem MapToCaseItem(Case c)
+    {
+        var steps = c.WorkflowSteps?.ToList() ?? [];
+
+        var completedCount = steps.Count(s =>
+            s.Status is WorkflowStepStatus.Complete or WorkflowStepStatus.Skipped);
+        var inProgressCount = steps.Count(s =>
+            s.Status is WorkflowStepStatus.InProgress or WorkflowStepStatus.AwaitingEvidence);
+        var blockedCount = steps.Count(s =>
+            s.Status == WorkflowStepStatus.Blocked);
+
+        var blockedSteps = steps
+            .Where(s => s.Status == WorkflowStepStatus.Blocked)
+            .Select(s => new TenantCaseBlockedStep
+            {
+                StepKey = s.StepKey,
+                Title = s.Title,
+                BlockedReasonCode = s.BlockedReasonCode?.ToString(),
+                BlockedReasonDetail = s.BlockedReasonDetail
+            })
+            .ToList();
+
+        return new TenantCaseItem
+        {
+            CaseId = c.Id,
+            CaseNumber = c.CaseNumber,
+            DeceasedFullName = c.DeceasedFullName,
+            Status = c.Status.ToString(),
+            CreatedAt = c.CreatedAt,
+            WorkflowKey = c.WorkflowKey,
+            WorkflowProgress = new TenantCaseWorkflowProgress
+            {
+                TotalSteps = steps.Count,
+                CompletedSteps = completedCount,
+                InProgressSteps = inProgressCount,
+                BlockedSteps = blockedCount
+            },
+            BlockedSteps = blockedSteps
         };
     }
 }

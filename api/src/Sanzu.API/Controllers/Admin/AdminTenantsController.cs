@@ -29,6 +29,57 @@ public sealed class AdminTenantsController : ControllerBase
         return Ok(ApiEnvelope<PaginatedResponse<TenantListItemResponse>>.Success(result, BuildMeta()));
     }
 
+    [HttpGet("{tenantId:guid}/summary")]
+    [ProducesResponseType(typeof(ApiEnvelope<TenantSummaryResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetTenantSummary(Guid tenantId, CancellationToken cancellationToken)
+    {
+        var result = await _tenantService.GetTenantSummaryAsync(tenantId, cancellationToken);
+        if (result is null)
+            return NotFound(new ProblemDetails { Title = "Tenant not found", Status = 404 });
+
+        return Ok(ApiEnvelope<TenantSummaryResponse>.Success(result, BuildMeta()));
+    }
+
+    [HttpGet("{tenantId:guid}/billing")]
+    [Authorize(Policy = "AdminFinance")]
+    [ProducesResponseType(typeof(ApiEnvelope<TenantBillingResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetTenantBilling(Guid tenantId, CancellationToken cancellationToken)
+    {
+        var result = await _tenantService.GetTenantBillingAsync(tenantId, cancellationToken);
+        if (result is null)
+            return NotFound(new ProblemDetails { Title = "Tenant not found", Status = 404 });
+
+        return Ok(ApiEnvelope<TenantBillingResponse>.Success(result, BuildMeta()));
+    }
+
+    [HttpGet("{tenantId:guid}/cases")]
+    [Authorize(Policy = "AdminSupport")]
+    [ProducesResponseType(typeof(ApiEnvelope<TenantCasesResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetTenantCases(Guid tenantId, CancellationToken cancellationToken)
+    {
+        var result = await _tenantService.GetTenantCasesAsync(tenantId, cancellationToken);
+        if (result is null)
+            return NotFound(new ProblemDetails { Title = "Tenant not found", Status = 404 });
+
+        return Ok(ApiEnvelope<TenantCasesResponse>.Success(result, BuildMeta()));
+    }
+
+    [HttpGet("{tenantId:guid}/activity")]
+    [Authorize(Policy = "AdminSupport")]
+    [ProducesResponseType(typeof(ApiEnvelope<TenantActivityResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetTenantActivity(Guid tenantId, CancellationToken cancellationToken)
+    {
+        var result = await _tenantService.GetTenantActivityAsync(tenantId, cancellationToken);
+        if (result is null)
+            return NotFound(new ProblemDetails { Title = "Tenant not found", Status = 404 });
+
+        return Ok(ApiEnvelope<TenantActivityResponse>.Success(result, BuildMeta()));
+    }
+
     private bool TryGetActorUserId(out Guid actorUserId)
     {
         actorUserId = Guid.Empty;
