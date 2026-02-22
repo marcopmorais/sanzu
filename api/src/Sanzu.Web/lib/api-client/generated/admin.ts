@@ -565,6 +565,84 @@ export async function updateAlertStatus(alertId: string, status: 'Acknowledged' 
   }
 }
 
+// ── Audit ──
+
+export interface AuditEventItem {
+  id: string;
+  actorUserId: string;
+  actorName: string;
+  eventType: string;
+  caseId?: string;
+  metadata: string;
+  timestamp: string;
+}
+
+export interface AuditSearchResult {
+  items: AuditEventItem[];
+  nextCursor?: string;
+  totalCount: number;
+}
+
+export interface AuditFilters {
+  actorUserId?: string;
+  eventType?: string;
+  caseId?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  cursor?: string;
+  pageSize?: number;
+}
+
+export async function searchAuditEvents(filters?: AuditFilters): Promise<AuditSearchResult> {
+  const params = new URLSearchParams();
+  if (filters?.actorUserId) params.set('actorUserId', filters.actorUserId);
+  if (filters?.eventType) params.set('eventType', filters.eventType);
+  if (filters?.caseId) params.set('caseId', filters.caseId);
+  if (filters?.dateFrom) params.set('dateFrom', filters.dateFrom);
+  if (filters?.dateTo) params.set('dateTo', filters.dateTo);
+  if (filters?.cursor) params.set('cursor', filters.cursor);
+  if (filters?.pageSize) params.set('pageSize', String(filters.pageSize));
+
+  const url = `/api/v1/admin/audit${params.toString() ? '?' + params.toString() : ''}`;
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to search audit events: ${response.statusText}`);
+  }
+
+  const envelope = await response.json();
+  return envelope.data;
+}
+
+export async function exportAuditEvents(format: 'csv' | 'json', filters?: AuditFilters): Promise<void> {
+  const params = new URLSearchParams();
+  params.set('format', format);
+  if (filters?.actorUserId) params.set('actorUserId', filters.actorUserId);
+  if (filters?.eventType) params.set('eventType', filters.eventType);
+  if (filters?.caseId) params.set('caseId', filters.caseId);
+  if (filters?.dateFrom) params.set('dateFrom', filters.dateFrom);
+  if (filters?.dateTo) params.set('dateTo', filters.dateTo);
+
+  const response = await fetch(`/api/v1/admin/audit/export?${params.toString()}`, {
+    method: 'GET',
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to export audit events: ${response.statusText}`);
+  }
+
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `audit-export.${format}`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export async function exportBillingHealthCsv(): Promise<void> {
   const response = await fetch('/api/v1/admin/revenue/billing-health/export', {
     method: 'GET',
