@@ -151,27 +151,27 @@ development_status:
   14-3-dashboard-cockpit-frontend-with-widgets: done
   epic-14-retrospective: optional
 
-  epic-15: backlog
-  15-1-tenant-list-api-and-search-filter: backlog
-  15-2-tenant-360-composable-api-endpoints: backlog
-  15-3-tenant-portfolio-and-360-frontend: backlog
+  epic-15: done
+  15-1-tenant-list-api-and-search-filter: done
+  15-2-tenant-360-composable-api-endpoints: done
+  15-3-tenant-portfolio-and-360-frontend: done
   epic-15-retrospective: optional
 
-  epic-16: backlog
-  16-1-revenue-dashboard-api: backlog
-  16-2-revenue-and-billing-csv-export: backlog
-  16-3-revenue-dashboard-frontend: backlog
+  epic-16: done
+  16-1-revenue-dashboard-api: done
+  16-2-revenue-and-billing-csv-export: done
+  16-3-revenue-dashboard-frontend: done
   epic-16-retrospective: optional
 
-  epic-17: backlog
-  17-1-alert-data-model-and-evaluation-background-service: backlog
-  17-2-alert-routing-and-delivery: backlog
-  17-3-alert-inbox-and-lifecycle-management: backlog
-  17-4-manual-follow-up-alerts-and-delivery-configuration: backlog
+  epic-17: done
+  17-1-alert-data-model-and-evaluation-background-service: done
+  17-2-alert-routing-and-delivery: done
+  17-3-alert-inbox-and-lifecycle-management: done
+  17-4-manual-follow-up-alerts-and-delivery-configuration: done
   epic-17-retrospective: optional
 
-  epic-18: backlog
-  18-1-audit-event-search-and-export-api: backlog
+  epic-18: in-progress
+  18-1-audit-event-search-and-export-api: done
   18-2-audit-event-viewer-frontend: backlog
   epic-18-retrospective: optional
 

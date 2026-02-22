@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using Sanzu.Core.Entities;
 using Sanzu.Core.Interfaces;
@@ -54,5 +55,79 @@ public sealed class AuditRepository : IAuditRepository
             .Where(x => x.CreatedAt >= periodStart && x.CreatedAt < periodEnd)
             .AsNoTracking()
             .ToListAsync(cancellationToken);
+    }
+
+    public async Task<AuditSearchResult> SearchAsync(
+        Guid? actorUserId,
+        string? eventType,
+        Guid? caseId,
+        DateTime? dateFrom,
+        DateTime? dateTo,
+        string? cursor,
+        int pageSize,
+        CancellationToken cancellationToken)
+    {
+        var query = _dbContext.AuditEvents.AsNoTracking();
+
+        if (actorUserId.HasValue)
+            query = query.Where(x => x.ActorUserId == actorUserId.Value);
+
+        if (!string.IsNullOrEmpty(eventType))
+            query = query.Where(x => x.EventType.Contains(eventType));
+
+        if (caseId.HasValue)
+            query = query.Where(x => x.CaseId == caseId.Value);
+
+        if (dateFrom.HasValue)
+            query = query.Where(x => x.CreatedAt >= dateFrom.Value);
+
+        if (dateTo.HasValue)
+            query = query.Where(x => x.CreatedAt <= dateTo.Value);
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var offset = 0;
+        if (!string.IsNullOrEmpty(cursor) && TryDecodeOffsetCursor(cursor, out var cursorOffset))
+            offset = cursorOffset;
+
+        var items = await query
+            .OrderByDescending(x => x.CreatedAt)
+            .ThenByDescending(x => x.Id)
+            .Skip(offset)
+            .Take(pageSize + 1)
+            .ToListAsync(cancellationToken);
+
+        string? nextCursor = null;
+        if (items.Count > pageSize)
+        {
+            items = items.Take(pageSize).ToList();
+            nextCursor = EncodeOffsetCursor(offset + pageSize);
+        }
+
+        return new AuditSearchResult
+        {
+            Items = items,
+            NextCursor = nextCursor,
+            TotalCount = totalCount
+        };
+    }
+
+    internal static string EncodeOffsetCursor(int offset)
+    {
+        return Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(offset.ToString(CultureInfo.InvariantCulture)));
+    }
+
+    internal static bool TryDecodeOffsetCursor(string cursor, out int offset)
+    {
+        offset = 0;
+        try
+        {
+            var raw = System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(cursor));
+            return int.TryParse(raw, CultureInfo.InvariantCulture, out offset);
+        }
+        catch
+        {
+            return false;
+        }
     }
 }
