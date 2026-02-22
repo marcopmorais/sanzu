@@ -166,6 +166,7 @@ public static class ServiceRegistration
         services.AddScoped<IHealthScoreInput, CaseCompletionInput>();
         services.AddScoped<IHealthScoreInput, OnboardingCompletionInput>();
         services.AddScoped<IAdminAlertService, AdminAlertService>();
+        services.AddScoped<IAlertRouterService, AlertRouterService>();
         services.AddHostedService<HealthScoreBackgroundService>();
         services.AddHostedService<AdminDashboardBackgroundService>();
         services.AddHostedService<AlertEvaluationBackgroundService>();
