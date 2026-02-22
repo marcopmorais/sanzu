@@ -37,6 +37,7 @@ public sealed class SanzuDbContext : DbContext
     public DbSet<AgencyPlaybook> AgencyPlaybooks => Set<AgencyPlaybook>();
     public DbSet<RemediationAction> RemediationActions => Set<RemediationAction>();
     public DbSet<TenantHealthScore> TenantHealthScores => Set<TenantHealthScore>();
+    public DbSet<AdminDashboardSnapshot> AdminDashboardSnapshots => Set<AdminDashboardSnapshot>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
