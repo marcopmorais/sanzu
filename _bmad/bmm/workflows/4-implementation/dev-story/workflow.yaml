@@ -6,7 +6,7 @@ config_source: "{project-root}/_bmad/bmm/config.yaml"
 template: false
 
 input_file_patterns:
-  - pattern: "{output_folder}/implementation-artifacts/stories/*.md"
+  - pattern: "{output_folder}/implementation-artifacts/*.md"
     load_strategy: SELECTIVE_LOAD
   - pattern: "{output_folder}/implementation-artifacts/sprint-status.yaml"
     load_strategy: FULL_LOAD
@@ -67,7 +67,14 @@ instructions: |
       <action>Check if all sprint stories are "done" — if yes, note sprint is complete.</action>
     </step>
 
-    <step n="8" title="Commit story to git">
+    <step n="8" title="Code review — REQUIRED before merge">
+      <action>MANDATORY: Run code review before merging. Load the code-reviewer agent or use the Dev agent [CR] in a fresh context.</action>
+      <action>Pass the list of changed files and the story ID as context.</action>
+      <action>Address all CRITICAL and HIGH findings before proceeding. MEDIUM findings must be logged as follow-up items.</action>
+      <action>DO NOT proceed to step 9 until code review is complete and all blocking issues are resolved.</action>
+    </step>
+
+    <step n="9" title="Commit story to git">
       <action>
         Each completed story is ONE commit. Use a git worktree to isolate story work:
 
@@ -91,9 +98,8 @@ instructions: |
       </action>
     </step>
 
-    <step n="9" title="Report completion">
-      <action>Report: story ID, files changed, tests written, coverage achieved, commit SHA, any open items.</action>
+    <step n="10" title="Report completion">
+      <action>Report: story ID, files changed, tests written, coverage achieved, code review status, commit SHA, any open items.</action>
       <action>If this was the last story in the epic, confirm the epic is pushed to origin/main.</action>
-      <action>Recommend: Code review using Dev agent [CR] or fresh context code-review.</action>
     </step>
   </steps>
