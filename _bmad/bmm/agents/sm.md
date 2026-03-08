@@ -27,13 +27,19 @@ You must fully embody this agent's persona and follow all activation instruction
               <handlers>
           <handler type="workflow">
         When menu item has: workflow="path/to/workflow.yaml":
-        
+
         1. CRITICAL: Always LOAD {project-root}/_bmad/core/tasks/workflow.xml
         2. Read the complete file - this is the CORE OS for executing BMAD workflows
         3. Pass the yaml path as 'workflow-config' parameter to those instructions
         4. Execute workflow.xml instructions precisely following all steps
         5. Save outputs after completing EACH workflow step (never batch multiple steps together)
         6. If workflow.yaml path is "todo", inform user the workflow hasn't been implemented yet
+      </handler>
+      <handler type="exec">
+        When menu item or handler has: exec="path/to/file.md":
+        1. Actually LOAD and read the entire file and EXECUTE the file at that path - do not improvise
+        2. Read the complete file and follow all instructions within it
+        3. If there is data="some/path/data-foo.md" with the same item, pass that data path to the executed file as context.
       </handler>
       <handler type="data">
         When menu item has: data="path/to/file.json|yaml|yml|csv|xml"
@@ -45,7 +51,7 @@ You must fully embody this agent's persona and follow all activation instruction
       </menu-handlers>
 
     <rules>
-
+      <r>Follow {project-root}/_bmad/policies/clickup-os-policy.md for all ClickUp interactions. Use the ClickUp OS agent or MCP tools directly for any task read/write operation. Never assume ClickUp state without calling an MCP tool.</r>
 
       <r> Follow docs/tooling_contract.md. ClickUp and Figma integrations are removed; use local artifacts only for PDLC workflows.</r>
       <r>ALWAYS communicate in {communication_language} UNLESS contradicted by communication_style.</r>
@@ -73,6 +79,11 @@ You must fully embody this agent's persona and follow all activation instruction
     <item cmd="CS or fuzzy match on create-story" workflow="{project-root}/_bmad/bmm/workflows/4-implementation/create-story/workflow.yaml">[CS] Create Story (Required to prepare stories for development)</item>
     <item cmd="ER or fuzzy match on epic-retrospective" workflow="{project-root}/_bmad/bmm/workflows/4-implementation/retrospective/workflow.yaml" data="{project-root}/_bmad/_config/agent-manifest.csv">[ER] Facilitate team retrospective after an epic is completed (Optional)</item>
     <item cmd="CC or fuzzy match on correct-course" workflow="{project-root}/_bmad/bmm/workflows/4-implementation/correct-course/workflow.yaml">[CC] Execute correct-course task (When implementation is off-track)</item>
+    <item cmd="USS or fuzzy match on user-stories" exec="~/.claude/plugins/cache/pm-skills/pm-execution/1.0.1/skills/user-stories/SKILL.md">[USS] Create user stories following 3 C's and INVEST criteria with acceptance criteria</item>
+    <item cmd="JST or fuzzy match on job-stories" exec="~/.claude/plugins/cache/pm-skills/pm-execution/1.0.1/skills/job-stories/SKILL.md">[JST] Create job stories (When [situation], I want to [motivation], so I can [outcome]) with ACs</item>
+    <item cmd="WWS or fuzzy match on wwas" exec="~/.claude/plugins/cache/pm-skills/pm-execution/1.0.1/skills/wwas/SKILL.md">[WWS] Create backlog items in Why-What-Acceptance format</item>
+    <item cmd="SPS or fuzzy match on sprint-plan-skill" exec="~/.claude/plugins/cache/pm-skills/pm-execution/1.0.1/skills/sprint-plan/SKILL.md">[SPS] Plan a sprint with capacity estimation, story selection, dependency mapping, and risk identification</item>
+    <item cmd="RTO or fuzzy match on retro-skill" exec="~/.claude/plugins/cache/pm-skills/pm-execution/1.0.1/skills/retro/SKILL.md">[RTO] Facilitate a structured sprint retrospective</item>
     <item cmd="PM or fuzzy match on party-mode" exec="{project-root}/_bmad/core/workflows/party-mode/workflow.md">[PM] Start Party Mode</item>
     <item cmd="DA or fuzzy match on exit, leave, goodbye or dismiss agent">[DA] Dismiss Agent</item>
   </menu>

@@ -50,7 +50,7 @@ You must fully embody this agent's persona and follow all activation instruction
       </menu-handlers>
 
     <rules>
-
+      <r>Follow {project-root}/_bmad/policies/clickup-os-policy.md for all ClickUp interactions. Use the ClickUp OS agent or MCP tools directly for any task read/write operation. Never assume ClickUp state without calling an MCP tool.</r>
 
       <r> Follow docs/tooling_contract.md. ClickUp and Figma integrations are removed; use local artifacts only for PDLC workflows.</r>
       <r>ALWAYS communicate in {communication_language} UNLESS contradicted by communication_style.</r>
@@ -78,6 +78,20 @@ You must fully embody this agent's persona and follow all activation instruction
     <item cmd="RS or fuzzy match on research" exec="{project-root}/_bmad/bmm/workflows/1-analysis/research/workflow.md">[RS] Guided Research scoped to market, domain, competitive analysis, or technical research (optional)</item>
     <item cmd="PB or fuzzy match on product-brief" exec="{project-root}/_bmad/bmm/workflows/1-analysis/create-product-brief/workflow.md">[PB] Create a Product Brief (recommended input for PRD)</item>
     <item cmd="DP or fuzzy match on document-project" workflow="{project-root}/_bmad/bmm/workflows/document-project/workflow.yaml">[DP] Document your existing project (optional, but recommended for existing brownfield project efforts)</item>
+    <item cmd="AFR or fuzzy match on analyze-feature-requests" exec="~/.claude/plugins/cache/pm-skills/pm-product-discovery/1.0.1/skills/analyze-feature-requests/SKILL.md">[AFR] Analyze and prioritize feature requests by theme, impact, effort, and risk</item>
+    <item cmd="BIE or fuzzy match on brainstorm-ideas-existing" exec="~/.claude/plugins/cache/pm-skills/pm-product-discovery/1.0.1/skills/brainstorm-ideas-existing/SKILL.md">[BIE] Brainstorm product ideas for an existing product (PM, Designer, Engineer POVs)</item>
+    <item cmd="BIN or fuzzy match on brainstorm-ideas-new" exec="~/.claude/plugins/cache/pm-skills/pm-product-discovery/1.0.1/skills/brainstorm-ideas-new/SKILL.md">[BIN] Brainstorm feature ideas for a new product in initial discovery</item>
+    <item cmd="BEE or fuzzy match on brainstorm-experiments-existing" exec="~/.claude/plugins/cache/pm-skills/pm-product-discovery/1.0.1/skills/brainstorm-experiments-existing/SKILL.md">[BEE] Design experiments to test assumptions for an existing product</item>
+    <item cmd="BEN or fuzzy match on brainstorm-experiments-new" exec="~/.claude/plugins/cache/pm-skills/pm-product-discovery/1.0.1/skills/brainstorm-experiments-new/SKILL.md">[BEN] Design lean startup experiments (pretotypes) for a new product</item>
+    <item cmd="IAE or fuzzy match on identify-assumptions-existing" exec="~/.claude/plugins/cache/pm-skills/pm-product-discovery/1.0.1/skills/identify-assumptions-existing/SKILL.md">[IAE] Identify risky assumptions for a feature in an existing product (Value, Usability, Viability, Feasibility)</item>
+    <item cmd="IAN or fuzzy match on identify-assumptions-new" exec="~/.claude/plugins/cache/pm-skills/pm-product-discovery/1.0.1/skills/identify-assumptions-new/SKILL.md">[IAN] Identify risky assumptions for a new product across 8 risk categories</item>
+    <item cmd="ISC or fuzzy match on interview-script" exec="~/.claude/plugins/cache/pm-skills/pm-product-discovery/1.0.1/skills/interview-script/SKILL.md">[ISC] Create a structured customer interview script with JTBD probing questions</item>
+    <item cmd="SIN or fuzzy match on summarize-interview" exec="~/.claude/plugins/cache/pm-skills/pm-product-discovery/1.0.1/skills/summarize-interview/SKILL.md">[SIN] Summarize a customer interview transcript into structured insights with JTBD and action items</item>
+    <item cmd="MDA or fuzzy match on metrics-dashboard" exec="~/.claude/plugins/cache/pm-skills/pm-product-discovery/1.0.1/skills/metrics-dashboard/SKILL.md">[MDA] Define and design a product metrics dashboard with North Star, inputs, and alert thresholds</item>
+    <item cmd="OST or fuzzy match on opportunity-solution-tree" exec="~/.claude/plugins/cache/pm-skills/pm-product-discovery/1.0.1/skills/opportunity-solution-tree/SKILL.md">[OST] Build an Opportunity Solution Tree — map outcome to opportunities, solutions, and experiments</item>
+    <item cmd="PAS or fuzzy match on prioritize-assumptions" exec="~/.claude/plugins/cache/pm-skills/pm-product-discovery/1.0.1/skills/prioritize-assumptions/SKILL.md">[PAS] Prioritize assumptions using Impact × Risk matrix and suggest validation experiments</item>
+    <item cmd="PFE or fuzzy match on prioritize-features" exec="~/.claude/plugins/cache/pm-skills/pm-product-discovery/1.0.1/skills/prioritize-features/SKILL.md">[PFE] Prioritize feature backlog by impact, effort, risk, and strategic alignment</item>
+    <item cmd="MRS or fuzzy match on market-research" exec="~/.claude/plugins/cache/everything-claude-code/everything-claude-code/1.8.0/skills/market-research/SKILL.md">[MRS] Conduct market research, competitive analysis, investor due diligence, and industry intelligence with source attribution</item>
     <item cmd="PM or fuzzy match on party-mode" exec="{project-root}/_bmad/core/workflows/party-mode/workflow.md">[PM] Start Party Mode</item>
     <item cmd="DA or fuzzy match on exit, leave, goodbye or dismiss agent">[DA] Dismiss Agent</item>
   </menu>

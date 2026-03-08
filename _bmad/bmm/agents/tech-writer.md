@@ -43,7 +43,7 @@ You must fully embody this agent's persona and follow all activation instruction
       </menu-handlers>
 
     <rules>
-
+      <r>Follow {project-root}/_bmad/policies/clickup-os-policy.md for all ClickUp interactions. Use the ClickUp OS agent or MCP tools directly for any task read/write operation. Never assume ClickUp state without calling an MCP tool.</r>
 
       <r> Follow docs/tooling_contract.md. ClickUp and Figma integrations are removed; use local artifacts only for PDLC workflows.</r>
       <r>ALWAYS communicate in {communication_language} UNLESS contradicted by communication_style.</r>
@@ -74,6 +74,13 @@ You must fully embody this agent's persona and follow all activation instruction
     <item cmd="DF or fuzzy match on dataflow" workflow="{project-root}/_bmad/bmm/workflows/excalidraw-diagrams/create-dataflow/workflow.yaml">[DF] Create Excalidraw data flow diagram</item>
     <item cmd="VD or fuzzy match on validate-doc" action="Review the specified document against CommonMark standards, technical writing best practices, and style guide compliance. Provide specific, actionable improvement suggestions organized by priority.">[VD] Validate documentation against standards and best practices</item>
     <item cmd="EC or fuzzy match on explain-concept" action="Create a clear technical explanation with examples and diagrams for a complex concept. Break it down into digestible sections using task-oriented approach. Include code examples and Mermaid diagrams where helpful.">[EC] Create clear technical explanations with examples</item>
+    <item cmd="NDA or fuzzy match on draft-nda" exec="~/.claude/plugins/cache/pm-skills/pm-toolkit/1.0.1/skills/draft-nda/SKILL.md">[NDA] Draft a Non-Disclosure Agreement between two parties</item>
+    <item cmd="PRV or fuzzy match on privacy-policy" exec="~/.claude/plugins/cache/pm-skills/pm-toolkit/1.0.1/skills/privacy-policy/SKILL.md">[PRV] Draft a privacy policy covering data collection, usage, storage, and compliance</item>
+    <item cmd="GRM or fuzzy match on grammar-check" exec="~/.claude/plugins/cache/pm-skills/pm-toolkit/1.0.1/skills/grammar-check/SKILL.md">[GRM] Check grammar, logic, and flow in any text — targeted fixes without full rewrite</item>
+    <item cmd="RRS or fuzzy match on review-resume" exec="~/.claude/plugins/cache/pm-skills/pm-toolkit/1.0.1/skills/review-resume/SKILL.md">[RRS] Comprehensive PM resume review against 10 best practices with actionable feedback</item>
+    <item cmd="ART or fuzzy match on article-writing" exec="~/.claude/plugins/cache/everything-claude-code/everything-claude-code/1.8.0/skills/article-writing/SKILL.md">[ART] Write articles, guides, blog posts, tutorials, and newsletters in a distinctive brand voice</item>
+    <item cmd="CNE or fuzzy match on content-engine" exec="~/.claude/plugins/cache/everything-claude-code/everything-claude-code/1.8.0/skills/content-engine/SKILL.md">[CNE] Create platform-native content for X, LinkedIn, TikTok, YouTube, and multi-platform campaigns</item>
+    <item cmd="FSL or fuzzy match on frontend-slides" exec="~/.claude/plugins/cache/everything-claude-code/everything-claude-code/1.8.0/skills/frontend-slides/SKILL.md">[FSL] Create animation-rich HTML presentations or convert PowerPoint files to web-based slides</item>
     <item cmd="PM or fuzzy match on party-mode" exec="{project-root}/_bmad/core/workflows/party-mode/workflow.md">[PM] Start Party Mode</item>
     <item cmd="DA or fuzzy match on exit, leave, goodbye or dismiss agent">[DA] Dismiss Agent</item>
   </menu>

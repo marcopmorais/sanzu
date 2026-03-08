@@ -1,0 +1,66 @@
+config_source: "{project-root}/_bmad/bmm/config.yaml"
+template: false
+default_output_file: "{output_folder}/8-growth/customer-health-report.md"
+
+instructions: |
+  <steps>
+    <step n="1" title="Load existing health data">
+      <action>Read {output_folder}/8-growth/customer-health-report.md if it exists — carry forward account list and previous scores.</action>
+      <action>Read {output_folder}/8-growth/churn-intervention-log.md if it exists — check status of active interventions.</action>
+      <action>Read {output_folder}/8-growth/nps-tracker.md if it exists — incorporate latest NPS signals.</action>
+    </step>
+
+    <step n="2" title="Collect usage and engagement signals">
+      <action>Ask the user to provide or paste current usage data for each customer account (login frequency, feature adoption, support ticket volume).</action>
+      <action>If the user cannot provide data, proceed with a template that marks each signal as [PENDING_DATA].</action>
+    </step>
+
+    <step n="3" title="Score each account">
+      <action>For each account, score 4 dimensions on a 1–5 scale:</action>
+      <action>  - Product Usage: login frequency and feature breadth</action>
+      <action>  - Engagement: response rate to CSM outreach, QBR participation</action>
+      <action>  - Outcomes: documented value achieved vs. expected value at sale</action>
+      <action>  - Relationship: executive sponsor health, internal champion strength</action>
+      <action>Calculate composite health score: average of 4 dimensions.</action>
+      <action>Assign RAG: 🟢 4.0–5.0 | 🟡 2.5–3.9 | 🔴 &lt;2.5</action>
+    </step>
+
+    <step n="4" title="Generate intervention plans for at-risk accounts">
+      <action>For each 🔴 account: draft a specific intervention plan with 3 actions, owner, and timeline.</action>
+      <action>For each 🟡 account: identify the single highest-leverage action to improve score.</action>
+      <action>Update {output_folder}/8-growth/churn-intervention-log.md with new interventions.</action>
+    </step>
+
+    <step n="5" title="Identify expansion opportunities">
+      <action>For each 🟢 account: evaluate expansion readiness based on usage depth and stated business goals.</action>
+      <action>Flag accounts ready for upsell/cross-sell conversation with reasoning.</action>
+    </step>
+
+    <step n="6" title="Write health report">
+      <action>Write {output_folder}/8-growth/customer-health-report.md with the following structure:</action>
+      <action>
+        # Customer Health Report — {current_date}
+
+        ## Portfolio Summary
+        - 🟢 Healthy: [count] ([ARR])
+        - 🟡 At Risk: [count] ([ARR])
+        - 🔴 Critical: [count] ([ARR])
+
+        ## Account Scorecard
+        | Account | Usage | Engagement | Outcomes | Relationship | Score | Status |
+        |---------|-------|------------|----------|--------------|-------|--------|
+
+        ## Active Interventions
+        [From churn-intervention-log — active items only]
+
+        ## Expansion Opportunities
+        | Account | Opportunity | Rationale | Recommended Action |
+        |---------|-------------|-----------|-------------------|
+
+        ## Trends vs. Last Period
+        - Accounts improved: [list]
+        - Accounts deteriorated: [list]
+        - New at-risk accounts: [list]
+      </action>
+    </step>
+  </steps>

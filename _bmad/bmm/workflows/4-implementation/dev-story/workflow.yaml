@@ -1,0 +1,99 @@
+# Dev Story — Execute a prepared story file
+# Dev Agent [DS]: implements a story following TDD, updates sprint-status on completion.
+# Action workflow: modifies code, updates sprint-status.yaml, does NOT produce a new doc.
+
+config_source: "{project-root}/_bmad/bmm/config.yaml"
+template: false
+
+input_file_patterns:
+  - pattern: "{output_folder}/implementation-artifacts/stories/*.md"
+    load_strategy: SELECTIVE_LOAD
+  - pattern: "{output_folder}/implementation-artifacts/sprint-status.yaml"
+    load_strategy: FULL_LOAD
+  - pattern: "{project-root}/**/project-context.md"
+    load_strategy: FULL_LOAD
+
+instructions: |
+  <steps>
+    <step n="1" title="Load story and sprint context">
+      <invoke-protocol name="discover_inputs"/>
+      <action>Read sprint-status.yaml and list all "in_progress" stories.</action>
+      <ask>Which story should I implement? (enter story ID or "next" for first in_progress story)</ask>
+      <action>Load the full story file for the selected story.</action>
+      <action>Search for and load project-context.md if it exists — treat as bible.</action>
+    </step>
+
+    <step n="2" title="Understand codebase context">
+      <action>Read the "Files Likely to Change" list from the story file.</action>
+      <action>Read each listed file completely to understand existing patterns.</action>
+      <action>Identify the test files corresponding to each source file.</action>
+      <action>Note any existing patterns (naming, error handling, imports) to follow consistently.</action>
+    </step>
+
+    <step n="3" title="TDD — Write failing tests first (RED)">
+      <action>For each AC in the story, write a test case BEFORE implementing.</action>
+      <action>Follow red-green-refactor: tests MUST fail before implementation begins.</action>
+      <action>Cover: happy path, edge cases from story ACs, error states.</action>
+      <action>Run tests — confirm they fail for the right reason (not syntax errors).</action>
+    </step>
+
+    <step n="4" title="Implement tasks in order (GREEN)">
+      <action>Execute tasks from the story file in sequence — do NOT skip steps.</action>
+      <action>Each task/subtask maps to specific code changes — stay in scope.</action>
+      <action>Never implement anything not mapped to a task in the story file.</action>
+      <action>Run tests after each task — fix failures before proceeding to next task.</action>
+      <check if="story touches document upload, role assignment, or process state transitions">
+        <action>Implement audit trail logging as required by Sanzu mandate.</action>
+        <action>Ensure audit AC in story is explicitly verified by a test.</action>
+      </check>
+    </step>
+
+    <step n="5" title="Refactor (IMPROVE)">
+      <action>Review implemented code for: readability, naming, duplication, error handling.</action>
+      <action>Apply project patterns consistently.</action>
+      <action>Run all tests again — ensure 100% of existing tests still pass.</action>
+    </step>
+
+    <step n="6" title="Verify coverage and DoD">
+      <action>Run test coverage report — target >= 80% on changed files.</action>
+      <action>Verify all ACs from the story file are tested.</action>
+      <action>Check Definition of Done checklist from the story file — mark each item.</action>
+    </step>
+
+    <step n="7" title="Update sprint-status.yaml">
+      <action>Change the story status in sprint-status.yaml from "in_progress" to "done".</action>
+      <action>Add a completion note with the date.</action>
+      <action>Save sprint-status.yaml.</action>
+      <action>Check if all sprint stories are "done" — if yes, note sprint is complete.</action>
+    </step>
+
+    <step n="8" title="Commit story to git">
+      <action>
+        Each completed story is ONE commit. Use a git worktree to isolate story work:
+
+        1. Create a worktree for the story branch if one does not exist:
+              git worktree add ../worktrees/{story_id} -b story/{story_id}
+           (If the branch already exists: git worktree add ../worktrees/{story_id} story/{story_id})
+
+        2. Stage only the files changed by this story:
+              git -C ../worktrees/{story_id} add {changed_files...}
+
+        3. Commit with conventional format:
+              git -C ../worktrees/{story_id} commit -m "feat: implement Story {story_id} — {story_title}"
+
+        4. Merge back to main (or push branch for PR — prefer direct merge for solo dev flow):
+              git -C main merge story/{story_id} --no-ff -m "Merge story/{story_id}: {story_title}"
+
+        5. When the EPIC is fully done (all stories committed):
+              git push origin main
+
+        IMPORTANT: Push to main only when the ENTIRE epic is complete — not after each story.
+      </action>
+    </step>
+
+    <step n="9" title="Report completion">
+      <action>Report: story ID, files changed, tests written, coverage achieved, commit SHA, any open items.</action>
+      <action>If this was the last story in the epic, confirm the epic is pushed to origin/main.</action>
+      <action>Recommend: Code review using Dev agent [CR] or fresh context code-review.</action>
+    </step>
+  </steps>

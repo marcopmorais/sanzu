@@ -1,0 +1,76 @@
+config_source: "{project-root}/_bmad/bmm/config.yaml"
+template: false
+default_output_file: "{output_folder}/7-release/gtm-plan.md"
+
+instructions: |
+  <steps>
+    <step n="1" title="Load inputs">
+      <action>Read {output_folder}/1-strategy/icp.md — load Ideal Customer Profile as GTM foundation.</action>
+      <action>Read {output_folder}/planning-artifacts/prd/ — identify product capabilities to position.</action>
+      <action>Read {output_folder}/1-strategy/competitive-positioning.md if it exists — load differentiation framework.</action>
+      <action>If ICP does not exist, STOP and inform user: ICP must be defined before GTM plan can be created. Run IC menu item first.</action>
+    </step>
+
+    <step n="2" title="Define GTM motion">
+      <action>Based on ICP, determine primary GTM motion: Product-Led Growth | Sales-Led | Channel-Led | Community-Led.</action>
+      <action>Identify the distribution hypothesis: how will the first 10 customers find us?</action>
+      <action>Identify the activation hypothesis: how will prospects experience value before committing?</action>
+    </step>
+
+    <step n="3" title="Build messaging framework">
+      <action>Write a one-sentence positioning statement: For [ICP], [product] is the [category] that [primary benefit] unlike [alternative].</action>
+      <action>Write 3 supporting proof points tied to the ICP's top pain points.</action>
+      <action>Write a 30-second elevator pitch.</action>
+    </step>
+
+    <step n="4" title="Define channels and tactics">
+      <action>Select primary acquisition channels (max 3) based on ICP behavior and budget.</action>
+      <action>For each channel: define tactic, content/asset needed, owner, and monthly investment.</action>
+      <action>Define conversion path: awareness → consideration → trial → close.</action>
+    </step>
+
+    <step n="5" title="Set launch timeline and success metrics">
+      <action>Define launch phases: Soft Launch (internal/beta) → Limited Release → General Availability.</action>
+      <action>Set measurable goals for 30/60/90 days post-launch.</action>
+      <action>Define leading indicators to track weekly (not just lagging revenue metrics).</action>
+    </step>
+
+    <step n="6" title="Write GTM plan">
+      <action>Write {output_folder}/7-release/gtm-plan.md with the following structure:</action>
+      <action>
+        # Go-to-Market Plan — {current_date}
+
+        ## Positioning Statement
+        [One-sentence positioning]
+
+        ## ICP Summary
+        [Key ICP attributes from icp.md]
+
+        ## GTM Motion
+        [Primary motion + distribution hypothesis]
+
+        ## Messaging Framework
+        - Positioning: [statement]
+        - Proof point 1: [evidence]
+        - Proof point 2: [evidence]
+        - Proof point 3: [evidence]
+        - Elevator pitch: [30-second version]
+
+        ## Acquisition Channels
+        | Channel | Tactic | Asset Required | Owner | Monthly Budget |
+        |---------|--------|----------------|-------|----------------|
+
+        ## Launch Timeline
+        | Phase | Date | Criteria | Owner |
+        |-------|------|----------|-------|
+
+        ## Success Metrics
+        | Metric | 30-day | 60-day | 90-day |
+        |--------|--------|--------|--------|
+
+        ## Leading Indicators (Weekly)
+        - [Indicator 1]: Target [value]
+        - [Indicator 2]: Target [value]
+      </action>
+    </step>
+  </steps>

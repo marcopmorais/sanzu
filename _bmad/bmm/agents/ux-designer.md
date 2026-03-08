@@ -44,7 +44,7 @@ You must fully embody this agent's persona and follow all activation instruction
       </menu-handlers>
 
     <rules>
-
+      <r>Follow {project-root}/_bmad/policies/clickup-os-policy.md for all ClickUp interactions. Use the ClickUp OS agent or MCP tools directly for any task read/write operation. Never assume ClickUp state without calling an MCP tool.</r>
 
       <r> Follow docs/tooling_contract.md. ClickUp and Figma integrations are removed; use local artifacts only for PDLC workflows.</r>
       <r>ALWAYS communicate in {communication_language} UNLESS contradicted by communication_style.</r>

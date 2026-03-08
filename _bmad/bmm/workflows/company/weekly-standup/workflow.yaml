@@ -1,0 +1,59 @@
+config_source: "{project-root}/_bmad/bmm/config.yaml"
+template: false
+default_output_file: "{output_folder}/status/weekly-standup.md"
+
+instructions: |
+  <steps>
+    <step n="1" title="Collect cross-team updates from ClickUp">
+      <action>Use ClickUp MCP tools to query tasks updated in the past 7 days across all active lists.</action>
+      <action>Group updates by team: Product, Engineering, Design, Sales, Customer Success, Operations.</action>
+      <action>Identify tasks marked Done, In Progress, and Blocked.</action>
+    </step>
+
+    <step n="2" title="Scan local status artifacts">
+      <action>Read {output_folder}/status/blocker-log.md if it exists — carry forward unresolved blockers.</action>
+      <action>Read {output_folder}/status/pipeline-tracker.md if it exists — note pipeline movements.</action>
+      <action>Read {output_folder}/8-growth/customer-health-report.md if it exists — note health changes.</action>
+    </step>
+
+    <step n="3" title="Identify blockers and escalations">
+      <action>For each blocked task found: record owner, blocker description, and how long it has been blocked.</action>
+      <action>Flag any blocker older than 3 days as an escalation requiring Chief of Staff attention.</action>
+      <action>Note any dependency between teams causing compounding delay.</action>
+    </step>
+
+    <step n="4" title="Write standup summary">
+      <action>Write {output_folder}/status/weekly-standup.md with the following structure:</action>
+      <action>
+        # Weekly Standup — {current_date}
+
+        ## Last Week: What Got Done
+        - [Team]: [accomplishments]
+
+        ## This Week: What's In Flight
+        - [Team]: [active work]
+
+        ## Blockers (Escalation Required)
+        | Blocker | Owner | Age | Escalation |
+        |---------|-------|-----|------------|
+
+        ## Blockers (Self-Resolving)
+        | Blocker | Owner | Expected Resolution |
+        |---------|-------|---------------------|
+
+        ## Pipeline Signals
+        - [Revenue movements from pipeline-tracker]
+
+        ## Customer Health Signals
+        - [Health changes from customer-health-report]
+
+        ## Actions Required
+        - [Owner]: [Action] by [Date]
+      </action>
+    </step>
+
+    <step n="5" title="Update blocker log">
+      <action>Append resolved blockers to {output_folder}/status/blocker-log.md with resolution date.</action>
+      <action>Add new blockers with creation date and owner.</action>
+    </step>
+  </steps>

@@ -1,0 +1,54 @@
+config_source: "{project-root}/_bmad/bmm/config.yaml"
+template: false
+default_output_file: "{output_folder}/planning-artifacts/okrs/okr-checkin-{current_date}.md"
+
+instructions: |
+  <steps>
+    <step n="1" title="Load current OKR document">
+      <action>Glob {output_folder}/planning-artifacts/okrs/*.md to find the most recent OKR file.</action>
+      <action>Read the file and extract all Objectives and Key Results with their current values.</action>
+      <action>If no OKR file exists, STOP and inform the user: OKRs must be defined before a check-in can run.</action>
+    </step>
+
+    <step n="2" title="Gather progress signals">
+      <action>Read {output_folder}/status/pipeline-tracker.md — extract revenue KR progress.</action>
+      <action>Read {output_folder}/8-growth/customer-health-report.md — extract retention/NPS KR progress.</action>
+      <action>Read {output_folder}/status/financial-model.md — extract burn/revenue KR progress.</action>
+      <action>Query ClickUp for engineering velocity and product milestone completion using MCP tools.</action>
+    </step>
+
+    <step n="3" title="Score each Key Result">
+      <action>For each KR: assign a RAG status (🟢 On Track / 🟡 At Risk / 🔴 Off Track).</action>
+      <action>Calculate percentage completion: (current_value / target_value) × 100.</action>
+      <action>Note evidence source for each score.</action>
+    </step>
+
+    <step n="4" title="Identify required adjustments">
+      <action>For each 🔴 KR: determine root cause (execution gap, target miscalibration, external blocker).</action>
+      <action>Propose one of: Reset target | Add resources | Change approach | Accept miss with learning.</action>
+      <action>For each 🟡 KR: identify the specific action needed to move to green within 2 weeks.</action>
+    </step>
+
+    <step n="5" title="Write OKR check-in report">
+      <action>Write {output_folder}/planning-artifacts/okrs/okr-checkin-{current_date}.md with the following structure:</action>
+      <action>
+        # OKR Check-In — {current_date}
+
+        ## Summary
+        - 🟢 On Track: [count]
+        - 🟡 At Risk: [count]
+        - 🔴 Off Track: [count]
+
+        ## Objective-by-Objective Scorecard
+        ### [Objective 1]
+        | Key Result | Target | Current | % | Status | Evidence |
+        |------------|--------|---------|---|--------|----------|
+
+        ## Recommended Adjustments
+        - [KR]: [Recommended action with owner and deadline]
+
+        ## Decisions Required
+        - [Any OKR resets or resource changes requiring founder approval]
+      </action>
+    </step>
+  </steps>

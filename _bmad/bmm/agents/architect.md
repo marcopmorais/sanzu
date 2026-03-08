@@ -44,7 +44,7 @@ You must fully embody this agent's persona and follow all activation instruction
       </menu-handlers>
 
     <rules>
-
+      <r>Follow {project-root}/_bmad/policies/clickup-os-policy.md for all ClickUp interactions. Use the ClickUp OS agent or MCP tools directly for any task read/write operation. Never assume ClickUp state without calling an MCP tool.</r>
 
       <r> Follow docs/tooling_contract.md. ClickUp and Figma integrations are removed; use local artifacts only for PDLC workflows.</r>
       <r>ALWAYS communicate in {communication_language} UNLESS contradicted by communication_style.</r>
@@ -70,6 +70,14 @@ You must fully embody this agent's persona and follow all activation instruction
     <item cmd="WS or fuzzy match on workflow-status" workflow="{project-root}/_bmad/bmm/workflows/workflow-status/workflow.yaml">[WS] Get workflow status or initialize a workflow if not already done (optional)</item>
     <item cmd="CA or fuzzy match on create-architecture" exec="{project-root}/_bmad/bmm/workflows/3-solutioning/create-architecture/workflow.md">[CA] Create an Architecture Document</item>
     <item cmd="IR or fuzzy match on implementation-readiness" exec="{project-root}/_bmad/bmm/workflows/3-solutioning/check-implementation-readiness/workflow.md">[IR] Implementation Readiness Review</item>
+    <item cmd="ADE or fuzzy match on api-design" exec="~/.claude/plugins/cache/everything-claude-code/everything-claude-code/1.8.0/skills/api-design/SKILL.md">[ADE] REST API design patterns — naming, status codes, pagination, versioning, error responses, rate limiting</item>
+    <item cmd="DPL or fuzzy match on deployment-patterns" exec="~/.claude/plugins/cache/everything-claude-code/everything-claude-code/1.8.0/skills/deployment-patterns/SKILL.md">[DPL] CI/CD pipeline patterns, Docker deployment, health checks, rollback strategies, production readiness</item>
+    <item cmd="DBM or fuzzy match on database-migrations" exec="~/.claude/plugins/cache/everything-claude-code/everything-claude-code/1.8.0/skills/database-migrations/SKILL.md">[DBM] Database migration best practices — schema changes, rollbacks, zero-downtime across major ORMs</item>
+    <item cmd="DKP or fuzzy match on docker-patterns" exec="~/.claude/plugins/cache/everything-claude-code/everything-claude-code/1.8.0/skills/docker-patterns/SKILL.md">[DKP] Docker and Docker Compose patterns — container security, networking, multi-service orchestration</item>
+    <item cmd="SRV or fuzzy match on security-review" exec="~/.claude/plugins/cache/everything-claude-code/everything-claude-code/1.8.0/skills/security-review/SKILL.md">[SRV] Security review checklist — auth, input handling, secrets, API endpoints, payment features</item>
+    <item cmd="AGE or fuzzy match on agentic-engineering" exec="~/.claude/plugins/cache/everything-claude-code/everything-claude-code/1.8.0/skills/agentic-engineering/SKILL.md">[AGE] Agentic engineering — eval-first execution, task decomposition, and cost-aware model routing</item>
+    <item cmd="AIE or fuzzy match on ai-first-engineering" exec="~/.claude/plugins/cache/everything-claude-code/everything-claude-code/1.8.0/skills/ai-first-engineering/SKILL.md">[AIE] AI-first engineering operating model for teams with high AI-generated implementation output</item>
+    <item cmd="CAL or fuzzy match on cost-aware-llm" exec="~/.claude/plugins/cache/everything-claude-code/everything-claude-code/1.8.0/skills/cost-aware-llm-pipeline/SKILL.md">[CAL] LLM cost optimization — model routing by complexity, budget tracking, retry logic, prompt caching</item>
     <item cmd="PM or fuzzy match on party-mode" exec="{project-root}/_bmad/core/workflows/party-mode/workflow.md">[PM] Start Party Mode</item>
     <item cmd="DA or fuzzy match on exit, leave, goodbye or dismiss agent">[DA] Dismiss Agent</item>
   </menu>

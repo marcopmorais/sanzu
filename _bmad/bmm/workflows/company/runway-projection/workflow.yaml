@@ -1,0 +1,65 @@
+config_source: "{project-root}/_bmad/bmm/config.yaml"
+template: false
+default_output_file: "{output_folder}/status/runway-scenarios.md"
+
+instructions: |
+  <steps>
+    <step n="1" title="Load financial baseline">
+      <action>Read {output_folder}/status/financial-model.md — extract current cash balance, net burn, and revenue figures.</action>
+      <action>Read {output_folder}/status/pipeline-tracker.md — extract weighted pipeline and expected close dates.</action>
+      <action>If financial-model.md does not exist, STOP and inform user: Run FR (Financial Review) first to establish the baseline.</action>
+    </step>
+
+    <step n="2" title="Define scenario assumptions">
+      <action>Ask user to confirm or provide the following for each scenario:</action>
+      <action>
+        Base Case: current burn rate, current revenue growth rate, pipeline conversion at stated probabilities.
+        Optimistic Case: 20% burn reduction (hiring pause), pipeline converts 1.5× current probability, new funding secured.
+        Conservative Case: 15% burn increase (team costs), pipeline converts at 50% of stated probability, revenue growth slows 30%.
+      </action>
+    </step>
+
+    <step n="3" title="Project monthly cash for each scenario">
+      <action>For each scenario, calculate month-by-month: Starting Cash - Net Burn + Revenue = Ending Cash.</action>
+      <action>Identify the month where cash reaches zero (runway endpoint).</action>
+      <action>Identify the month where cash reaches 6-month reserve (fundraising trigger point).</action>
+    </step>
+
+    <step n="4" title="Identify key decision points">
+      <action>Calculate: if we need to raise capital, when should we start the process to close before runway ends? (Assume 6-month fundraise cycle)</action>
+      <action>Identify the highest-leverage lever in each scenario: what single action extends runway the most?</action>
+      <action>Flag any scenario where runway is below 12 months as requiring immediate executive action.</action>
+    </step>
+
+    <step n="5" title="Write runway scenarios document">
+      <action>Write {output_folder}/status/runway-scenarios.md with the following structure:</action>
+      <action>
+        # Runway Projection — {current_date}
+
+        ## Current Position
+        - Cash on Hand: [amount]
+        - Net Burn Rate: [amount/month]
+        - Baseline Runway: [months]
+
+        ## Scenario Summary
+        | Scenario | Runway | Fundraise Trigger | Key Assumption |
+        |----------|--------|-------------------|----------------|
+        | Base Case | [months] | [date] | [assumption] |
+        | Optimistic | [months] | [date] | [assumption] |
+        | Conservative | [months] | [date] | [assumption] |
+
+        ## Month-by-Month Projection
+        | Month | Base Cash | Optimistic Cash | Conservative Cash |
+        |-------|-----------|-----------------|-------------------|
+
+        ## Key Decision Points
+        - Fundraise process should start by: [date] (base case)
+        - Highest-leverage burn lever: [action] → extends runway by [N] months
+        - Critical risk: [scenario and trigger condition]
+
+        ## Recommended Actions
+        - [Action 1]: [Owner] by [Date]
+        - [Action 2]: [Owner] by [Date]
+      </action>
+    </step>
+  </steps>

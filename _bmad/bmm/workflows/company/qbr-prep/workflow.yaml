@@ -1,0 +1,67 @@
+config_source: "{project-root}/_bmad/bmm/config.yaml"
+template: false
+default_output_file: "{output_folder}/8-growth/qbr-library/qbr-{customer_name}-{current_date}.md"
+
+instructions: |
+  <steps>
+    <step n="1" title="Identify target customer">
+      <action>Ask the user: Which customer account is this QBR for? What is the meeting date and attendees?</action>
+      <action>Store as {customer_name}, {meeting_date}, {attendees}.</action>
+    </step>
+
+    <step n="2" title="Load customer context">
+      <action>Read {output_folder}/8-growth/customer-health-report.md — extract this customer's health scores and trends.</action>
+      <action>Search {output_folder}/8-growth/qbr-library/ for previous QBR files for this customer — note commitments made.</action>
+      <action>Read {output_folder}/7-release/ for product releases since last QBR — identify features relevant to this customer.</action>
+    </step>
+
+    <step n="3" title="Gather value proof points">
+      <action>Ask the user to provide: key metrics the customer tracks (e.g., time saved, revenue generated, error rate reduced).</action>
+      <action>Ask the user: What outcomes did we commit to at the last QBR? Which were achieved?</action>
+      <action>If data unavailable, mark sections as [NEEDS_DATA] and note in doc for pre-meeting completion.</action>
+    </step>
+
+    <step n="4" title="Draft QBR agenda and content">
+      <action>Build QBR document with the following structure:</action>
+      <action>
+        # QBR: {customer_name} — {meeting_date}
+
+        ## Attendees
+        [List from {attendees}]
+
+        ## Agenda
+        1. Recap: What we committed to last quarter
+        2. Value delivered: Metrics and outcomes
+        3. Product updates relevant to your goals
+        4. Challenges and how we're addressing them
+        5. Goals and success criteria for next quarter
+        6. Next steps
+
+        ## Commitments from Last QBR
+        | Commitment | Status | Evidence |
+        |------------|--------|----------|
+
+        ## Value Delivered This Quarter
+        | Metric | Baseline | Current | Change | Impact |
+        |--------|----------|---------|--------|--------|
+
+        ## Relevant Product Updates
+        [Features shipped since last QBR that directly affect this customer]
+
+        ## Open Challenges
+        | Challenge | Status | Owner | Resolution Plan |
+        |-----------|--------|-------|-----------------|
+
+        ## Goals for Next Quarter
+        | Goal | Success Metric | Owner |
+        |------|----------------|-------|
+
+        ## Renewal / Expansion Discussion
+        [Renewal date, current ARR, expansion opportunity if applicable]
+      </action>
+    </step>
+
+    <step n="5" title="Pre-meeting checklist">
+      <action>Generate a pre-meeting checklist for the CSM with all [NEEDS_DATA] items that must be filled before the meeting.</action>
+    </step>
+  </steps>

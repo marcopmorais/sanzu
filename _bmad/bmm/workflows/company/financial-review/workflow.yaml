@@ -1,0 +1,78 @@
+config_source: "{project-root}/_bmad/bmm/config.yaml"
+template: false
+default_output_file: "{output_folder}/status/financial-model.md"
+
+instructions: |
+  <steps>
+    <step n="1" title="Load financial context">
+      <action>Read {output_folder}/status/financial-model.md if it exists — load previous month's figures.</action>
+      <action>Read {output_folder}/status/budget-tracker.md if it exists — load budget vs actual.</action>
+      <action>Read {output_folder}/status/pipeline-tracker.md — load expected revenue for forecast.</action>
+    </step>
+
+    <step n="2" title="Collect current month actuals">
+      <action>Ask user to provide: current month's actual spend by category (Engineering, Sales, Marketing, Operations, G&amp;A).</action>
+      <action>Ask user to provide: current month's recognized revenue (MRR/ARR booked and collected).</action>
+      <action>Ask user to provide: current cash balance.</action>
+    </step>
+
+    <step n="3" title="Calculate key metrics">
+      <action>Gross burn: total cash out this month.</action>
+      <action>Net burn: gross burn minus revenue collected.</action>
+      <action>Runway (months): current cash balance / net burn.</action>
+      <action>MoM burn change: compare to prior month.</action>
+      <action>Revenue growth rate: MoM and QoQ.</action>
+      <action>Gross margin: (revenue - COGS) / revenue.</action>
+      <action>LTV/CAC ratio if data available.</action>
+    </step>
+
+    <step n="4" title="Budget vs actual variance">
+      <action>For each spend category: calculate variance (actual - budget) in absolute and percentage terms.</action>
+      <action>Flag any category with variance &gt; 10% as requiring explanation.</action>
+      <action>Ask user for explanation of any flagged variances.</action>
+    </step>
+
+    <step n="5" title="Write financial model update">
+      <action>Write {output_folder}/status/financial-model.md with the following structure:</action>
+      <action>
+        # Financial Model — {current_date}
+
+        ## Cash Position
+        - Current Cash: [amount]
+        - Net Burn (this month): [amount]
+        - Runway (base case): [months]
+
+        ## Monthly P&amp;L
+        | Category | Budget | Actual | Variance | % |
+        |----------|--------|--------|----------|---|
+        | Revenue | | | | |
+        | Engineering | | | | |
+        | Sales &amp; Marketing | | | | |
+        | Operations | | | | |
+        | G&amp;A | | | | |
+        | **Net Burn** | | | | |
+
+        ## Key Metrics
+        | Metric | This Month | Last Month | Change |
+        |--------|-----------|------------|--------|
+        | Gross Burn | | | |
+        | Net Burn | | | |
+        | MRR | | | |
+        | Gross Margin | | | |
+
+        ## Variance Explanations
+        - [Category]: [Explanation + owner of correction]
+
+        ## Forecast (Next 3 Months)
+        | Month | Expected Revenue | Expected Burn | Expected Net Burn |
+        |-------|-----------------|---------------|-------------------|
+
+        ## Flags
+        - [Any financial risk requiring executive attention]
+      </action>
+    </step>
+
+    <step n="6" title="Update budget tracker">
+      <action>Update {output_folder}/status/budget-tracker.md with current month actuals and cumulative YTD figures.</action>
+    </step>
+  </steps>

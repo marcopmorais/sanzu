@@ -1,0 +1,236 @@
+name: idea-intake
+description: >
+  Phase 0 → Phase 1 bridge. Pull candidate ideas from ClickUp Idea Intake list,
+  score them, create a local idea-brief artifact in 0-portfolio/, and update
+  ClickUp task status to reflect PDLC entry.
+config_source: "{project-root}/_bmad/bmm/config.yaml"
+template: true
+default_output_file: "{output_folder}/0-portfolio/idea-brief-{{idea_slug}}.md"
+
+input_file_patterns:
+  - pattern: "{output_folder}/0-portfolio/*.md"
+    load_strategy: SELECTIVE_LOAD
+    description: "Existing idea briefs — check for duplicates before creating"
+
+instructions: |
+  <steps>
+
+    <step n="1" title="Load ClickUp Idea Intake and present candidates">
+      <invoke-protocol name="discover_inputs"/>
+      <action>
+        Follow the ClickUp OS policy at {project-root}/_bmad/policies/clickup-os-policy.md.
+
+        Call clickup_search with:
+          - list_id: "901521947569"
+          - query: "*"
+
+        Filter results to tasks with type="task" only (exclude docs).
+
+        Present a numbered list of all ideas found. For each show:
+          #N | [STATUS] Idea Name
+               Type: {Idea Type field value or "(not set)"}
+               Impact: {Impact field value or "(not set)"}
+
+        If the list is empty, report: "No ideas found in Idea Intake. Add ideas to ClickUp list 901521947569 first."
+        and STOP.
+      </action>
+      <ask>Which idea would you like to process? (enter the number)</ask>
+    </step>
+
+    <step n="2" title="Load full idea context from ClickUp">
+      <action>
+        Call clickup_get_task with the task_id of the selected idea.
+
+        Extract all fields:
+          - name (idea title)
+          - text_content (description)
+          - status
+          - custom_fields: Idea Type, Impact, Ease of Implementation, Department, References, Researcher, Reviewer
+
+        Also check existing 0-portfolio/ artifacts for any brief with the same idea slug to detect duplicates.
+        If a brief already exists for this idea, warn the user and ask whether to overwrite or cancel.
+
+        Store as session variables:
+          {idea_id} = task id
+          {idea_name} = task name
+          {idea_slug} = kebab-case of name (lowercase, spaces → hyphens, strip special chars)
+          {idea_description} = text_content
+          {idea_type} = Idea Type field value
+          {idea_impact} = Impact field value
+          {idea_ease} = Ease of Implementation value
+          {idea_department} = Department field value
+          {idea_references} = References field value
+
+        Update the ClickUp task status to "in review":
+          Call clickup_update_task with task_id={idea_id}, status="in review"
+
+        Add a ClickUp comment documenting intake start:
+          [IN PROGRESS] PDLC Idea Intake — Phase 0
+          Agent: PM / CoS (whichever agent is running this workflow)
+          Session: {ISO_timestamp}
+          Action: Idea selected for PDLC Phase 0 evaluation. Creating local idea-brief artifact.
+      </action>
+    </step>
+
+    <step n="3" title="Score and enrich the idea">
+      <action>
+        Evaluate the idea against these dimensions. If the ClickUp custom field is already set,
+        use that value. If not set, derive a reasoned score from the description.
+
+        IDEA TYPE — classify as one of:
+          💁 Service | 🚛 Channel | 🏆 Brand | 🤝 Customer Engagement |
+          💰 Profit Model | 🕸 Network | 🏛 Structure | ♻ Process |
+          🚀 Product Performance | 🏗 Product System
+
+        IMPACT — score Low / Medium / High:
+          - High: affects core revenue, customer retention, or strategic differentiation
+          - Medium: meaningful improvement to existing flow or capability
+          - Low: nice-to-have, efficiency gain, or cosmetic improvement
+
+        EASE OF IMPLEMENTATION — score 1–5 (1 = very hard, 5 = very easy):
+          - Consider: existing infrastructure, team expertise, external dependencies, reversibility
+
+        STRATEGIC FIT — score Low / Medium / High:
+          - Does this idea trace to a known OKR, ICP need, or competitive gap?
+          - Read {output_folder}/planning-artifacts/okrs/ if available.
+          - Read {output_folder}/1-strategy/icp.md if available.
+
+        RISKS — list up to 3 key risks (technical, market, regulatory)
+
+        RECOMMENDATION — one of:
+          ✅ PROCEED — strong fit, proceed to Phase 1 (Strategy)
+          ⚠️ CONDITIONAL — proceed with conditions (list them)
+          ❌ DEFER — not ready; list what must be true before re-evaluating
+          🗑️ REJECT — not aligned with strategy; archive
+      </action>
+      <ask>Does this scoring look right? You can adjust any score or recommendation before I create the brief. (Enter adjustments or type "confirm" to proceed)</ask>
+    </step>
+
+    <step n="4" title="Create local idea-brief artifact">
+      <action>
+        Write the idea brief to {output_folder}/0-portfolio/idea-brief-{idea_slug}.md.
+
+        If recommendation is PROCEED or CONDITIONAL, also create a PDLC kickoff task in ClickUp:
+          Call clickup_create_task with:
+            list_id: "901521447940"  (PRDs list)
+            name: "[PM] Phase 1 Strategy — {idea_name}"
+            description:
+              ## Context
+              Idea "{idea_name}" passed Phase 0 intake scoring.
+              Local brief: _bmad-output/0-portfolio/idea-brief-{idea_slug}.md
+
+              ## Objective
+              Complete Phase 1 Strategy artifacts:
+              - ICP refinement or creation (_bmad-output/1-strategy/icp.md)
+              - Competitive positioning (_bmad-output/1-strategy/competitive-positioning.md)
+              - Initial PRD (_bmad-output/planning-artifacts/prd/)
+
+              ## Acceptance Criteria
+              - [ ] ICP document created or updated with this idea's target segment
+              - [ ] Competitive positioning updated to reflect this opportunity
+              - [ ] Phase 1 gate in pdlc_gates.yaml passes
+
+              ## Expected Artifact
+              _bmad-output/0-portfolio/idea-brief-{idea_slug}.md (done)
+              _bmad-output/1-strategy/ (next)
+
+        Then update the original ClickUp Idea Intake task:
+          Call clickup_update_task with:
+            task_id: {idea_id}
+            status: "approved" (if PROCEED) or "in review" (if CONDITIONAL) or "deferred" (if DEFER) or "closed" (if REJECT)
+
+          Call clickup_create_task_comment:
+            [DELIVERED] Phase 0 Idea Intake complete.
+            Recommendation: {recommendation}
+            Local brief: _bmad-output/0-portfolio/idea-brief-{idea_slug}.md
+            Phase 1 kickoff task: {new_task_url if created}
+            Confidence: {confidence based on data completeness}%
+      </action>
+    </step>
+
+    <step n="5" title="Write idea brief and confirm">
+      <template-output>
+# Idea Brief — {idea_name}
+
+**PDLC Phase:** 0 — Portfolio Intake
+**ClickUp Task:** [{idea_id}](https://app.clickup.com/t/{idea_id})
+**Date:** {current_date}
+**Status:** {recommendation}
+
+---
+
+## Idea Summary
+
+> {idea_description}
+
+---
+
+## Classification
+
+| Dimension | Value | Source |
+|-----------|-------|--------|
+| Idea Type | {idea_type} | ClickUp / Derived |
+| Impact | {idea_impact} | ClickUp / Derived |
+| Ease of Implementation | {idea_ease}/5 | ClickUp / Derived |
+| Department | {idea_department} | ClickUp |
+| References | {idea_references} | ClickUp |
+
+---
+
+## Strategic Scoring
+
+| Criterion | Score | Reasoning |
+|-----------|-------|-----------|
+| Impact | Low / Medium / High | {impact_reasoning} |
+| Ease of Implementation | N/5 | {ease_reasoning} |
+| Strategic Fit | Low / Medium / High | {fit_reasoning} |
+
+---
+
+## Key Risks
+
+1. {risk_1}
+2. {risk_2}
+3. {risk_3}
+
+---
+
+## Recommendation
+
+**{recommendation}**
+
+{recommendation_rationale}
+
+---
+
+## Conditions (if CONDITIONAL)
+
+- {condition_1}
+- {condition_2}
+
+---
+
+## Next Steps
+
+| Action | Owner | Target |
+|--------|-------|--------|
+| {next_step_1} | PM | Phase 1 Strategy |
+| {next_step_2} | Analyst | Phase 2 Discovery |
+
+---
+
+## Traceability
+
+| Link | Target |
+|------|--------|
+| OKR | {relevant_okr or "None identified"} |
+| ICP Segment | {relevant_icp_segment or "Not yet mapped"} |
+| Competitive Gap | {relevant_competitive_gap or "Not yet mapped"} |
+
+---
+
+*Generated by BMAD Idea Intake Workflow — Phase 0*
+      </template-output>
+    </step>
+
+  </steps>

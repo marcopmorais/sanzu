@@ -1,0 +1,71 @@
+config_source: "{project-root}/_bmad/bmm/config.yaml"
+template: false
+default_output_file: "{output_folder}/status/board-pack.md"
+
+instructions: |
+  <steps>
+    <step n="1" title="Gather artifacts from all agents">
+      <action>Read {output_folder}/status/financial-model.md — burn, runway, revenue summary.</action>
+      <action>Read {output_folder}/status/runway-scenarios.md — 3-scenario runway model.</action>
+      <action>Read {output_folder}/planning-artifacts/okrs/ — most recent OKR check-in.</action>
+      <action>Read {output_folder}/status/pipeline-tracker.md — revenue pipeline and forecast.</action>
+      <action>Read {output_folder}/8-growth/customer-health-report.md — customer health summary.</action>
+      <action>Read {output_folder}/status/weekly-standup.md — most recent operational summary.</action>
+      <action>Read {output_folder}/status/pdlc_state.md — product delivery phase and blockers.</action>
+    </step>
+
+    <step n="2" title="Identify board-level signals">
+      <action>Flag any metric that has moved more than 10% since the last board meeting.</action>
+      <action>Identify decisions that require board input or approval.</action>
+      <action>List risks that have materialized or escalated since the last board meeting.</action>
+    </step>
+
+    <step n="3" title="Draft narrative sections">
+      <action>Write a 3-sentence company narrative: where we are, what changed, what we're doing about it.</action>
+      <action>Write a 2-sentence product narrative: delivery status and next milestone.</action>
+      <action>Write a 2-sentence revenue narrative: pipeline health and forecast confidence.</action>
+      <action>Write a 2-sentence financial narrative: burn rate and runway with key assumptions.</action>
+    </step>
+
+    <step n="4" title="Write board pack">
+      <action>Write {output_folder}/status/board-pack.md with the following structure:</action>
+      <action>
+        # Board Pack — {current_date}
+
+        ## Company Narrative
+        [3-sentence summary]
+
+        ## OKR Scorecard
+        [Imported from most recent OKR check-in]
+
+        ## Financial Summary
+        | Metric | Current | Last Period | Trend |
+        |--------|---------|-------------|-------|
+        | Monthly Burn | | | |
+        | Runway (base) | | | |
+        | ARR / Revenue | | | |
+        | Cash Position | | | |
+
+        ## Revenue Pipeline
+        [Summary from pipeline-tracker]
+
+        ## Customer Health
+        [Summary from customer-health-report]
+
+        ## Product Delivery Status
+        [Summary from pdlc_state]
+
+        ## Risks &amp; Escalations
+        | Risk | Owner | Mitigation | Status |
+        |------|-------|------------|--------|
+
+        ## Decisions Required from Board
+        - [Decision 1]: [Context and recommendation]
+
+        ## Appendix
+        - Financial detail: see status/financial-model.md
+        - Pipeline detail: see status/pipeline-tracker.md
+        - Customer health detail: see 8-growth/customer-health-report.md
+      </action>
+    </step>
+  </steps>
