@@ -115,7 +115,7 @@ public sealed class AdminTenants360Tests : IClassFixture<CustomWebApplicationFac
 
         var envelope = await response.Content.ReadFromJsonAsync<ApiEnvelope<TenantBillingResponse>>(JsonOptions);
         envelope!.Data.Should().NotBeNull();
-        envelope.Data!.SubscriptionPlan.Should().Be("Professional");
+        envelope.Data!.SubscriptionPlan.Should().Be("Profissional");
         envelope.Data.RecentInvoices.Should().NotBeEmpty();
     }
 
@@ -306,7 +306,7 @@ public sealed class AdminTenants360Tests : IClassFixture<CustomWebApplicationFac
             Name = $"Tenant-{nameSuffix}",
             Location = "EU-West",
             Status = status,
-            SubscriptionPlan = "Professional",
+            SubscriptionPlan = "Profissional",
             SubscriptionBillingCycle = "Monthly",
             SubscriptionActivatedAt = DateTime.UtcNow.AddMonths(-3),
             InvoiceProfileBillingEmail = $"{nameSuffix.ToLower()}@test.com",
@@ -381,7 +381,7 @@ public sealed class AdminTenants360Tests : IClassFixture<CustomWebApplicationFac
             InvoiceNumber = invoiceNumber,
             BillingCycleStart = DateTime.UtcNow.AddMonths(-1),
             BillingCycleEnd = DateTime.UtcNow,
-            PlanCode = "Professional",
+            PlanCode = "Profissional",
             BillingCycle = "Monthly",
             BaseAmount = 99.00m,
             TotalAmount = 99.00m,

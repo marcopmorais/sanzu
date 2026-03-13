@@ -261,7 +261,7 @@ public sealed class CopilotControllerTests : IClassFixture<CustomWebApplicationF
             $"/api/v1/tenants/{signup.OrganizationId}/onboarding/billing/activate",
             new ActivateTenantBillingRequest
             {
-                PlanCode = "Growth",
+                PlanCode = "Profissional",
                 BillingCycle = "Monthly",
                 PaymentMethodType = "Card",
                 PaymentMethodReference = "pm_copilot_tests",

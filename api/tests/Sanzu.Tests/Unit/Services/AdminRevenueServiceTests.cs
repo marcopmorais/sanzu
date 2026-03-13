@@ -26,15 +26,15 @@ public sealed class AdminRevenueServiceTests
         _orgRepo.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<Organization>
             {
-                MakeOrg(TenantStatus.Active, "Starter"),
-                MakeOrg(TenantStatus.Active, "Professional"),
+                MakeOrg(TenantStatus.Active, "Inicial"),
+                MakeOrg(TenantStatus.Active, "Profissional"),
                 MakeOrg(TenantStatus.Active, "Enterprise"),
-                MakeOrg(TenantStatus.Terminated, "Starter") // should be excluded
+                MakeOrg(TenantStatus.Terminated, "Inicial") // should be excluded
             });
 
         var result = await _sut.GetRevenueOverviewAsync(CancellationToken.None);
 
-        result.Mrr.Should().Be(149m + 399m + 0m); // Starter + Professional + Enterprise
+        result.Mrr.Should().Be(49m + 99m + 0m); // Inicial + Professional + Enterprise
         result.Arr.Should().Be(result.Mrr * 12);
     }
 
@@ -44,17 +44,17 @@ public sealed class AdminRevenueServiceTests
         _orgRepo.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<Organization>
             {
-                MakeOrg(TenantStatus.Active, "Starter"),
-                MakeOrg(TenantStatus.Active, "Starter"),
-                MakeOrg(TenantStatus.Active, "Professional")
+                MakeOrg(TenantStatus.Active, "Inicial"),
+                MakeOrg(TenantStatus.Active, "Inicial"),
+                MakeOrg(TenantStatus.Active, "Profissional")
             });
 
         var result = await _sut.GetRevenueOverviewAsync(CancellationToken.None);
 
         result.PlanBreakdown.Should().HaveCount(2);
-        var starter = result.PlanBreakdown.First(p => p.PlanName == "Starter");
+        var starter = result.PlanBreakdown.First(p => p.PlanName == "Inicial");
         starter.TenantCount.Should().Be(2);
-        starter.Mrr.Should().Be(298m);
+        starter.Mrr.Should().Be(98m);
     }
 
     [Fact]
@@ -64,9 +64,9 @@ public sealed class AdminRevenueServiceTests
         _orgRepo.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<Organization>
             {
-                MakeOrg(TenantStatus.Active, "Starter"),
-                MakeOrg(TenantStatus.Active, "Professional"),
-                MakeOrg(TenantStatus.Terminated, "Starter", updatedAt: now.AddDays(-5)) // recently terminated
+                MakeOrg(TenantStatus.Active, "Inicial"),
+                MakeOrg(TenantStatus.Active, "Profissional"),
+                MakeOrg(TenantStatus.Terminated, "Inicial", updatedAt: now.AddDays(-5)) // recently terminated
             });
 
         var result = await _sut.GetRevenueOverviewAsync(CancellationToken.None);
@@ -101,9 +101,9 @@ public sealed class AdminRevenueServiceTests
                 It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<BillingRecord>
             {
-                MakeBillingRecord(now.AddMonths(-1), 149m),
-                MakeBillingRecord(now.AddMonths(-1).AddDays(1), 399m),
-                MakeBillingRecord(now, 149m)
+                MakeBillingRecord(now.AddMonths(-1), 49m),
+                MakeBillingRecord(now.AddMonths(-1).AddDays(1), 99m),
+                MakeBillingRecord(now, 49m)
             });
 
         var result = await _sut.GetRevenueTrendsAsync("monthly", CancellationToken.None);
@@ -117,7 +117,7 @@ public sealed class AdminRevenueServiceTests
     [Fact]
     public async Task GetBillingHealth_Should_IdentifyFailedPayments()
     {
-        var failedOrg = MakeOrg(TenantStatus.Active, "Starter");
+        var failedOrg = MakeOrg(TenantStatus.Active, "Inicial");
         failedOrg.FailedPaymentAttempts = 2;
         failedOrg.LastPaymentFailedAt = DateTime.UtcNow.AddDays(-1);
 
@@ -141,9 +141,9 @@ public sealed class AdminRevenueServiceTests
         _orgRepo.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<Organization>
             {
-                MakeOrg(TenantStatus.Active, "Starter"),
-                MakeOrg(TenantStatus.Active, "Professional"),
-                MakeOrg(TenantStatus.Terminated, "Starter") // excluded
+                MakeOrg(TenantStatus.Active, "Inicial"),
+                MakeOrg(TenantStatus.Active, "Profissional"),
+                MakeOrg(TenantStatus.Terminated, "Inicial") // excluded
             });
         _billingRepo.Setup(r => r.GetAllForPlatformAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<BillingRecord>());
@@ -151,14 +151,14 @@ public sealed class AdminRevenueServiceTests
         var result = await _sut.GetRevenueExportDataAsync(CancellationToken.None);
 
         result.Should().HaveCount(2);
-        result[0].MrrContribution.Should().Be(149m);
-        result[1].MrrContribution.Should().Be(399m);
+        result[0].MrrContribution.Should().Be(49m);
+        result[1].MrrContribution.Should().Be(99m);
     }
 
     [Fact]
     public async Task GetRevenueExportData_Should_DeriveCorrectBillingStatus()
     {
-        var failedOrg = MakeOrg(TenantStatus.Active, "Starter");
+        var failedOrg = MakeOrg(TenantStatus.Active, "Inicial");
         failedOrg.FailedPaymentAttempts = 2;
         failedOrg.LastPaymentFailedAt = DateTime.UtcNow.AddDays(-1);
 
@@ -178,11 +178,11 @@ public sealed class AdminRevenueServiceTests
     [Fact]
     public async Task GetBillingHealthExportData_Should_CombineAllIssueTypes()
     {
-        var failedOrg = MakeOrg(TenantStatus.Active, "Starter");
+        var failedOrg = MakeOrg(TenantStatus.Active, "Inicial");
         failedOrg.FailedPaymentAttempts = 1;
         failedOrg.LastPaymentFailedAt = DateTime.UtcNow.AddDays(-2);
 
-        var graceOrg = MakeOrg(TenantStatus.Active, "Professional");
+        var graceOrg = MakeOrg(TenantStatus.Active, "Profissional");
         graceOrg.NextPaymentRetryAt = DateTime.UtcNow.AddDays(5);
 
         _orgRepo.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))

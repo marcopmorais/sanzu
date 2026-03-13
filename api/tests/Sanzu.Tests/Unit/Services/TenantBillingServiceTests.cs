@@ -17,7 +17,7 @@ public sealed class TenantBillingServiceTests
     public async Task CreateBillingRecord_ShouldPersistRecordAndAudit_WhenTenantIsActive()
     {
         var dbContext = CreateContext();
-        var (tenantId, userId) = await SeedTenantAsync(dbContext, TenantStatus.Active, "GROWTH", "MONTHLY");
+        var (tenantId, userId) = await SeedTenantAsync(dbContext, TenantStatus.Active, "PROFISSIONAL", "MONTHLY");
         var service = CreateService(dbContext);
 
         var result = await service.CreateBillingRecordAsync(
@@ -26,7 +26,7 @@ public sealed class TenantBillingServiceTests
             CancellationToken.None);
 
         result.InvoiceNumber.Should().StartWith("INV-");
-        result.PlanCode.Should().Be("GROWTH");
+        result.PlanCode.Should().Be("PROFISSIONAL");
         result.BillingCycle.Should().Be("MONTHLY");
         result.Currency.Should().Be("EUR");
         result.Status.Should().Be("FINALIZED");
@@ -41,8 +41,8 @@ public sealed class TenantBillingServiceTests
     public async Task GetBillingHistory_ShouldReturnRecords_WhenTenantIsSuspended()
     {
         var dbContext = CreateContext();
-        var (tenantId, userId) = await SeedTenantAsync(dbContext, TenantStatus.Suspended, "STARTER", "MONTHLY");
-        await SeedBillingRecordAsync(dbContext, tenantId, "INV-00001", "STARTER", "MONTHLY");
+        var (tenantId, userId) = await SeedTenantAsync(dbContext, TenantStatus.Suspended, "INICIAL", "MONTHLY");
+        await SeedBillingRecordAsync(dbContext, tenantId, "INV-00001", "INICIAL", "MONTHLY");
         var service = CreateService(dbContext);
 
         var result = await service.GetBillingHistoryAsync(
@@ -51,7 +51,7 @@ public sealed class TenantBillingServiceTests
             CancellationToken.None);
 
         result.TenantId.Should().Be(tenantId);
-        result.CurrentPlan.Should().Be("STARTER");
+        result.CurrentPlan.Should().Be("INICIAL");
         result.CurrentBillingCycle.Should().Be("MONTHLY");
         result.Records.Should().HaveCount(1);
         result.Records[0].InvoiceNumber.Should().Be("INV-00001");
@@ -61,7 +61,7 @@ public sealed class TenantBillingServiceTests
     public async Task GetBillingHistory_ShouldThrowStateException_WhenTenantIsPending()
     {
         var dbContext = CreateContext();
-        var (tenantId, userId) = await SeedTenantAsync(dbContext, TenantStatus.Pending, "STARTER", "MONTHLY");
+        var (tenantId, userId) = await SeedTenantAsync(dbContext, TenantStatus.Pending, "INICIAL", "MONTHLY");
         var service = CreateService(dbContext);
 
         var act = () => service.GetBillingHistoryAsync(
@@ -77,7 +77,7 @@ public sealed class TenantBillingServiceTests
     public async Task GetUsageSummary_ShouldReturnCurrentPlanUsage_WhenTenantIsActive()
     {
         var dbContext = CreateContext();
-        var (tenantId, userId) = await SeedTenantAsync(dbContext, TenantStatus.Active, "STARTER", "MONTHLY");
+        var (tenantId, userId) = await SeedTenantAsync(dbContext, TenantStatus.Active, "INICIAL", "MONTHLY");
         var service = CreateService(dbContext);
 
         var result = await service.GetUsageSummaryAsync(
@@ -86,10 +86,10 @@ public sealed class TenantBillingServiceTests
             CancellationToken.None);
 
         result.TenantId.Should().Be(tenantId);
-        result.PlanCode.Should().Be("STARTER");
+        result.PlanCode.Should().Be("INICIAL");
         result.BillingCycle.Should().Be("MONTHLY");
-        result.MonthlyPrice.Should().Be(149m);
-        result.IncludedCases.Should().Be(20);
+        result.MonthlyPrice.Should().Be(49m);
+        result.IncludedCases.Should().Be(10);
         result.CurrentPeriodEnd.Should().BeAfter(result.CurrentPeriodStart);
     }
 
@@ -97,8 +97,8 @@ public sealed class TenantBillingServiceTests
     public async Task GetInvoice_ShouldReturnInvoiceSnapshot_WhenInvoiceBelongsToTenant()
     {
         var dbContext = CreateContext();
-        var (tenantId, userId) = await SeedTenantAsync(dbContext, TenantStatus.Active, "STARTER", "MONTHLY");
-        var invoiceId = await SeedBillingRecordAsync(dbContext, tenantId, "INV-00042", "STARTER", "MONTHLY");
+        var (tenantId, userId) = await SeedTenantAsync(dbContext, TenantStatus.Active, "INICIAL", "MONTHLY");
+        var invoiceId = await SeedBillingRecordAsync(dbContext, tenantId, "INV-00042", "INICIAL", "MONTHLY");
         var service = CreateService(dbContext);
 
         var result = await service.GetInvoiceAsync(
@@ -116,9 +116,9 @@ public sealed class TenantBillingServiceTests
     public async Task GetInvoice_ShouldThrowStateException_WhenInvoiceBelongsToDifferentTenant()
     {
         var dbContext = CreateContext();
-        var (tenantId, userId) = await SeedTenantAsync(dbContext, TenantStatus.Active, "STARTER", "MONTHLY");
-        var (otherTenantId, _) = await SeedTenantAsync(dbContext, TenantStatus.Active, "GROWTH", "ANNUAL");
-        var otherInvoiceId = await SeedBillingRecordAsync(dbContext, otherTenantId, "INV-90001", "GROWTH", "ANNUAL");
+        var (tenantId, userId) = await SeedTenantAsync(dbContext, TenantStatus.Active, "INICIAL", "MONTHLY");
+        var (otherTenantId, _) = await SeedTenantAsync(dbContext, TenantStatus.Active, "PROFISSIONAL", "ANNUAL");
+        var otherInvoiceId = await SeedBillingRecordAsync(dbContext, otherTenantId, "INV-90001", "PROFISSIONAL", "ANNUAL");
         var service = CreateService(dbContext);
 
         var act = () => service.GetInvoiceAsync(
@@ -135,7 +135,7 @@ public sealed class TenantBillingServiceTests
     public async Task RegisterFailedPayment_ShouldMoveTenantToPaymentIssueAndScheduleRetry_WhenFirstFailure()
     {
         var dbContext = CreateContext();
-        var (tenantId, userId) = await SeedTenantAsync(dbContext, TenantStatus.Active, "GROWTH", "MONTHLY");
+        var (tenantId, userId) = await SeedTenantAsync(dbContext, TenantStatus.Active, "PROFISSIONAL", "MONTHLY");
         var service = CreateService(dbContext);
 
         var result = await service.RegisterFailedPaymentAsync(
@@ -160,7 +160,7 @@ public sealed class TenantBillingServiceTests
     public async Task ExecutePaymentRecovery_ShouldRestoreTenantToActive_WhenRetrySucceeds()
     {
         var dbContext = CreateContext();
-        var (tenantId, userId) = await SeedTenantAsync(dbContext, TenantStatus.Active, "STARTER", "MONTHLY");
+        var (tenantId, userId) = await SeedTenantAsync(dbContext, TenantStatus.Active, "INICIAL", "MONTHLY");
         var service = CreateService(dbContext);
 
         await service.RegisterFailedPaymentAsync(
@@ -193,7 +193,7 @@ public sealed class TenantBillingServiceTests
     public async Task ExecutePaymentRecovery_ShouldSuspendTenant_WhenRetryFailsThirdTime()
     {
         var dbContext = CreateContext();
-        var (tenantId, userId) = await SeedTenantAsync(dbContext, TenantStatus.Active, "STARTER", "MONTHLY");
+        var (tenantId, userId) = await SeedTenantAsync(dbContext, TenantStatus.Active, "INICIAL", "MONTHLY");
         var service = CreateService(dbContext);
 
         await service.RegisterFailedPaymentAsync(
@@ -306,7 +306,7 @@ public sealed class TenantBillingServiceTests
             BillingCycleEnd = nowUtc,
             PlanCode = plan,
             BillingCycle = billingCycle,
-            BaseAmount = 149m,
+            BaseAmount = 49m,
             OverageUnits = 0,
             OverageAmount = 0m,
             TaxRate = 0.23m,

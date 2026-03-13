@@ -12,7 +12,7 @@ public sealed class TenantSubscriptionValidatorsTests
         var validator = new PreviewPlanChangeRequestValidator();
         var request = new PreviewPlanChangeRequest
         {
-            PlanCode = "Growth",
+            PlanCode = "Profissional",
             BillingCycle = "Monthly"
         };
 
@@ -43,7 +43,7 @@ public sealed class TenantSubscriptionValidatorsTests
         var validator = new PreviewPlanChangeRequestValidator();
         var request = new PreviewPlanChangeRequest
         {
-            PlanCode = "Starter",
+            PlanCode = "Inicial",
             BillingCycle = "WEEKLY"
         };
 
@@ -108,7 +108,7 @@ public sealed class TenantSubscriptionValidatorsTests
         var validator = new ChangePlanRequestValidator();
         var request = new ChangePlanRequest
         {
-            PlanCode = "Starter",
+            PlanCode = "Inicial",
             BillingCycle = "Monthly",
             ConfirmedProrationAmount = -125.00m
         };

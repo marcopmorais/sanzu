@@ -120,7 +120,7 @@ public sealed class TenantOnboardingControllerTests : IClassFixture<CustomWebApp
         var client = _factory.CreateClient();
         var signup = await CreateTenantAsync(client, "tenant-case-defaults-admin@agency.pt");
         await SetDefaultsAndCompleteOnboardingAsync(client, signup);
-        await ActivateBillingAsync(client, signup, "Starter", "Monthly");
+        await ActivateBillingAsync(client, signup, "Inicial", "Monthly");
 
         using var updateRequest = BuildAuthorizedJsonRequest(
             HttpMethod.Patch,
@@ -271,7 +271,7 @@ public sealed class TenantOnboardingControllerTests : IClassFixture<CustomWebApp
             $"/api/v1/tenants/{signup.OrganizationId}/onboarding/billing/activate",
             new ActivateTenantBillingRequest
             {
-                PlanCode = "Growth",
+                PlanCode = "Profissional",
                 BillingCycle = "Monthly",
                 PaymentMethodType = "Card",
                 PaymentMethodReference = "pm_123",
@@ -306,13 +306,13 @@ public sealed class TenantOnboardingControllerTests : IClassFixture<CustomWebApp
         var signup = await CreateTenantAsync(client, "flow-admin-1@agency.pt");
 
         await SetDefaultsAndCompleteOnboardingAsync(client, signup);
-        await ActivateBillingAsync(client, signup, "Starter", "Monthly");
+        await ActivateBillingAsync(client, signup, "Inicial", "Monthly");
 
         // Preview plan change
         using var previewRequest = BuildAuthorizedJsonRequest(
             HttpMethod.Post,
             $"/api/v1/tenants/{signup.OrganizationId}/subscription/preview-change",
-            new PreviewPlanChangeRequest { PlanCode = "Growth", BillingCycle = "Monthly" },
+            new PreviewPlanChangeRequest { PlanCode = "Profissional", BillingCycle = "Monthly" },
             signup.UserId,
             signup.OrganizationId);
         var previewResponse = await client.SendAsync(previewRequest);
@@ -321,8 +321,8 @@ public sealed class TenantOnboardingControllerTests : IClassFixture<CustomWebApp
         var previewEnvelope = await previewResponse.Content.ReadFromJsonAsync<ApiEnvelope<PlanChangePreviewResponse>>();
         previewEnvelope.Should().NotBeNull();
         previewEnvelope!.Data.Should().NotBeNull();
-        previewEnvelope.Data!.CurrentPlan.Should().Be("STARTER");
-        previewEnvelope.Data.NewPlan.Should().Be("GROWTH");
+        previewEnvelope.Data!.CurrentPlan.Should().Be("INICIAL");
+        previewEnvelope.Data.NewPlan.Should().Be("PROFISSIONAL");
 
         // Change plan
         using var changeRequest = BuildAuthorizedJsonRequest(
@@ -330,7 +330,7 @@ public sealed class TenantOnboardingControllerTests : IClassFixture<CustomWebApp
             $"/api/v1/tenants/{signup.OrganizationId}/subscription/plan",
             new ChangePlanRequest
             {
-                PlanCode = "Growth",
+                PlanCode = "Profissional",
                 BillingCycle = "Monthly",
                 ConfirmedProrationAmount = previewEnvelope.Data.ProrationAmount
             },
@@ -342,8 +342,8 @@ public sealed class TenantOnboardingControllerTests : IClassFixture<CustomWebApp
         var changeEnvelope = await changeResponse.Content.ReadFromJsonAsync<ApiEnvelope<ChangePlanResponse>>();
         changeEnvelope.Should().NotBeNull();
         changeEnvelope!.Data.Should().NotBeNull();
-        changeEnvelope.Data!.PlanCode.Should().Be("GROWTH");
-        changeEnvelope.Data.PreviousPlan.Should().Be("STARTER");
+        changeEnvelope.Data!.PlanCode.Should().Be("PROFISSIONAL");
+        changeEnvelope.Data.PreviousPlan.Should().Be("INICIAL");
 
         // Cancel subscription
         using var cancelRequest = BuildAuthorizedJsonRequest(
@@ -371,7 +371,7 @@ public sealed class TenantOnboardingControllerTests : IClassFixture<CustomWebApp
         organization.Should().NotBeNull();
         organization!.Status.Should().Be(Core.Enums.TenantStatus.Suspended);
         organization.SubscriptionCancelledAt.Should().NotBeNull();
-        organization.PreviousSubscriptionPlan.Should().Be("STARTER");
+        organization.PreviousSubscriptionPlan.Should().Be("INICIAL");
         dbContext.AuditEvents.Should().Contain(x => x.EventType == "TenantSubscriptionPlanChanged");
         dbContext.AuditEvents.Should().Contain(x => x.EventType == "TenantSubscriptionCancelled");
     }
@@ -384,14 +384,14 @@ public sealed class TenantOnboardingControllerTests : IClassFixture<CustomWebApp
         var tenantB = await CreateTenantAsync(client, "sub-tenant-b@agency.pt");
 
         await SetDefaultsAndCompleteOnboardingAsync(client, tenantA);
-        await ActivateBillingAsync(client, tenantA, "Starter", "Monthly");
+        await ActivateBillingAsync(client, tenantA, "Inicial", "Monthly");
 
         using var changeRequest = BuildAuthorizedJsonRequest(
             HttpMethod.Patch,
             $"/api/v1/tenants/{tenantA.OrganizationId}/subscription/plan",
             new ChangePlanRequest
             {
-                PlanCode = "Growth",
+                PlanCode = "Profissional",
                 BillingCycle = "Monthly",
                 ConfirmedProrationAmount = 0m
             },
@@ -428,7 +428,7 @@ public sealed class TenantOnboardingControllerTests : IClassFixture<CustomWebApp
         var signup = await CreateTenantAsync(client, "billing-admin-1@agency.pt");
 
         await SetDefaultsAndCompleteOnboardingAsync(client, signup);
-        await ActivateBillingAsync(client, signup, "Starter", "Monthly");
+        await ActivateBillingAsync(client, signup, "Inicial", "Monthly");
 
         using var generateInvoiceRequest = BuildAuthorizedRequest(
             HttpMethod.Post,
@@ -471,7 +471,7 @@ public sealed class TenantOnboardingControllerTests : IClassFixture<CustomWebApp
         usageEnvelope.Should().NotBeNull();
         usageEnvelope!.Data.Should().NotBeNull();
         usageEnvelope.Data!.TenantId.Should().Be(signup.OrganizationId);
-        usageEnvelope.Data.PlanCode.Should().Be("STARTER");
+        usageEnvelope.Data.PlanCode.Should().Be("INICIAL");
         usageEnvelope.Data.BillingCycle.Should().Be("MONTHLY");
 
         using var invoiceRequest = BuildAuthorizedRequest(
@@ -502,7 +502,7 @@ public sealed class TenantOnboardingControllerTests : IClassFixture<CustomWebApp
         var tenantB = await CreateTenantAsync(client, "billing-tenant-b@agency.pt");
 
         await SetDefaultsAndCompleteOnboardingAsync(client, tenantA);
-        await ActivateBillingAsync(client, tenantA, "Starter", "Monthly");
+        await ActivateBillingAsync(client, tenantA, "Inicial", "Monthly");
 
         using var generateInvoiceRequest = BuildAuthorizedRequest(
             HttpMethod.Post,
@@ -543,7 +543,7 @@ public sealed class TenantOnboardingControllerTests : IClassFixture<CustomWebApp
         var signup = await CreateTenantAsync(client, "billing-recovery-1@agency.pt");
 
         await SetDefaultsAndCompleteOnboardingAsync(client, signup);
-        await ActivateBillingAsync(client, signup, "Growth", "Monthly");
+        await ActivateBillingAsync(client, signup, "Profissional", "Monthly");
 
         using var failedPaymentRequest = BuildAuthorizedJsonRequest(
             HttpMethod.Post,
@@ -604,7 +604,7 @@ public sealed class TenantOnboardingControllerTests : IClassFixture<CustomWebApp
         var tenantB = await CreateTenantAsync(client, "billing-recovery-tenant-b@agency.pt");
 
         await SetDefaultsAndCompleteOnboardingAsync(client, tenantA);
-        await ActivateBillingAsync(client, tenantA, "Starter", "Monthly");
+        await ActivateBillingAsync(client, tenantA, "Inicial", "Monthly");
 
         using var failedPaymentRequest = BuildAuthorizedJsonRequest(
             HttpMethod.Post,
@@ -626,7 +626,7 @@ public sealed class TenantOnboardingControllerTests : IClassFixture<CustomWebApp
         var signup = await CreateTenantAsync(client, "billing-recovery-no-issue@agency.pt");
 
         await SetDefaultsAndCompleteOnboardingAsync(client, signup);
-        await ActivateBillingAsync(client, signup, "Starter", "Monthly");
+        await ActivateBillingAsync(client, signup, "Inicial", "Monthly");
 
         using var executeRecoveryRequest = BuildAuthorizedJsonRequest(
             HttpMethod.Post,

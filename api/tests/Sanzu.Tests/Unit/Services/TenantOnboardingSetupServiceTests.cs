@@ -119,7 +119,7 @@ public sealed class TenantOnboardingSetupServiceTests
             seed.AdminUserId,
             new ActivateTenantBillingRequest
             {
-                PlanCode = "Starter",
+                PlanCode = "Inicial",
                 BillingCycle = "Monthly",
                 PaymentMethodType = "Card",
                 PaymentMethodReference = "pm_123",
@@ -155,9 +155,9 @@ public sealed class TenantOnboardingSetupServiceTests
             seed.AdminUserId,
             new ActivateTenantBillingRequest
             {
-                PlanCode = "Growth",
+                PlanCode = "Profissional",
                 BillingCycle = "Annual",
-                PaymentMethodType = "Sepa_Direct_Debit",
+                PaymentMethodType = "Card",
                 PaymentMethodReference = "pm_123",
                 InvoiceProfileLegalName = "Agency Lda",
                 InvoiceProfileVatNumber = "PT123456789",
@@ -169,8 +169,8 @@ public sealed class TenantOnboardingSetupServiceTests
         var updatedTenant = await dbContext.Organizations.SingleAsync(x => x.Id == seed.TenantId);
         updatedTenant.Status.Should().Be(TenantStatus.Active);
         updatedTenant.SubscriptionActivatedAt.Should().NotBeNull();
-        updatedTenant.SubscriptionPlan.Should().Be("GROWTH");
-        updatedTenant.PaymentMethodType.Should().Be("SEPA_DIRECT_DEBIT");
+        updatedTenant.SubscriptionPlan.Should().Be("PROFISSIONAL");
+        updatedTenant.PaymentMethodType.Should().Be("CARD");
         result.TenantStatus.Should().Be(TenantStatus.Active);
         dbContext.AuditEvents.Should().Contain(x => x.EventType == "TenantBillingActivated");
     }

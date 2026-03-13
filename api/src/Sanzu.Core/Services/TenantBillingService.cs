@@ -11,29 +11,6 @@ namespace Sanzu.Core.Services;
 
 public sealed class TenantBillingService : ITenantBillingService
 {
-    private static readonly Dictionary<string, decimal> PlanMonthlyPrices = new(StringComparer.OrdinalIgnoreCase)
-    {
-        ["STARTER"] = 149m,
-        ["GROWTH"] = 399m,
-        ["ENTERPRISE"] = 0m
-    };
-
-    private static readonly Dictionary<string, int> PlanIncludedCases = new(StringComparer.OrdinalIgnoreCase)
-    {
-        ["STARTER"] = 20,
-        ["GROWTH"] = 75,
-        ["ENTERPRISE"] = 0
-    };
-
-    private static readonly Dictionary<string, decimal> PlanOverageUnitPrice = new(StringComparer.OrdinalIgnoreCase)
-    {
-        ["STARTER"] = 6m,
-        ["GROWTH"] = 4m,
-        ["ENTERPRISE"] = 0m
-    };
-
-    private const int AnnualMultiplierMonths = 10;
-    private const decimal VatRate = 0.23m;
     private static readonly TimeSpan[] RetrySchedule = new[]
     {
         TimeSpan.FromDays(1),
@@ -102,7 +79,7 @@ public sealed class TenantBillingService : ITenantBillingService
             Records = recordResponses,
             CurrentPlan = tenant.SubscriptionPlan ?? string.Empty,
             CurrentBillingCycle = tenant.SubscriptionBillingCycle ?? string.Empty,
-            CurrentMonthlyPrice = GetMonthlyPrice(tenant.SubscriptionPlan)
+            CurrentMonthlyPrice = PlanCatalog.GetMonthlyPrice(tenant.SubscriptionPlan)
         };
     }
 
@@ -121,11 +98,11 @@ public sealed class TenantBillingService : ITenantBillingService
             TenantId = tenant.Id,
             PlanCode = tenant.SubscriptionPlan ?? string.Empty,
             BillingCycle = tenant.SubscriptionBillingCycle ?? string.Empty,
-            MonthlyPrice = GetMonthlyPrice(tenant.SubscriptionPlan),
-            IncludedCases = GetIncludedCases(tenant.SubscriptionPlan),
+            MonthlyPrice = PlanCatalog.GetMonthlyPrice(tenant.SubscriptionPlan),
+            IncludedCases = PlanCatalog.GetIncludedCases(tenant.SubscriptionPlan),
             UsedCases = 0,
             OverageCases = 0,
-            OverageUnitPrice = GetOverageUnitPrice(tenant.SubscriptionPlan),
+            OverageUnitPrice = PlanCatalog.GetOverageUnitPrice(tenant.SubscriptionPlan),
             CurrentPeriodStart = periodStart,
             CurrentPeriodEnd = periodEnd,
             SubscriptionActivatedAt = tenant.SubscriptionActivatedAt!.Value
@@ -169,12 +146,12 @@ public sealed class TenantBillingService : ITenantBillingService
 
                 var planCode = tenant.SubscriptionPlan!;
                 var billingCycle = tenant.SubscriptionBillingCycle!;
-                var monthlyPrice = GetMonthlyPrice(planCode);
+                var monthlyPrice = PlanCatalog.GetMonthlyPrice(planCode);
                 var baseAmount = GetPeriodPrice(monthlyPrice, billingCycle);
                 var overageUnits = 0;
                 var overageAmount = 0m;
                 var subtotal = baseAmount + overageAmount;
-                var taxAmount = Math.Round(subtotal * VatRate, 2);
+                var taxAmount = Math.Round(subtotal * PlanCatalog.VatRate, 2);
                 var totalAmount = subtotal + taxAmount;
 
                 var (periodStart, periodEnd) = CalculateCurrentBillingPeriod(tenant);
@@ -201,7 +178,7 @@ public sealed class TenantBillingService : ITenantBillingService
                     BaseAmount = baseAmount,
                     OverageUnits = overageUnits,
                     OverageAmount = overageAmount,
-                    TaxRate = VatRate,
+                    TaxRate = PlanCatalog.VatRate,
                     TaxAmount = taxAmount,
                     TotalAmount = totalAmount,
                     Currency = "EUR",
@@ -221,7 +198,7 @@ public sealed class TenantBillingService : ITenantBillingService
                     BaseAmount = baseAmount,
                     OverageUnits = overageUnits,
                     OverageAmount = overageAmount,
-                    TaxRate = VatRate,
+                    TaxRate = PlanCatalog.VatRate,
                     TaxAmount = taxAmount,
                     TotalAmount = totalAmount,
                     Currency = "EUR",
@@ -541,28 +518,10 @@ public sealed class TenantBillingService : ITenantBillingService
         };
     }
 
-    private static decimal GetMonthlyPrice(string? planCode)
-    {
-        if (planCode is null) return 0m;
-        return PlanMonthlyPrices.TryGetValue(planCode, out var price) ? price : 0m;
-    }
-
-    private static int GetIncludedCases(string? planCode)
-    {
-        if (planCode is null) return 0;
-        return PlanIncludedCases.TryGetValue(planCode, out var cases) ? cases : 0;
-    }
-
-    private static decimal GetOverageUnitPrice(string? planCode)
-    {
-        if (planCode is null) return 0m;
-        return PlanOverageUnitPrice.TryGetValue(planCode, out var price) ? price : 0m;
-    }
-
     private static decimal GetPeriodPrice(decimal monthlyPrice, string billingCycle)
     {
         return string.Equals(billingCycle, "ANNUAL", StringComparison.OrdinalIgnoreCase)
-            ? monthlyPrice * AnnualMultiplierMonths
+            ? monthlyPrice * PlanCatalog.AnnualMultiplierMonths
             : monthlyPrice;
     }
 

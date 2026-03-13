@@ -30,7 +30,7 @@ public sealed class AdminRevenueControllerTests : IClassFixture<CustomWebApplica
     [Fact]
     public async Task GetOverview_Should_Return200WithRevenueOverview()
     {
-        var (tenantId, userId) = await SeedTenantAndAdminAsync("SanzuAdmin", "Starter");
+        var (tenantId, userId) = await SeedTenantAndAdminAsync("SanzuAdmin", "Inicial");
 
         var client = _factory.CreateClient();
         using var request = BuildAuthorizedRequest(HttpMethod.Get, "/api/v1/admin/revenue", userId, tenantId, "SanzuAdmin");
@@ -49,8 +49,8 @@ public sealed class AdminRevenueControllerTests : IClassFixture<CustomWebApplica
     [Fact]
     public async Task GetOverview_Should_ComputeCorrectMrrFromPlanPricing()
     {
-        var tenantId1 = await SeedTenantWithPlanAsync("Starter", "Rev-MRR-1");
-        var tenantId2 = await SeedTenantWithPlanAsync("Professional", "Rev-MRR-2");
+        var tenantId1 = await SeedTenantWithPlanAsync("Inicial", "Rev-MRR-1");
+        var tenantId2 = await SeedTenantWithPlanAsync("Profissional", "Rev-MRR-2");
         var userId = await SeedAdminUserAsync(tenantId1, PlatformRole.SanzuFinance);
 
         var client = _factory.CreateClient();
@@ -60,8 +60,8 @@ public sealed class AdminRevenueControllerTests : IClassFixture<CustomWebApplica
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var envelope = await response.Content.ReadFromJsonAsync<ApiEnvelope<RevenueOverviewResponse>>(JsonOptions);
-        // At minimum should include our seeded tenants' MRR (149 + 399 = 548)
-        envelope!.Data!.Mrr.Should().BeGreaterThanOrEqualTo(548m);
+        // At minimum should include our seeded tenants' MRR (49 + 99 = 148)
+        envelope!.Data!.Mrr.Should().BeGreaterThanOrEqualTo(148m);
     }
 
     // ── GET /admin/revenue/trends ──
@@ -69,7 +69,7 @@ public sealed class AdminRevenueControllerTests : IClassFixture<CustomWebApplica
     [Fact]
     public async Task GetTrends_Should_Return200WithDataPoints()
     {
-        var (tenantId, userId) = await SeedTenantAndAdminAsync("SanzuAdmin", "Professional");
+        var (tenantId, userId) = await SeedTenantAndAdminAsync("SanzuAdmin", "Profissional");
 
         var client = _factory.CreateClient();
         using var request = BuildAuthorizedRequest(HttpMethod.Get, "/api/v1/admin/revenue/trends?period=monthly", userId, tenantId, "SanzuAdmin");
@@ -89,7 +89,7 @@ public sealed class AdminRevenueControllerTests : IClassFixture<CustomWebApplica
     [InlineData("monthly")]
     public async Task GetTrends_Should_AcceptAllPeriodValues(string period)
     {
-        var (tenantId, userId) = await SeedTenantAndAdminAsync("SanzuAdmin", "Starter");
+        var (tenantId, userId) = await SeedTenantAndAdminAsync("SanzuAdmin", "Inicial");
 
         var client = _factory.CreateClient();
         using var request = BuildAuthorizedRequest(HttpMethod.Get, $"/api/v1/admin/revenue/trends?period={period}", userId, tenantId, "SanzuAdmin");
@@ -103,7 +103,7 @@ public sealed class AdminRevenueControllerTests : IClassFixture<CustomWebApplica
     [Fact]
     public async Task GetBillingHealth_Should_Return200WithHealthData()
     {
-        var (tenantId, userId) = await SeedTenantAndAdminAsync("SanzuAdmin", "Starter");
+        var (tenantId, userId) = await SeedTenantAndAdminAsync("SanzuAdmin", "Inicial");
 
         var client = _factory.CreateClient();
         using var request = BuildAuthorizedRequest(HttpMethod.Get, "/api/v1/admin/revenue/billing-health", userId, tenantId, "SanzuAdmin");
@@ -132,7 +132,7 @@ public sealed class AdminRevenueControllerTests : IClassFixture<CustomWebApplica
     [Fact]
     public async Task GetOverview_Should_Return403_WhenNonFinanceRole()
     {
-        var (tenantId, userId) = await SeedTenantAndAdminAsync("SanzuSupport", "Starter");
+        var (tenantId, userId) = await SeedTenantAndAdminAsync("SanzuSupport", "Inicial");
 
         var client = _factory.CreateClient();
         using var request = BuildAuthorizedRequest(HttpMethod.Get, "/api/v1/admin/revenue", userId, tenantId, "SanzuSupport");
@@ -146,7 +146,7 @@ public sealed class AdminRevenueControllerTests : IClassFixture<CustomWebApplica
     [InlineData("SanzuFinance")]
     public async Task GetOverview_Should_Return200_ForAllowedRoles(string role)
     {
-        var (tenantId, userId) = await SeedTenantAndAdminAsync(role, "Starter");
+        var (tenantId, userId) = await SeedTenantAndAdminAsync(role, "Inicial");
 
         var client = _factory.CreateClient();
         using var request = BuildAuthorizedRequest(HttpMethod.Get, "/api/v1/admin/revenue", userId, tenantId, role);
@@ -158,7 +158,7 @@ public sealed class AdminRevenueControllerTests : IClassFixture<CustomWebApplica
     [Fact]
     public async Task GetOverview_Should_Return403_ForAgencyAdmin()
     {
-        var tenantId = await SeedTenantWithPlanAsync("Starter", "Rev-Agency");
+        var tenantId = await SeedTenantWithPlanAsync("Inicial", "Rev-Agency");
         var userId = Guid.NewGuid();
 
         var client = _factory.CreateClient();
@@ -173,7 +173,7 @@ public sealed class AdminRevenueControllerTests : IClassFixture<CustomWebApplica
     [Fact]
     public async Task GetOverview_Should_LogAuditEvent_ViaAdminAuditActionFilter()
     {
-        var (tenantId, userId) = await SeedTenantAndAdminAsync("SanzuAdmin", "Starter");
+        var (tenantId, userId) = await SeedTenantAndAdminAsync("SanzuAdmin", "Inicial");
 
         using var scope = _factory.Services.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<SanzuDbContext>();

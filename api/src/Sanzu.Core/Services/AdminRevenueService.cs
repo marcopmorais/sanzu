@@ -237,13 +237,7 @@ public sealed class AdminRevenueService : IAdminRevenueService
         return rows;
     }
 
-    internal static decimal GetMonthlyAmount(string? plan) => plan switch
-    {
-        "Starter" => 149m,
-        "Professional" => 399m,
-        "Enterprise" => 0m,
-        _ => 0m
-    };
+    internal static decimal GetMonthlyAmount(string? plan) => PlanCatalog.GetMonthlyPrice(plan);
 
     private static string GetPeriodLabel(DateTime date, string period)
     {

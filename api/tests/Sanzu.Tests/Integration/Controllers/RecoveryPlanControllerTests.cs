@@ -193,7 +193,7 @@ public sealed class RecoveryPlanControllerTests : IClassFixture<CustomWebApplica
             $"/api/v1/tenants/{signup.OrganizationId}/onboarding/billing/activate",
             new ActivateTenantBillingRequest
             {
-                PlanCode = "Growth",
+                PlanCode = "Profissional",
                 BillingCycle = "Monthly",
                 PaymentMethodType = "Card",
                 PaymentMethodReference = "pm_recovery_tests",

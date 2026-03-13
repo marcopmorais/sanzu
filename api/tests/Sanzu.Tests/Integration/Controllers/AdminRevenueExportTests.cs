@@ -22,7 +22,7 @@ public sealed class AdminRevenueExportTests : IClassFixture<CustomWebApplication
     [Fact]
     public async Task ExportRevenue_Should_Return200WithCsvContentType()
     {
-        var (tenantId, userId) = await SeedTenantAndAdminAsync("SanzuFinance", "Starter");
+        var (tenantId, userId) = await SeedTenantAndAdminAsync("SanzuFinance", "Inicial");
 
         var client = _factory.CreateClient();
         using var request = BuildAuthorizedRequest(HttpMethod.Get, "/api/v1/admin/revenue/export", userId, tenantId, "SanzuFinance");
@@ -35,7 +35,7 @@ public sealed class AdminRevenueExportTests : IClassFixture<CustomWebApplication
     [Fact]
     public async Task ExportRevenue_Should_ContainExpectedHeaders()
     {
-        var (tenantId, userId) = await SeedTenantAndAdminAsync("SanzuAdmin", "Professional");
+        var (tenantId, userId) = await SeedTenantAndAdminAsync("SanzuAdmin", "Profissional");
 
         var client = _factory.CreateClient();
         using var request = BuildAuthorizedRequest(HttpMethod.Get, "/api/v1/admin/revenue/export", userId, tenantId, "SanzuAdmin");
@@ -49,7 +49,7 @@ public sealed class AdminRevenueExportTests : IClassFixture<CustomWebApplication
     [Fact]
     public async Task ExportRevenue_Should_IncludeSeededTenantData()
     {
-        var (tenantId, userId) = await SeedTenantAndAdminAsync("SanzuAdmin", "Starter");
+        var (tenantId, userId) = await SeedTenantAndAdminAsync("SanzuAdmin", "Inicial");
 
         var client = _factory.CreateClient();
         using var request = BuildAuthorizedRequest(HttpMethod.Get, "/api/v1/admin/revenue/export", userId, tenantId, "SanzuAdmin");
@@ -66,7 +66,7 @@ public sealed class AdminRevenueExportTests : IClassFixture<CustomWebApplication
     [Fact]
     public async Task ExportBillingHealth_Should_Return200WithCsvContentType()
     {
-        var (tenantId, userId) = await SeedTenantAndAdminAsync("SanzuAdmin", "Starter");
+        var (tenantId, userId) = await SeedTenantAndAdminAsync("SanzuAdmin", "Inicial");
 
         var client = _factory.CreateClient();
         using var request = BuildAuthorizedRequest(HttpMethod.Get, "/api/v1/admin/revenue/billing-health/export", userId, tenantId, "SanzuAdmin");
@@ -79,7 +79,7 @@ public sealed class AdminRevenueExportTests : IClassFixture<CustomWebApplication
     [Fact]
     public async Task ExportBillingHealth_Should_ContainExpectedHeaders()
     {
-        var (tenantId, userId) = await SeedTenantAndAdminAsync("SanzuAdmin", "Starter");
+        var (tenantId, userId) = await SeedTenantAndAdminAsync("SanzuAdmin", "Inicial");
 
         var client = _factory.CreateClient();
         using var request = BuildAuthorizedRequest(HttpMethod.Get, "/api/v1/admin/revenue/billing-health/export", userId, tenantId, "SanzuAdmin");
@@ -103,7 +103,7 @@ public sealed class AdminRevenueExportTests : IClassFixture<CustomWebApplication
     [Fact]
     public async Task ExportRevenue_Should_Return403_ForNonFinanceRole()
     {
-        var (tenantId, userId) = await SeedTenantAndAdminAsync("SanzuSupport", "Starter");
+        var (tenantId, userId) = await SeedTenantAndAdminAsync("SanzuSupport", "Inicial");
 
         var client = _factory.CreateClient();
         using var request = BuildAuthorizedRequest(HttpMethod.Get, "/api/v1/admin/revenue/export", userId, tenantId, "SanzuSupport");
@@ -115,7 +115,7 @@ public sealed class AdminRevenueExportTests : IClassFixture<CustomWebApplication
     [Fact]
     public async Task ExportBillingHealth_Should_Return403_ForNonFinanceRole()
     {
-        var (tenantId, userId) = await SeedTenantAndAdminAsync("SanzuViewer", "Starter");
+        var (tenantId, userId) = await SeedTenantAndAdminAsync("SanzuViewer", "Inicial");
 
         var client = _factory.CreateClient();
         using var request = BuildAuthorizedRequest(HttpMethod.Get, "/api/v1/admin/revenue/billing-health/export", userId, tenantId, "SanzuViewer");
@@ -129,7 +129,7 @@ public sealed class AdminRevenueExportTests : IClassFixture<CustomWebApplication
     [Fact]
     public async Task ExportRevenue_Should_LogAuditEvent()
     {
-        var (tenantId, userId) = await SeedTenantAndAdminAsync("SanzuAdmin", "Starter");
+        var (tenantId, userId) = await SeedTenantAndAdminAsync("SanzuAdmin", "Inicial");
 
         using var scope = _factory.Services.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<SanzuDbContext>();
