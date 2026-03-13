@@ -163,6 +163,7 @@ public static class ServiceRegistration
         services.AddScoped<IHealthScoreInput, CaseCompletionInput>();
         services.AddScoped<IHealthScoreInput, OnboardingCompletionInput>();
         services.AddHostedService<HealthScoreBackgroundService>();
+        services.AddHostedService<DashboardSnapshotBackgroundService>();
 
         return services;
     }
