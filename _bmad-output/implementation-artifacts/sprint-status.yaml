@@ -170,26 +170,26 @@ development_status:
   17-4-manual-follow-up-alerts-and-delivery-configuration: done
   epic-17-retrospective: optional
 
-  epic-18: in-progress
+  epic-18: done
   18-1-audit-event-search-and-export-api: done
-  18-2-audit-event-viewer-frontend: backlog
+  18-2-audit-event-viewer-frontend: done
   epic-18-retrospective: optional
 
-  epic-19: backlog
-  19-1-workflow-override-and-grace-period-extension-apis: backlog
-  19-2-re-onboarding-and-tenant-impersonation: backlog
-  19-3-tenant-communication-and-communication-log: backlog
-  19-4-support-actions-frontend: backlog
+  epic-19: done
+  19-1-workflow-override-and-grace-period-extension-apis: done
+  19-2-re-onboarding-and-tenant-impersonation: done
+  19-3-tenant-communication-and-communication-log: done
+  19-4-support-actions-frontend: done
   epic-19-retrospective: optional
 
-  epic-20: backlog
-  20-1-alert-threshold-and-health-weight-configuration: backlog
-  20-2-communication-template-management: backlog
-  20-3-business-summary-and-compliance-report-generation: backlog
+  epic-20: done
+  20-1-alert-threshold-and-health-weight-configuration: done
+  20-2-communication-template-management: done
+  20-3-business-summary-and-compliance-report-generation: done
   epic-20-retrospective: optional
 
-  epic-21: backlog
-  21-1-health-score-trend-and-history-display: backlog
-  21-2-tenant-acquisition-funnel-api: backlog
-  21-3-funnel-analytics-frontend: backlog
+  epic-21: done
+  21-1-health-score-trend-and-history-display: done
+  21-2-tenant-acquisition-funnel-api: done
+  21-3-funnel-analytics-frontend: done
   epic-21-retrospective: optional
