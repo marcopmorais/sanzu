@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sanzu Design System - Component Demo</title>
+
+  <!-- Design System Styles -->
+  <link rel="stylesheet" href="./tokens/grief-aware-tokens.css">
+  <link rel="stylesheet" href="./base.css">
+  <link rel="stylesheet" href="./components/button.css">
+  <link rel="stylesheet" href="./components/input.css">
+  <link rel="stylesheet" href="./components/card.css">
+  <link rel="stylesheet" href="./components/badge.css">
+  <link rel="stylesheet" href="./components/modal.css">
+  <link rel="stylesheet" href="./components/alert.css">
+
+  <style>
+    .demo-section {
+      margin-bottom: var(--space-12);
+      padding-bottom: var(--space-12);
+      border-bottom: 2px solid var(--color-border-default);
+    }
+    .demo-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: var(--space-4);
+      margin-top: var(--space-6);
+    }
+    .demo-showcase {
+      padding: var(--space-6);
+      background-color: var(--color-bg-secondary);
+      border-radius: var(--radius-md);
+      margin-top: var(--space-6);
+    }
+    .demo-label {
+      font-size: var(--font-size-xs);
+      font-weight: var(--font-weight-medium);
+      color: var(--color-text-tertiary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: var(--space-2);
+    }
+  </style>
+</head>
+<body>
+
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+
+  <!-- Header -->
+  <header style="background-color: var(--color-brand-forest); color: var(--color-text-inverse); padding: var(--space-8) 0;">
+    <div class="container">
+      <h1 style="margin: 0; color: var(--color-text-inverse);">Sanzu Design System</h1>
+      <p style="margin-top: var(--space-2); color: rgba(255, 255, 255, 0.9);">
+        Grief-Aware UX Components • WCAG 2.1 AA Compliant • v1.0
+      </p>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main id="main-content" class="container mt-8">
+
+    <!-- Buttons -->
+    <section class="demo-section">
+      <h2 class="text-2xl">Buttons</h2>
+      <p class="text-secondary">Primary interactive elements with variants, sizes, and states.</p>
+
+      <div class="demo-showcase">
+        <div class="demo-label">Variants</div>
+        <div class="btn-group mb-6">
+          <button class="btn btn-primary btn-md">Primary</button>
+          <button class="btn btn-secondary btn-md">Secondary</button>
+          <button class="btn btn-tertiary btn-md">Tertiary</button>
+          <button class="btn btn-danger btn-md">Danger</button>
+        </div>
+
+        <div class="demo-label">Sizes</div>
+        <div class="btn-group mb-6">
+          <button class="btn btn-primary btn-sm">Small</button>
+          <button class="btn btn-primary btn-md">Medium</button>
+          <button class="btn btn-primary btn-lg">Large</button>
+        </div>
+
+        <div class="demo-label">States</div>
+        <div class="btn-group">
+          <button class="btn btn-primary btn-md is-loading">Loading</button>
+          <button class="btn btn-primary btn-md" disabled>Disabled</button>
+          <button class="btn btn-primary btn-md btn-full">Full Width</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Inputs -->
+    <section class="demo-section">
+      <h2 class="text-2xl">Form Inputs</h2>
+      <p class="text-secondary">Text fields, textareas, selects, checkboxes, and radios.</p>
+
+      <div class="demo-showcase">
+        <div class="grid grid-2">
+          <!-- Text Input -->
+          <div class="input-group">
+            <label class="input-label input-label-required" for="demo-name">Name</label>
+            <input type="text" id="demo-name" class="input input-md" placeholder="Your name" required>
+            <span class="input-helper">Please enter your full name</span>
+          </div>
+
+          <!-- Email Input -->
+          <div class="input-group">
+            <label class="input-label" for="demo-email">Email</label>
+            <input type="email" id="demo-email" class="input input-md" placeholder="your@email.com">
+            <span class="input-helper">We'll never share your email</span>
+          </div>
+
+          <!-- Error State -->
+          <div class="input-group">
+            <label class="input-label" for="demo-error">With Error</label>
+            <input type="text" id="demo-error" class="input input-md input-error" value="Invalid input">
+            <span class="input-helper input-helper-error">This field has an error</span>
+          </div>
+
+          <!-- Success State -->
+          <div class="input-group">
+            <label class="input-label" for="demo-success">With Success</label>
+            <input type="text" id="demo-success" class="input input-md input-success" value="Valid input">
+            <span class="input-helper input-helper-success">Looks good!</span>
+          </div>
+
+          <!-- Select -->
+          <div class="input-group">
+            <label class="input-label" for="demo-select">Select Option</label>
+            <select id="demo-select" class="select input-md">
+              <option>Option 1</option>
+              <option>Option 2</option>
+              <option>Option 3</option>
+            </select>
+          </div>
+
+          <!-- Textarea -->
+          <div class="input-group">
+            <label class="input-label" for="demo-textarea">Message</label>
+            <textarea id="demo-textarea" class="textarea textarea-sm" placeholder="Enter your message..."></textarea>
+          </div>
+        </div>
+
+        <!-- Checkboxes & Radios -->
+        <div class="mt-6">
+          <div class="demo-label">Checkboxes</div>
+          <div class="stack stack-sm">
+            <div>
+              <input type="checkbox" id="check1" class="checkbox" checked>
+              <label for="check1" class="checkbox-label">Option 1 (checked)</label>
+            </div>
+            <div>
+              <input type="checkbox" id="check2" class="checkbox">
+              <label for="check2" class="checkbox-label">Option 2</label>
+            </div>
+            <div>
+              <input type="checkbox" id="check3" class="checkbox" disabled>
+              <label for="check3" class="checkbox-label">Option 3 (disabled)</label>
+            </div>
+          </div>
+
+          <div class="demo-label mt-6">Radio Buttons</div>
+          <div class="stack stack-sm">
+            <div>
+              <input type="radio" id="radio1" name="demo-radio" class="radio" checked>
+              <label for="radio1" class="radio-label">Choice A (selected)</label>
+            </div>
+            <div>
+              <input type="radio" id="radio2" name="demo-radio" class="radio">
+              <label for="radio2" class="radio-label">Choice B</label>
+            </div>
+            <div>
+              <input type="radio" id="radio3" name="demo-radio" class="radio" disabled>
+              <label for="radio3" class="radio-label">Choice C (disabled)</label>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Cards -->
+    <section class="demo-section">
+      <h2 class="text-2xl">Cards</h2>
+      <p class="text-secondary">Container components for grouping related content.</p>
+
+      <div class="demo-showcase">
+        <div class="card-grid">
+          <!-- Default Card -->
+          <div class="card">
+            <h3 class="card-title">Default Card</h3>
+            <p class="text-sm">Basic card with default styling and shadow.</p>
+          </div>
+
+          <!-- Primary Card -->
+          <div class="card card-primary">
+            <h3 class="card-title">Primary Card</h3>
+            <p class="text-sm">Highlighted with forest green accent border.</p>
+          </div>
+
+          <!-- Info Card -->
+          <div class="card card-info">
+            <h3 class="card-title">Info Card</h3>
+            <p class="text-sm">Informational content with blue styling.</p>
+          </div>
+
+          <!-- Warning Card -->
+          <div class="card card-warning">
+            <h3 class="card-title">Warning Card</h3>
+            <p class="text-sm">Needs attention with orange accent.</p>
+          </div>
+
+          <!-- Error/Blocked Card -->
+          <div class="card card-error">
+            <h3 class="card-title">Error Card</h3>
+            <p class="text-sm">Critical issue with red accent.</p>
+          </div>
+
+          <!-- Success Card -->
+          <div class="card card-success">
+            <h3 class="card-title">Success Card</h3>
+            <p class="text-sm">Positive outcome with green accent.</p>
+          </div>
+        </div>
+
+        <!-- Card with Full Structure -->
+        <div class="card card-primary mt-6" style="max-width: 600px;">
+          <div class="card-header">
+            <div>
+              <h3 class="card-title">Card with Header & Footer</h3>
+              <p class="card-subtitle">This card demonstrates the full structure</p>
+            </div>
+            <span class="badge badge-success">Done</span>
+          </div>
+          <div class="card-body">
+            <p>This card includes a header with title and subtitle, a body section with content, and a footer with action buttons.</p>
+          </div>
+          <div class="card-footer">
+            <button class="btn btn-tertiary btn-sm">Cancel</button>
+            <button class="btn btn-primary btn-sm">Save</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Badges -->
+    <section class="demo-section">
+      <h2 class="text-2xl">Badges</h2>
+      <p class="text-secondary">Small labels for status, counts, and metadata.</p>
+
+      <div class="demo-showcase">
+        <div class="demo-label">Status Variants</div>
+        <div class="badge-group mb-6">
+          <span class="badge badge-success">Success</span>
+          <span class="badge badge-done">Done</span>
+          <span class="badge badge-ready">Ready</span>
+          <span class="badge badge-warning">Warning</span>
+          <span class="badge badge-error">Error</span>
+          <span class="badge badge-blocked">Blocked</span>
+          <span class="badge badge-pending">Pending</span>
+          <span class="badge badge-info">Info</span>
+        </div>
+
+        <div class="demo-label">With Dots</div>
+        <div class="badge-group mb-6">
+          <span class="badge badge-dot badge-success">Done</span>
+          <span class="badge badge-dot badge-warning">Warning</span>
+          <span class="badge badge-dot badge-error">Error</span>
+          <span class="badge badge-dot badge-dot-animated badge-success">Live</span>
+        </div>
+
+        <div class="demo-label">Outline Style</div>
+        <div class="badge-group mb-6">
+          <span class="badge badge-success badge-outline">Success</span>
+          <span class="badge badge-warning badge-outline">Warning</span>
+          <span class="badge badge-error badge-outline">Error</span>
+        </div>
+
+        <div class="demo-label">Count Badges</div>
+        <div class="badge-group mb-6">
+          <span class="badge badge-count">5</span>
+          <span class="badge badge-count badge-count-primary">12</span>
+          <span class="badge badge-count badge-count-success">3</span>
+        </div>
+
+        <div class="demo-label">Sizes</div>
+        <div class="badge-group">
+          <span class="badge badge-primary badge-xs">Extra Small</span>
+          <span class="badge badge-primary badge-sm">Small</span>
+          <span class="badge badge-primary badge-md">Medium</span>
+          <span class="badge badge-primary badge-lg">Large</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Alerts -->
+    <section class="demo-section">
+      <h2 class="text-2xl">Alerts</h2>
+      <p class="text-secondary">Notification banners and feedback messages.</p>
+
+      <div class="demo-showcase">
+        <div class="stack">
+          <!-- Info Alert -->
+          <div class="alert alert-info" role="alert">
+            <div class="alert-icon"></div>
+            <div class="alert-content">
+              <h4 class="alert-title">Information</h4>
+              <p class="alert-description">This is an informational message to help guide the user.</p>
+            </div>
+            <button class="alert-close" aria-label="Dismiss alert"></button>
+          </div>
+
+          <!-- Success Alert -->
+          <div class="alert alert-success" role="alert">
+            <div class="alert-icon"></div>
+            <div class="alert-content">
+              <h4 class="alert-title">Success!</h4>
+              <p class="alert-description">Your document was uploaded successfully.</p>
+            </div>
+          </div>
+
+          <!-- Warning Alert -->
+          <div class="alert alert-warning" role="alert">
+            <div class="alert-icon"></div>
+            <div class="alert-content">
+              <h4 class="alert-title">Warning</h4>
+              <p class="alert-description">Your grace period expires in 2 days. Please update your payment method.</p>
+              <div class="alert-actions">
+                <button class="alert-action-link">Update Payment</button>
+                <button class="alert-action-link">Dismiss</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Error Alert -->
+          <div class="alert alert-error" role="alert">
+            <div class="alert-icon"></div>
+            <div class="alert-content">
+              <h4 class="alert-title">Error</h4>
+              <p class="alert-description">Something went wrong. Please try again or contact support.</p>
+            </div>
+          </div>
+
+          <!-- Empathetic Alert -->
+          <div class="alert alert-empathetic" role="status">
+            <div class="alert-icon">💚</div>
+            <div class="alert-content">
+              <h4 class="alert-title">We're here to help</h4>
+              <p class="alert-description">We know this process can be overwhelming. Take your time, and reach out if you need assistance.</p>
+            </div>
+          </div>
+
+          <!-- Help Alert -->
+          <div class="alert alert-help" role="status">
+            <div class="alert-icon"></div>
+            <div class="alert-content">
+              <h4 class="alert-title">Need help understanding this?</h4>
+              <p class="alert-description">Click below to view a plain-language explanation of this legal term.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Modal Example -->
+    <section class="demo-section">
+      <h2 class="text-2xl">Modal</h2>
+      <p class="text-secondary">Dialog overlays for focused interactions.</p>
+
+      <div class="demo-showcase">
+        <button class="btn btn-primary btn-md" id="open-demo-modal">Open Demo Modal</button>
+      </div>
+    </section>
+
+    <!-- Typography & Utilities -->
+    <section class="demo-section">
+      <h2 class="text-2xl">Typography & Utilities</h2>
+      <p class="text-secondary">Text styles and utility classes.</p>
+
+      <div class="demo-showcase">
+        <div class="demo-label">Headings</div>
+        <h1>Heading 1 (2rem / 32px)</h1>
+        <h2>Heading 2 (1.5rem / 24px)</h2>
+        <h3>Heading 3 (1.25rem / 20px)</h3>
+        <h4>Heading 4 (1rem / 16px)</h4>
+
+        <div class="demo-label mt-6">Text Variants</div>
+        <p class="text-primary">Primary text color</p>
+        <p class="text-secondary">Secondary text color</p>
+        <p class="text-tertiary">Tertiary text color</p>
+        <p class="empathetic-message">Empathetic message with italic style and relaxed line-height</p>
+
+        <div class="demo-label mt-6">Utility Classes</div>
+        <p class="text-sm">Small text (0.875rem)</p>
+        <p class="text-base">Base text (1rem)</p>
+        <p class="text-lg">Large text (1.25rem)</p>
+        <p class="text-xl">Extra large text (1.5rem)</p>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="mt-12" style="padding: var(--space-8) 0; border-top: 1px solid var(--color-border-default); background-color: var(--color-bg-secondary);">
+    <div class="container text-center">
+      <p class="text-sm text-secondary">
+        Sanzu Grief-Aware Design System v1.0 • WCAG 2.1 AA Compliant • Phase 4: Solution Discovery
+      </p>
+      <p class="text-sm text-tertiary mt-2">
+        Built with emotional intelligence, accessibility-first principles, and cognitive load reduction
+      </p>
+    </div>
+  </footer>
+
+  <!-- Demo Modal -->
+  <div class="modal" id="demo-modal" aria-labelledby="demo-modal-title" aria-modal="true" role="dialog" hidden>
+    <div class="modal-overlay"></div>
+    <div class="modal-content">
+      <div class="modal-header">
+        <div>
+          <h2 id="demo-modal-title" class="modal-title">Demo Modal</h2>
+          <p class="modal-subtitle">This is a subtitle explaining the modal purpose</p>
+        </div>
+        <button class="modal-close" aria-label="Close modal">✕</button>
+      </div>
+      <div class="modal-body">
+        <p>This is a demonstration of the modal component. It includes:</p>
+        <ul>
+          <li>Modal overlay (backdrop)</li>
+          <li>Header with title and subtitle</li>
+          <li>Scrollable body content</li>
+          <li>Footer with action buttons</li>
+          <li>Close button with accessibility label</li>
+        </ul>
+        <p>The modal is keyboard accessible (Escape to close) and manages focus appropriately.</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-tertiary btn-md" id="close-demo-modal">Cancel</button>
+        <button class="btn btn-primary btn-md">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- JavaScript for Modal Demo -->
+  <script>
+    const modal = document.getElementById('demo-modal');
+    const openBtn = document.getElementById('open-demo-modal');
+    const closeBtn = document.getElementById('close-demo-modal');
+    const closeX = modal.querySelector('.modal-close');
+
+    function openModal() {
+      modal.removeAttribute('hidden');
+      modal.setAttribute('aria-hidden', 'false');
+      document.body.classList.add('modal-open');
+    }
+
+    function closeModal() {
+      modal.setAttribute('hidden', '');
+      modal.setAttribute('aria-hidden', 'true');
+      document.body.classList.remove('modal-open');
+    }
+
+    openBtn.addEventListener('click', openModal);
+    closeBtn.addEventListener('click', closeModal);
+    closeX.addEventListener('click', closeModal);
+    modal.querySelector('.modal-overlay').addEventListener('click', closeModal);
+
+    // Close on Escape key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !modal.hasAttribute('hidden')) {
+        closeModal();
+      }
+    });
+  </script>
+
+</body>
+</html>

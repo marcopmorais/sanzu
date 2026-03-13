@@ -1,0 +1,1354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sanzu Design System — Public Website Mockups</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    :root {
+      --color-primary: #1971c2; --color-primary-light: #e7f5ff;
+      --color-primary-hover: #1864ab; --color-primary-active: #145591;
+      --color-success: #2f9e44; --color-success-light: #f0fff4;
+      --color-warning: #e8590c; --color-warning-light: #fff4e6;
+      --color-danger: #c92a2a; --color-danger-light: #fff5f5;
+      --color-info: #7048e8; --color-info-light: #f3f0ff;
+      --gray-900: #1e1e1e; --gray-700: #495057; --gray-500: #868e96;
+      --gray-300: #dee2e6; --gray-100: #f8f9fa; --white: #ffffff;
+      --font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+      --text-xs: 0.75rem; --text-sm: 0.875rem; --text-base: 1rem;
+      --text-lg: 1.125rem; --text-xl: 1.5rem; --text-2xl: 2rem;
+      --text-3xl: 2.5rem; --text-4xl: 3rem;
+      --leading-xs: 1.5; --leading-sm: 1.5; --leading-base: 1.5;
+      --leading-lg: 1.4; --leading-xl: 1.3; --leading-2xl: 1.2;
+      --font-weight-normal: 400; --font-weight-medium: 500;
+      --font-weight-semibold: 600; --font-weight-bold: 700; --font-weight-extrabold: 800;
+      --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px;
+      --space-5: 24px; --space-6: 32px; --space-8: 48px; --space-10: 64px;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+      --shadow-md: 0 4px 6px rgba(0,0,0,0.07);
+      --shadow-lg: 0 10px 15px rgba(0,0,0,0.1);
+      --radius-sm: 4px; --radius-md: 8px; --radius-lg: 12px;
+      --border-default: 1px solid var(--gray-300);
+      --border-focus: 2px solid var(--color-primary);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: var(--font-family); color: var(--gray-900); background: var(--gray-100); }
+
+    /* ============================================
+       SCREEN SELECTOR (design system nav)
+       ============================================ */
+    .screen-nav {
+      position: sticky; top: 0; z-index: 100;
+      background: var(--white); border-bottom: var(--border-default);
+      padding: var(--space-3) var(--space-5);
+      display: flex; align-items: center; gap: var(--space-4); flex-wrap: wrap;
+      box-shadow: var(--shadow-sm);
+    }
+    .screen-nav__title { font-size: var(--text-lg); font-weight: var(--font-weight-bold); color: var(--gray-900); white-space: nowrap; }
+    .screen-nav__tabs { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+    .screen-tab {
+      font-family: var(--font-family); font-size: var(--text-sm); font-weight: var(--font-weight-medium);
+      padding: var(--space-2) var(--space-3); border-radius: var(--radius-sm);
+      border: 1.5px solid transparent; background: transparent;
+      color: var(--gray-700); cursor: pointer; transition: all 0.15s ease; white-space: nowrap;
+    }
+    .screen-tab:hover { background: var(--color-primary-light); color: var(--color-primary); }
+    .screen-tab--active { background: var(--color-primary); color: var(--white); border-color: var(--color-primary); }
+
+    .screen-container { display: none; }
+    .screen-container.active { display: block; }
+
+    /* ============================================
+       PUBLIC WEBSITE SHARED STYLES
+       ============================================ */
+
+    /* --- Top Navigation --- */
+    .pub-nav {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: var(--space-4) var(--space-8);
+      background: var(--white); border-bottom: var(--border-default);
+      position: sticky; top: 52px; z-index: 50;
+    }
+    .pub-nav__logo {
+      font-size: var(--text-xl); font-weight: var(--font-weight-extrabold);
+      color: var(--color-primary); letter-spacing: -0.5px; text-decoration: none;
+    }
+    .pub-nav__links {
+      display: flex; align-items: center; gap: var(--space-6); list-style: none;
+    }
+    .pub-nav__links a {
+      font-size: var(--text-sm); font-weight: var(--font-weight-medium);
+      color: var(--gray-700); text-decoration: none; transition: color 0.15s ease;
+    }
+    .pub-nav__links a:hover { color: var(--color-primary); }
+    .pub-nav__actions { display: flex; align-items: center; gap: var(--space-3); }
+
+    /* --- Buttons --- */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2);
+      font-family: var(--font-family); font-size: var(--text-sm); font-weight: var(--font-weight-semibold);
+      padding: 10px var(--space-5); border-radius: var(--radius-sm);
+      border: 1.5px solid transparent; cursor: pointer; transition: all 0.15s ease; white-space: nowrap;
+      text-decoration: none;
+    }
+    .btn--primary { background: var(--color-primary); color: var(--white); }
+    .btn--primary:hover { background: var(--color-primary-hover); }
+    .btn--secondary { background: var(--white); color: var(--color-primary); border-color: var(--color-primary); }
+    .btn--secondary:hover { background: var(--color-primary-light); }
+    .btn--ghost { background: transparent; color: var(--color-primary); }
+    .btn--ghost:hover { background: var(--color-primary-light); }
+    .btn--lg { font-size: var(--text-base); padding: 14px var(--space-6); border-radius: var(--radius-md); }
+    .btn--sm { font-size: var(--text-xs); padding: 6px var(--space-3); }
+    .btn--full { width: 100%; }
+
+    /* --- Sections --- */
+    .pub-section {
+      padding: var(--space-10) var(--space-8);
+      max-width: 1200px; margin: 0 auto;
+    }
+    .pub-section--wide {
+      max-width: 100%; padding: var(--space-10) var(--space-8);
+    }
+    .pub-section--narrow {
+      max-width: 900px; margin: 0 auto;
+      padding: var(--space-10) var(--space-8);
+    }
+    .pub-section__headline {
+      font-size: var(--text-3xl); font-weight: var(--font-weight-extrabold);
+      color: var(--gray-900); text-align: center; line-height: var(--leading-2xl);
+      margin-bottom: var(--space-3);
+    }
+    .pub-section__subheadline {
+      font-size: var(--text-lg); color: var(--gray-500); text-align: center;
+      max-width: 640px; margin: 0 auto var(--space-8) auto; line-height: var(--leading-lg);
+    }
+
+    /* --- Footer --- */
+    .pub-footer {
+      background: var(--gray-900); color: var(--gray-300);
+      padding: var(--space-10) var(--space-8) var(--space-6);
+    }
+    .pub-footer__inner {
+      max-width: 1200px; margin: 0 auto;
+      display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: var(--space-8);
+    }
+    .pub-footer__brand { }
+    .pub-footer__logo {
+      font-size: var(--text-xl); font-weight: var(--font-weight-extrabold);
+      color: var(--white); margin-bottom: var(--space-3);
+    }
+    .pub-footer__desc {
+      font-size: var(--text-sm); color: var(--gray-500); line-height: var(--leading-base);
+      max-width: 300px;
+    }
+    .pub-footer__col-title {
+      font-size: var(--text-xs); font-weight: var(--font-weight-semibold);
+      color: var(--white); text-transform: uppercase; letter-spacing: 0.08em;
+      margin-bottom: var(--space-4);
+    }
+    .pub-footer__links { list-style: none; }
+    .pub-footer__links li { margin-bottom: var(--space-2); }
+    .pub-footer__links a {
+      font-size: var(--text-sm); color: var(--gray-500); text-decoration: none;
+      transition: color 0.15s ease;
+    }
+    .pub-footer__links a:hover { color: var(--white); }
+    .pub-footer__bottom {
+      max-width: 1200px; margin: var(--space-8) auto 0;
+      padding-top: var(--space-5); border-top: 1px solid #343a40;
+      display: flex; align-items: center; justify-content: space-between;
+      font-size: var(--text-xs); color: var(--gray-500);
+    }
+    .pub-footer__bottom a { color: var(--gray-500); text-decoration: none; }
+    .pub-footer__bottom a:hover { color: var(--white); }
+
+
+    /* ============================================
+       HOMEPAGE STYLES
+       ============================================ */
+
+    /* Hero */
+    .hero {
+      background: linear-gradient(135deg, var(--color-primary-light) 0%, var(--white) 50%, #f3f0ff 100%);
+      padding: 80px var(--space-8) 96px;
+      text-align: center;
+    }
+    .hero__headline {
+      font-size: 3.5rem; font-weight: var(--font-weight-extrabold);
+      color: var(--gray-900); line-height: 1.1; letter-spacing: -1.5px;
+      margin-bottom: var(--space-5);
+    }
+    .hero__headline span { color: var(--color-primary); }
+    .hero__subheadline {
+      font-size: var(--text-lg); color: var(--gray-700);
+      max-width: 600px; margin: 0 auto var(--space-8) auto;
+      line-height: var(--leading-lg);
+    }
+    .hero__ctas { display: flex; justify-content: center; gap: var(--space-4); flex-wrap: wrap; }
+    .hero__badge {
+      display: inline-flex; align-items: center; gap: var(--space-2);
+      margin-top: var(--space-8);
+      font-size: var(--text-xs); font-weight: var(--font-weight-medium);
+      color: var(--gray-500); background: var(--white);
+      padding: var(--space-2) var(--space-4); border-radius: 100px;
+      border: var(--border-default); box-shadow: var(--shadow-sm);
+    }
+    .hero__badge i { color: var(--color-success); }
+
+    /* Value Props */
+    .value-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-6);
+    }
+    .value-card {
+      background: var(--white); border: var(--border-default); border-radius: var(--radius-lg);
+      padding: var(--space-6); box-shadow: var(--shadow-sm);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .value-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); }
+    .value-card__icon {
+      width: 48px; height: 48px; border-radius: var(--radius-md);
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: var(--space-5);
+    }
+    .value-card__icon--blue { background: var(--color-primary-light); color: var(--color-primary); }
+    .value-card__icon--red { background: var(--color-danger-light); color: var(--color-danger); }
+    .value-card__icon--green { background: var(--color-success-light); color: var(--color-success); }
+    .value-card__title {
+      font-size: var(--text-base); font-weight: var(--font-weight-bold);
+      color: var(--gray-900); margin-bottom: var(--space-1);
+    }
+    .value-card__audience {
+      font-size: var(--text-xs); font-weight: var(--font-weight-semibold);
+      color: var(--color-primary); text-transform: uppercase; letter-spacing: 0.05em;
+      margin-bottom: var(--space-3);
+    }
+    .value-card__desc {
+      font-size: var(--text-sm); color: var(--gray-700); line-height: var(--leading-base);
+    }
+    .value-card__stat {
+      margin-top: var(--space-5); padding-top: var(--space-4); border-top: var(--border-default);
+      font-size: var(--text-lg); font-weight: var(--font-weight-bold);
+      color: var(--gray-900);
+    }
+    .value-card__stat small {
+      display: block; font-size: var(--text-xs); font-weight: var(--font-weight-normal);
+      color: var(--gray-500); margin-top: 2px;
+    }
+
+    /* How It Works */
+    .hiw-bg { background: var(--gray-100); }
+    .steps-row {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-5);
+      position: relative;
+    }
+    .steps-row::before {
+      content: ''; position: absolute; top: 28px; left: 56px; right: 56px;
+      height: 2px; background: var(--gray-300); z-index: 0;
+    }
+    .step-card { text-align: center; position: relative; z-index: 1; }
+    .step-card__number {
+      width: 56px; height: 56px; border-radius: 50%;
+      background: var(--color-primary); color: var(--white);
+      font-size: var(--text-xl); font-weight: var(--font-weight-bold);
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto var(--space-4); box-shadow: var(--shadow-md);
+      border: 4px solid var(--white);
+    }
+    .step-card__title {
+      font-size: var(--text-sm); font-weight: var(--font-weight-bold);
+      color: var(--gray-900); margin-bottom: var(--space-2);
+    }
+    .step-card__desc {
+      font-size: var(--text-xs); color: var(--gray-500); line-height: var(--leading-xs);
+      max-width: 200px; margin: 0 auto;
+    }
+
+    /* Trust Bar */
+    .trust-bar {
+      background: var(--gray-900); color: var(--white);
+      padding: var(--space-5) var(--space-8);
+    }
+    .trust-bar__inner {
+      max-width: 1200px; margin: 0 auto;
+      display: flex; justify-content: center; gap: var(--space-8); flex-wrap: wrap;
+    }
+    .trust-bar__item {
+      display: flex; align-items: center; gap: var(--space-2);
+      font-size: var(--text-sm); font-weight: var(--font-weight-medium);
+    }
+    .trust-bar__item i { color: var(--color-success); width: 18px; height: 18px; }
+
+
+    /* ============================================
+       PRICING PAGE STYLES
+       ============================================ */
+    .pricing-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-5);
+      align-items: start;
+    }
+    .pricing-card {
+      background: var(--white); border: 2px solid var(--gray-300);
+      border-radius: var(--radius-lg); padding: var(--space-6);
+      box-shadow: var(--shadow-sm); position: relative;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .pricing-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); }
+    .pricing-card--recommended {
+      border-color: var(--color-primary); box-shadow: var(--shadow-md);
+      transform: scale(1.03);
+    }
+    .pricing-card--recommended:hover { transform: scale(1.03) translateY(-4px); box-shadow: var(--shadow-lg); }
+    .pricing-card__badge {
+      position: absolute; top: -14px; left: 50%; transform: translateX(-50%);
+      background: var(--color-primary); color: var(--white);
+      font-size: var(--text-xs); font-weight: var(--font-weight-bold);
+      padding: var(--space-1) var(--space-4); border-radius: 100px;
+      text-transform: uppercase; letter-spacing: 0.05em;
+    }
+    .pricing-card__name {
+      font-size: var(--text-lg); font-weight: var(--font-weight-bold);
+      color: var(--gray-900); margin-bottom: var(--space-1);
+    }
+    .pricing-card__desc {
+      font-size: var(--text-sm); color: var(--gray-500); margin-bottom: var(--space-5);
+    }
+    .pricing-card__price {
+      font-size: var(--text-3xl); font-weight: var(--font-weight-extrabold);
+      color: var(--gray-900); line-height: 1; margin-bottom: var(--space-1);
+    }
+    .pricing-card__price span {
+      font-size: var(--text-sm); font-weight: var(--font-weight-normal);
+      color: var(--gray-500);
+    }
+    .pricing-card__period {
+      font-size: var(--text-xs); color: var(--gray-500); margin-bottom: var(--space-5);
+    }
+    .pricing-card__features {
+      list-style: none; margin-bottom: var(--space-6);
+      border-top: var(--border-default); padding-top: var(--space-5);
+    }
+    .pricing-card__features li {
+      display: flex; align-items: flex-start; gap: var(--space-2);
+      font-size: var(--text-sm); color: var(--gray-700);
+      padding: var(--space-2) 0; line-height: var(--leading-sm);
+    }
+    .pricing-card__features li i {
+      color: var(--color-success); width: 16px; height: 16px; flex-shrink: 0; margin-top: 2px;
+    }
+
+    /* FAQ */
+    .faq-list { max-width: 720px; margin: 0 auto; }
+    .faq-item {
+      border: var(--border-default); border-radius: var(--radius-md);
+      margin-bottom: var(--space-3); background: var(--white);
+      overflow: hidden;
+    }
+    .faq-item__question {
+      width: 100%; padding: var(--space-4) var(--space-5);
+      display: flex; align-items: center; justify-content: space-between;
+      background: none; border: none; cursor: pointer;
+      font-family: var(--font-family); font-size: var(--text-sm); font-weight: var(--font-weight-semibold);
+      color: var(--gray-900); text-align: left;
+    }
+    .faq-item__question:hover { background: var(--gray-100); }
+    .faq-item__question i { color: var(--gray-500); width: 16px; height: 16px; flex-shrink: 0; transition: transform 0.2s ease; }
+    .faq-item__answer {
+      padding: 0 var(--space-5) var(--space-4);
+      font-size: var(--text-sm); color: var(--gray-700); line-height: var(--leading-base);
+      display: none;
+    }
+    .faq-item.open .faq-item__answer { display: block; }
+    .faq-item.open .faq-item__question i { transform: rotate(180deg); }
+
+
+    /* ============================================
+       TRUST & COMPLIANCE PAGE
+       ============================================ */
+    .trust-pillars {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-5);
+    }
+    .trust-pillar {
+      background: var(--white); border: var(--border-default); border-radius: var(--radius-lg);
+      padding: var(--space-6); box-shadow: var(--shadow-sm); text-align: center;
+    }
+    .trust-pillar__icon {
+      width: 64px; height: 64px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto var(--space-5);
+    }
+    .trust-pillar__icon--blue { background: var(--color-primary-light); color: var(--color-primary); }
+    .trust-pillar__icon--green { background: var(--color-success-light); color: var(--color-success); }
+    .trust-pillar__icon--purple { background: var(--color-info-light); color: var(--color-info); }
+    .trust-pillar__title {
+      font-size: var(--text-base); font-weight: var(--font-weight-bold);
+      color: var(--gray-900); margin-bottom: var(--space-2);
+    }
+    .trust-pillar__desc {
+      font-size: var(--text-sm); color: var(--gray-700); line-height: var(--leading-base);
+    }
+
+    .badge-grid {
+      display: flex; justify-content: center; gap: var(--space-5); flex-wrap: wrap;
+    }
+    .compliance-badge {
+      display: flex; align-items: center; gap: var(--space-3);
+      background: var(--white); border: var(--border-default); border-radius: var(--radius-md);
+      padding: var(--space-4) var(--space-5); box-shadow: var(--shadow-sm);
+      min-width: 200px;
+    }
+    .compliance-badge__icon {
+      width: 40px; height: 40px; border-radius: var(--radius-sm);
+      display: flex; align-items: center; justify-content: center;
+      background: var(--color-success-light); color: var(--color-success); flex-shrink: 0;
+    }
+    .compliance-badge__text {
+      font-size: var(--text-sm); font-weight: var(--font-weight-semibold);
+      color: var(--gray-900);
+    }
+    .compliance-badge__sub {
+      font-size: var(--text-xs); color: var(--gray-500); font-weight: var(--font-weight-normal);
+    }
+
+    .security-list {
+      max-width: 720px; margin: 0 auto; list-style: none;
+    }
+    .security-list li {
+      display: flex; align-items: flex-start; gap: var(--space-3);
+      padding: var(--space-4) 0; border-bottom: var(--border-default);
+      font-size: var(--text-sm); color: var(--gray-700); line-height: var(--leading-base);
+    }
+    .security-list li:last-child { border-bottom: none; }
+    .security-list li i { color: var(--color-primary); width: 20px; height: 20px; flex-shrink: 0; margin-top: 1px; }
+    .security-list li strong { color: var(--gray-900); display: block; margin-bottom: 2px; }
+
+
+    /* ============================================
+       DEMO / SIGNUP PAGE
+       ============================================ */
+    .demo-split {
+      display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-10);
+      max-width: 1100px; margin: 0 auto; padding: var(--space-10) var(--space-8);
+      align-items: start;
+    }
+    .demo-left__headline {
+      font-size: var(--text-3xl); font-weight: var(--font-weight-extrabold);
+      color: var(--gray-900); line-height: var(--leading-2xl);
+      margin-bottom: var(--space-5);
+    }
+    .demo-left__desc {
+      font-size: var(--text-base); color: var(--gray-700); line-height: var(--leading-base);
+      margin-bottom: var(--space-6);
+    }
+    .demo-value-list { list-style: none; }
+    .demo-value-list li {
+      display: flex; align-items: flex-start; gap: var(--space-3);
+      padding: var(--space-3) 0;
+      font-size: var(--text-sm); color: var(--gray-700); line-height: var(--leading-base);
+    }
+    .demo-value-list li i { color: var(--color-success); width: 20px; height: 20px; flex-shrink: 0; margin-top: 1px; }
+    .demo-value-list li strong { color: var(--gray-900); }
+
+    .demo-form-card {
+      background: var(--white); border: var(--border-default); border-radius: var(--radius-lg);
+      padding: var(--space-6); box-shadow: var(--shadow-md);
+    }
+    .demo-form-card__title {
+      font-size: var(--text-xl); font-weight: var(--font-weight-bold);
+      color: var(--gray-900); margin-bottom: var(--space-1);
+    }
+    .demo-form-card__subtitle {
+      font-size: var(--text-sm); color: var(--gray-500); margin-bottom: var(--space-6);
+    }
+    .form-group { margin-bottom: var(--space-4); }
+    .form-group label {
+      display: block; font-size: var(--text-sm); font-weight: var(--font-weight-medium);
+      color: var(--gray-900); margin-bottom: var(--space-1);
+    }
+    .form-group label .optional {
+      font-weight: var(--font-weight-normal); color: var(--gray-500);
+    }
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%; padding: 10px var(--space-3);
+      font-family: var(--font-family); font-size: var(--text-sm);
+      border: var(--border-default); border-radius: var(--radius-sm);
+      background: var(--white); color: var(--gray-900);
+      transition: border-color 0.15s ease;
+    }
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      outline: none; border-color: var(--color-primary);
+      box-shadow: 0 0 0 3px rgba(25, 113, 194, 0.1);
+    }
+    .form-group textarea { resize: vertical; min-height: 80px; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); }
+
+    .demo-form__alt {
+      text-align: center; margin-top: var(--space-5);
+      padding-top: var(--space-4); border-top: var(--border-default);
+      font-size: var(--text-sm); color: var(--gray-500);
+    }
+    .demo-form__alt a {
+      color: var(--color-primary); font-weight: var(--font-weight-semibold);
+      text-decoration: none;
+    }
+    .demo-form__alt a:hover { text-decoration: underline; }
+
+    .demo-testimonial {
+      margin-top: var(--space-8); padding: var(--space-5);
+      background: var(--color-primary-light); border-radius: var(--radius-md);
+      border-left: 4px solid var(--color-primary);
+    }
+    .demo-testimonial__quote {
+      font-size: var(--text-sm); color: var(--gray-700); line-height: var(--leading-base);
+      font-style: italic; margin-bottom: var(--space-3);
+    }
+    .demo-testimonial__author {
+      font-size: var(--text-xs); font-weight: var(--font-weight-semibold);
+      color: var(--gray-900);
+    }
+    .demo-testimonial__role {
+      font-size: var(--text-xs); color: var(--gray-500);
+    }
+
+
+    /* ============================================
+       RESPONSIVE
+       ============================================ */
+    @media (max-width: 900px) {
+      .pub-nav { padding: var(--space-3) var(--space-4); }
+      .pub-nav__links { display: none; }
+      .hero { padding: var(--space-10) var(--space-4); }
+      .hero__headline { font-size: var(--text-2xl); }
+      .value-grid, .steps-row, .pricing-grid, .trust-pillars {
+        grid-template-columns: 1fr; max-width: 480px; margin-left: auto; margin-right: auto;
+      }
+      .steps-row::before { display: none; }
+      .demo-split { grid-template-columns: 1fr; }
+      .pub-footer__inner { grid-template-columns: 1fr 1fr; }
+      .trust-bar__inner { gap: var(--space-4); }
+      .pricing-card--recommended { transform: none; }
+      .pricing-card--recommended:hover { transform: translateY(-4px); }
+      .pub-section { padding: var(--space-8) var(--space-4); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Design system screen selector -->
+  <div class="screen-nav">
+    <div class="screen-nav__title">Public Website</div>
+    <div class="screen-nav__tabs">
+      <button class="screen-tab screen-tab--active" onclick="showScreen('homepage')">Homepage</button>
+      <button class="screen-tab" onclick="showScreen('pricing')">Pricing</button>
+      <button class="screen-tab" onclick="showScreen('trust')">Trust &amp; Compliance</button>
+      <button class="screen-tab" onclick="showScreen('demo')">Demo Request / Signup</button>
+    </div>
+  </div>
+
+  <!-- ============================================
+       SECTION 1: HOMEPAGE
+       ============================================ -->
+  <div class="screen-container active" id="screen-homepage">
+
+    <!-- Nav -->
+    <nav class="pub-nav">
+      <a class="pub-nav__logo" href="#">Sanzu</a>
+      <ul class="pub-nav__links">
+        <li><a href="#">How It Works</a></li>
+        <li><a href="#">Pricing</a></li>
+        <li><a href="#">Trust</a></li>
+        <li><a href="#">FAQ</a></li>
+        <li><a href="#">Contact</a></li>
+      </ul>
+      <div class="pub-nav__actions">
+        <a class="btn btn--ghost" href="#">Log in</a>
+        <a class="btn btn--primary" href="#">Start Free Trial</a>
+      </div>
+    </nav>
+
+    <!-- Hero -->
+    <section class="hero">
+      <h1 class="hero__headline">Post-loss bureaucracy, <span>solved.</span></h1>
+      <p class="hero__subheadline">Built for Portuguese funeral agencies. Guided case management that families trust and agencies rely on.</p>
+      <div class="hero__ctas">
+        <a class="btn btn--primary btn--lg" href="#">Start free trial</a>
+        <a class="btn btn--secondary btn--lg" href="#">Request demo</a>
+      </div>
+      <div class="hero__badge">
+        <i data-lucide="check-circle" style="width:16px;height:16px;"></i>
+        No credit card required &middot; 14-day free trial &middot; Setup in 5 minutes
+      </div>
+    </section>
+
+    <!-- Value Propositions -->
+    <section class="pub-section">
+      <h2 class="pub-section__headline">Why agencies choose Sanzu</h2>
+      <p class="pub-section__subheadline">One platform for every stakeholder in the post-loss process. From the process manager to the family, everyone stays informed.</p>
+
+      <div class="value-grid">
+        <!-- Card 1: Process Managers -->
+        <div class="value-card">
+          <div class="value-card__icon value-card__icon--blue">
+            <i data-lucide="shield" style="width:24px;height:24px;"></i>
+          </div>
+          <div class="value-card__audience">For Process Managers</div>
+          <div class="value-card__title">Structured clarity, zero guesswork</div>
+          <div class="value-card__desc">
+            Every case follows a guided workflow with automated dependency tracking, deadline alerts, and document extraction. No more spreadsheets. No more sticky notes.
+          </div>
+          <div class="value-card__stat">
+            60% less coordination overhead
+            <small>Zero missed deadlines</small>
+          </div>
+        </div>
+
+        <!-- Card 2: Families -->
+        <div class="value-card">
+          <div class="value-card__icon value-card__icon--red">
+            <i data-lucide="heart" style="width:24px;height:24px;"></i>
+          </div>
+          <div class="value-card__audience">For Families</div>
+          <div class="value-card__title">Confidence replaces confusion</div>
+          <div class="value-card__desc">
+            Families see exactly what needs to happen, what has been done, and what comes next. A clear portal during the most difficult time, available in Portuguese.
+          </div>
+          <div class="value-card__stat">
+            First task completed in under 24h
+            <small>Transparent progress every step</small>
+          </div>
+        </div>
+
+        <!-- Card 3: Agency Owners -->
+        <div class="value-card">
+          <div class="value-card__icon value-card__icon--green">
+            <i data-lucide="bar-chart-3" style="width:24px;height:24px;"></i>
+          </div>
+          <div class="value-card__audience">For Agency Owners</div>
+          <div class="value-card__title">Operational confidence at scale</div>
+          <div class="value-card__desc">
+            Real-time dashboards, KPI tracking, and a complete audit trail for every action taken on every case. Scale your agency without losing control.
+          </div>
+          <div class="value-card__stat">
+            100% audit trail coverage
+            <small>Full regulatory compliance</small>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- How It Works -->
+    <section class="hiw-bg">
+      <div class="pub-section">
+        <h2 class="pub-section__headline">How it works</h2>
+        <p class="pub-section__subheadline">From case creation to confident closure, Sanzu guides every step of the post-loss administration process.</p>
+
+        <div class="steps-row">
+          <div class="step-card">
+            <div class="step-card__number">1</div>
+            <div class="step-card__title">Create Case</div>
+            <div class="step-card__desc">Open a new case in seconds. Enter the deceased's details and Sanzu generates the full task checklist automatically.</div>
+          </div>
+          <div class="step-card">
+            <div class="step-card__number">2</div>
+            <div class="step-card__title">Invite Family</div>
+            <div class="step-card__desc">Send a secure invitation link. Family members join with role-based access to view progress and upload documents.</div>
+          </div>
+          <div class="step-card">
+            <div class="step-card__number">3</div>
+            <div class="step-card__title">Guided Task Completion</div>
+            <div class="step-card__desc">Work through tasks in order. Dependencies unlock automatically. Deadlines are tracked. Documents are extracted and validated.</div>
+          </div>
+          <div class="step-card">
+            <div class="step-card__number">4</div>
+            <div class="step-card__title">Close with Confidence</div>
+            <div class="step-card__desc">Every task complete, every document filed, every action logged. Generate a final case summary and close with full compliance.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Social Proof Numbers -->
+    <section class="pub-section" style="text-align:center;">
+      <div style="display:flex;justify-content:center;gap:var(--space-10);flex-wrap:wrap;">
+        <div>
+          <div style="font-size:var(--text-3xl);font-weight:var(--font-weight-extrabold);color:var(--color-primary);">500+</div>
+          <div style="font-size:var(--text-sm);color:var(--gray-500);margin-top:var(--space-1);">Cases managed</div>
+        </div>
+        <div>
+          <div style="font-size:var(--text-3xl);font-weight:var(--font-weight-extrabold);color:var(--color-primary);">98%</div>
+          <div style="font-size:var(--text-sm);color:var(--gray-500);margin-top:var(--space-1);">On-time completion</div>
+        </div>
+        <div>
+          <div style="font-size:var(--text-3xl);font-weight:var(--font-weight-extrabold);color:var(--color-primary);">40+</div>
+          <div style="font-size:var(--text-sm);color:var(--gray-500);margin-top:var(--space-1);">Agencies in Portugal</div>
+        </div>
+        <div>
+          <div style="font-size:var(--text-3xl);font-weight:var(--font-weight-extrabold);color:var(--color-primary);">4.9/5</div>
+          <div style="font-size:var(--text-sm);color:var(--gray-500);margin-top:var(--space-1);">Agency satisfaction</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Trust Signals Bar -->
+    <div class="trust-bar">
+      <div class="trust-bar__inner">
+        <div class="trust-bar__item">
+          <i data-lucide="accessibility"></i> WCAG AA Accessible
+        </div>
+        <div class="trust-bar__item">
+          <i data-lucide="shield-check"></i> GDPR Compliant
+        </div>
+        <div class="trust-bar__item">
+          <i data-lucide="file-search"></i> End-to-End Audit Trail
+        </div>
+        <div class="trust-bar__item">
+          <i data-lucide="globe"></i> Portuguese-First
+        </div>
+      </div>
+    </div>
+
+    <!-- CTA Banner -->
+    <section style="background:var(--color-primary);padding:var(--space-10) var(--space-8);text-align:center;">
+      <h2 style="font-size:var(--text-2xl);font-weight:var(--font-weight-extrabold);color:var(--white);margin-bottom:var(--space-3);">Ready to modernize your agency?</h2>
+      <p style="font-size:var(--text-base);color:rgba(255,255,255,0.8);margin-bottom:var(--space-6);max-width:500px;margin-left:auto;margin-right:auto;">Join dozens of Portuguese funeral agencies already using Sanzu to deliver exceptional post-loss support.</p>
+      <div style="display:flex;justify-content:center;gap:var(--space-4);flex-wrap:wrap;">
+        <a class="btn btn--lg" href="#" style="background:var(--white);color:var(--color-primary);border-color:var(--white);">Start free trial</a>
+        <a class="btn btn--lg" href="#" style="background:transparent;color:var(--white);border-color:var(--white);">Talk to sales</a>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="pub-footer">
+      <div class="pub-footer__inner">
+        <div class="pub-footer__brand">
+          <div class="pub-footer__logo">Sanzu</div>
+          <p class="pub-footer__desc">Post-loss administration software built for Portuguese funeral agencies. Guided case management that families trust and agencies rely on.</p>
+        </div>
+        <div>
+          <div class="pub-footer__col-title">Product</div>
+          <ul class="pub-footer__links">
+            <li><a href="#">Features</a></li>
+            <li><a href="#">Pricing</a></li>
+            <li><a href="#">Case Management</a></li>
+            <li><a href="#">Document Extraction</a></li>
+            <li><a href="#">Family Portal</a></li>
+          </ul>
+        </div>
+        <div>
+          <div class="pub-footer__col-title">Company</div>
+          <ul class="pub-footer__links">
+            <li><a href="#">About</a></li>
+            <li><a href="#">Contact</a></li>
+            <li><a href="#">Careers</a></li>
+            <li><a href="#">Blog</a></li>
+          </ul>
+        </div>
+        <div>
+          <div class="pub-footer__col-title">Legal</div>
+          <ul class="pub-footer__links">
+            <li><a href="#">Privacy Policy</a></li>
+            <li><a href="#">Terms of Service</a></li>
+            <li><a href="#">Cookie Policy</a></li>
+            <li><a href="#">GDPR</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="pub-footer__bottom">
+        <span>&copy; 2026 Sanzu, Lda. All rights reserved.</span>
+        <span>Made in Portugal <span style="color:var(--color-danger);">&#9829;</span></span>
+      </div>
+    </footer>
+  </div>
+
+
+  <!-- ============================================
+       SECTION 2: PRICING PAGE
+       ============================================ -->
+  <div class="screen-container" id="screen-pricing">
+
+    <!-- Nav -->
+    <nav class="pub-nav">
+      <a class="pub-nav__logo" href="#">Sanzu</a>
+      <ul class="pub-nav__links">
+        <li><a href="#">How It Works</a></li>
+        <li><a href="#" style="color:var(--color-primary);font-weight:var(--font-weight-semibold);">Pricing</a></li>
+        <li><a href="#">Trust</a></li>
+        <li><a href="#">FAQ</a></li>
+        <li><a href="#">Contact</a></li>
+      </ul>
+      <div class="pub-nav__actions">
+        <a class="btn btn--ghost" href="#">Log in</a>
+        <a class="btn btn--primary" href="#">Start Free Trial</a>
+      </div>
+    </nav>
+
+    <!-- Pricing Hero -->
+    <section style="background:var(--gray-100);padding:var(--space-10) var(--space-8) var(--space-6);text-align:center;">
+      <h1 class="pub-section__headline">Simple, transparent pricing</h1>
+      <p class="pub-section__subheadline">Start free for 14 days. No credit card required. Upgrade, downgrade, or cancel at any time.</p>
+    </section>
+
+    <!-- Pricing Cards -->
+    <section class="pub-section" style="padding-top:var(--space-6);">
+      <div class="pricing-grid">
+
+        <!-- Starter -->
+        <div class="pricing-card">
+          <div class="pricing-card__name">Starter</div>
+          <div class="pricing-card__desc">For individual agencies getting started with digital case management.</div>
+          <div class="pricing-card__price">&euro;49 <span>/ month</span></div>
+          <div class="pricing-card__period">Billed monthly. Annual billing saves 20%.</div>
+          <ul class="pricing-card__features">
+            <li><i data-lucide="check"></i> Up to 10 active cases</li>
+            <li><i data-lucide="check"></i> 2 team members</li>
+            <li><i data-lucide="check"></i> Email support</li>
+            <li><i data-lucide="check"></i> Basic task templates</li>
+            <li><i data-lucide="check"></i> Family portal access</li>
+            <li><i data-lucide="check"></i> Audit trail</li>
+          </ul>
+          <a class="btn btn--secondary btn--full" href="#">Start free trial</a>
+        </div>
+
+        <!-- Growth (Recommended) -->
+        <div class="pricing-card pricing-card--recommended">
+          <div class="pricing-card__badge">Recommended</div>
+          <div class="pricing-card__name">Growth</div>
+          <div class="pricing-card__desc">For growing agencies that need more capacity and advanced features.</div>
+          <div class="pricing-card__price">&euro;99 <span>/ month</span></div>
+          <div class="pricing-card__period">Billed monthly. Annual billing saves 20%.</div>
+          <ul class="pricing-card__features">
+            <li><i data-lucide="check"></i> Up to 40 active cases</li>
+            <li><i data-lucide="check"></i> 6 team members</li>
+            <li><i data-lucide="check"></i> Priority support</li>
+            <li><i data-lucide="check"></i> All task templates</li>
+            <li><i data-lucide="check"></i> Document extraction</li>
+            <li><i data-lucide="check"></i> Process inbox</li>
+            <li><i data-lucide="check"></i> KPI dashboard</li>
+            <li><i data-lucide="check"></i> Threshold alerts</li>
+          </ul>
+          <a class="btn btn--primary btn--full" href="#">Start free trial</a>
+        </div>
+
+        <!-- Enterprise -->
+        <div class="pricing-card">
+          <div class="pricing-card__name">Enterprise</div>
+          <div class="pricing-card__desc">For established agencies requiring unlimited capacity and dedicated support.</div>
+          <div class="pricing-card__price">&euro;199 <span>/ month</span></div>
+          <div class="pricing-card__period">Billed monthly. Custom annual plans available.</div>
+          <ul class="pricing-card__features">
+            <li><i data-lucide="check"></i> Unlimited active cases</li>
+            <li><i data-lucide="check"></i> Unlimited team members</li>
+            <li><i data-lucide="check"></i> Dedicated support manager</li>
+            <li><i data-lucide="check"></i> Custom task templates</li>
+            <li><i data-lucide="check"></i> API access</li>
+            <li><i data-lucide="check"></i> SLA guarantee</li>
+            <li><i data-lucide="check"></i> Multi-location support</li>
+            <li><i data-lucide="check"></i> Platform admin tools</li>
+          </ul>
+          <a class="btn btn--secondary btn--full" href="#">Contact sales</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Feature Comparison Note -->
+    <section style="text-align:center;padding:0 var(--space-8) var(--space-6);">
+      <p style="font-size:var(--text-sm);color:var(--gray-500);">All plans include GDPR compliance, WCAG AA accessibility, full audit trail, and Portuguese-first interface.</p>
+    </section>
+
+    <!-- FAQ -->
+    <section class="pub-section--narrow" style="padding-bottom:var(--space-10);">
+      <h2 class="pub-section__headline" style="font-size:var(--text-2xl);">Frequently asked questions</h2>
+      <p class="pub-section__subheadline" style="margin-bottom:var(--space-6);">Everything you need to know about Sanzu pricing and plans.</p>
+
+      <div class="faq-list">
+        <div class="faq-item open">
+          <button class="faq-item__question" onclick="this.parentElement.classList.toggle('open')">
+            Can I change plans at any time?
+            <i data-lucide="chevron-down"></i>
+          </button>
+          <div class="faq-item__answer">
+            Yes. You can upgrade or downgrade your plan at any time from your billing settings. When upgrading, you get immediate access to the new features and we prorate the difference. When downgrading, the change takes effect at the start of your next billing cycle.
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-item__question" onclick="this.parentElement.classList.toggle('open')">
+            What happens when I exceed my active case limit?
+            <i data-lucide="chevron-down"></i>
+          </button>
+          <div class="faq-item__answer">
+            You will not be able to create new cases once you reach your plan limit, but existing cases continue to work normally. You will see a notification suggesting an upgrade. You can also close completed cases to free up capacity within your current plan.
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-item__question" onclick="this.parentElement.classList.toggle('open')">
+            Is there a contract or commitment?
+            <i data-lucide="chevron-down"></i>
+          </button>
+          <div class="faq-item__answer">
+            No. All plans are month-to-month with no long-term commitment. You can cancel at any time and your access continues until the end of your current billing period. We also offer annual billing with a 20% discount for agencies that prefer it.
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-item__question" onclick="this.parentElement.classList.toggle('open')">
+            How is data handled when I cancel?
+            <i data-lucide="chevron-down"></i>
+          </button>
+          <div class="faq-item__answer">
+            After cancellation, your data is retained in a read-only state for 90 days, during which you can export all case records, documents, and audit logs. After the retention period, data is securely deleted in accordance with GDPR requirements. We provide full data portability tools.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="pub-footer">
+      <div class="pub-footer__inner">
+        <div class="pub-footer__brand">
+          <div class="pub-footer__logo">Sanzu</div>
+          <p class="pub-footer__desc">Post-loss administration software built for Portuguese funeral agencies.</p>
+        </div>
+        <div>
+          <div class="pub-footer__col-title">Product</div>
+          <ul class="pub-footer__links">
+            <li><a href="#">Features</a></li>
+            <li><a href="#">Pricing</a></li>
+            <li><a href="#">Case Management</a></li>
+            <li><a href="#">Document Extraction</a></li>
+          </ul>
+        </div>
+        <div>
+          <div class="pub-footer__col-title">Company</div>
+          <ul class="pub-footer__links">
+            <li><a href="#">About</a></li>
+            <li><a href="#">Contact</a></li>
+            <li><a href="#">Careers</a></li>
+            <li><a href="#">Blog</a></li>
+          </ul>
+        </div>
+        <div>
+          <div class="pub-footer__col-title">Legal</div>
+          <ul class="pub-footer__links">
+            <li><a href="#">Privacy Policy</a></li>
+            <li><a href="#">Terms of Service</a></li>
+            <li><a href="#">Cookie Policy</a></li>
+            <li><a href="#">GDPR</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="pub-footer__bottom">
+        <span>&copy; 2026 Sanzu, Lda. All rights reserved.</span>
+        <span>Made in Portugal <span style="color:var(--color-danger);">&#9829;</span></span>
+      </div>
+    </footer>
+  </div>
+
+
+  <!-- ============================================
+       SECTION 3: TRUST & COMPLIANCE
+       ============================================ -->
+  <div class="screen-container" id="screen-trust">
+
+    <!-- Nav -->
+    <nav class="pub-nav">
+      <a class="pub-nav__logo" href="#">Sanzu</a>
+      <ul class="pub-nav__links">
+        <li><a href="#">How It Works</a></li>
+        <li><a href="#">Pricing</a></li>
+        <li><a href="#" style="color:var(--color-primary);font-weight:var(--font-weight-semibold);">Trust</a></li>
+        <li><a href="#">FAQ</a></li>
+        <li><a href="#">Contact</a></li>
+      </ul>
+      <div class="pub-nav__actions">
+        <a class="btn btn--ghost" href="#">Log in</a>
+        <a class="btn btn--primary" href="#">Start Free Trial</a>
+      </div>
+    </nav>
+
+    <!-- Trust Hero -->
+    <section style="background:linear-gradient(135deg, var(--color-success-light) 0%, var(--white) 60%, var(--color-info-light) 100%);padding:var(--space-10) var(--space-8);text-align:center;">
+      <h1 class="pub-section__headline">Built on trust. Designed for compliance.</h1>
+      <p class="pub-section__subheadline">Funeral agencies handle some of the most sensitive personal data imaginable. Sanzu was designed from day one with security, privacy, and regulatory compliance as foundational requirements.</p>
+    </section>
+
+    <!-- Trust Pillars -->
+    <section class="pub-section">
+      <div class="trust-pillars">
+
+        <!-- Data Protection -->
+        <div class="trust-pillar">
+          <div class="trust-pillar__icon trust-pillar__icon--blue">
+            <i data-lucide="lock" style="width:28px;height:28px;"></i>
+          </div>
+          <div class="trust-pillar__title">Data Protection</div>
+          <div class="trust-pillar__desc">
+            Full GDPR compliance including data minimization, purpose limitation, and right to erasure. All data encrypted at rest (AES-256) and in transit (TLS 1.3). Data residency within the EU guaranteed.
+          </div>
+        </div>
+
+        <!-- Audit Trail -->
+        <div class="trust-pillar">
+          <div class="trust-pillar__icon trust-pillar__icon--green">
+            <i data-lucide="scroll-text" style="width:28px;height:28px;"></i>
+          </div>
+          <div class="trust-pillar__title">Complete Audit Trail</div>
+          <div class="trust-pillar__desc">
+            Every action on every case is logged with immutable, timestamped records. Who did what, when, and why. Full traceability for regulatory requirements and internal governance.
+          </div>
+        </div>
+
+        <!-- Access Control -->
+        <div class="trust-pillar">
+          <div class="trust-pillar__icon trust-pillar__icon--purple">
+            <i data-lucide="users" style="width:28px;height:28px;"></i>
+          </div>
+          <div class="trust-pillar__title">Access Control</div>
+          <div class="trust-pillar__desc">
+            Role-based access control (RBAC) ensures every user sees only what they need. Full tenant isolation means agency data is completely separated. Least-privilege principle enforced.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Compliance Badges -->
+    <section style="background:var(--gray-100);">
+      <div class="pub-section" style="text-align:center;">
+        <h2 class="pub-section__headline" style="font-size:var(--text-2xl);">Compliance certifications</h2>
+        <p class="pub-section__subheadline">Standards we meet and maintain across every aspect of the platform.</p>
+
+        <div class="badge-grid">
+          <div class="compliance-badge">
+            <div class="compliance-badge__icon"><i data-lucide="shield-check" style="width:20px;height:20px;"></i></div>
+            <div>
+              <div class="compliance-badge__text">GDPR</div>
+              <div class="compliance-badge__sub">EU Data Protection</div>
+            </div>
+          </div>
+          <div class="compliance-badge">
+            <div class="compliance-badge__icon"><i data-lucide="accessibility" style="width:20px;height:20px;"></i></div>
+            <div>
+              <div class="compliance-badge__text">WCAG 2.1 AA</div>
+              <div class="compliance-badge__sub">Web Accessibility</div>
+            </div>
+          </div>
+          <div class="compliance-badge">
+            <div class="compliance-badge__icon"><i data-lucide="file-lock-2" style="width:20px;height:20px;"></i></div>
+            <div>
+              <div class="compliance-badge__text">ISO 27001</div>
+              <div class="compliance-badge__sub">Information Security</div>
+            </div>
+          </div>
+          <div class="compliance-badge">
+            <div class="compliance-badge__icon"><i data-lucide="server" style="width:20px;height:20px;"></i></div>
+            <div>
+              <div class="compliance-badge__text">EU Data Residency</div>
+              <div class="compliance-badge__sub">Data stays in the EU</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Security Practices -->
+    <section class="pub-section">
+      <h2 class="pub-section__headline" style="font-size:var(--text-2xl);">Security practices</h2>
+      <p class="pub-section__subheadline">How we protect your data every day, at every layer of the platform.</p>
+
+      <ul class="security-list">
+        <li>
+          <i data-lucide="key-round"></i>
+          <div>
+            <strong>Encryption everywhere</strong>
+            All data is encrypted at rest using AES-256 and in transit using TLS 1.3. Database-level encryption ensures that even infrastructure access cannot expose raw data.
+          </div>
+        </li>
+        <li>
+          <i data-lucide="scan-eye"></i>
+          <div>
+            <strong>Continuous monitoring</strong>
+            Real-time security monitoring with automated alerting for anomalous access patterns, failed authentication attempts, and data exfiltration indicators.
+          </div>
+        </li>
+        <li>
+          <i data-lucide="database"></i>
+          <div>
+            <strong>Automated backups</strong>
+            Daily encrypted backups with point-in-time recovery capability. Backups are stored in geographically separate EU data centers for disaster recovery.
+          </div>
+        </li>
+        <li>
+          <i data-lucide="fingerprint"></i>
+          <div>
+            <strong>Multi-factor authentication</strong>
+            All agency accounts support MFA. Admin and manager roles require MFA by default. TOTP and WebAuthn supported.
+          </div>
+        </li>
+        <li>
+          <i data-lucide="test-tubes"></i>
+          <div>
+            <strong>Regular penetration testing</strong>
+            Third-party security assessments and penetration tests conducted quarterly. Findings are remediated within SLA timelines and re-verified.
+          </div>
+        </li>
+        <li>
+          <i data-lucide="clock"></i>
+          <div>
+            <strong>Incident response</strong>
+            Documented incident response procedures with defined SLAs. Security incidents are communicated to affected tenants within 72 hours as required by GDPR.
+          </div>
+        </li>
+      </ul>
+    </section>
+
+    <!-- Trust CTA -->
+    <section style="background:var(--color-primary);padding:var(--space-10) var(--space-8);text-align:center;">
+      <h2 style="font-size:var(--text-2xl);font-weight:var(--font-weight-extrabold);color:var(--white);margin-bottom:var(--space-3);">Questions about security?</h2>
+      <p style="font-size:var(--text-base);color:rgba(255,255,255,0.8);margin-bottom:var(--space-6);max-width:480px;margin-left:auto;margin-right:auto;">Our team is happy to discuss our security architecture, compliance posture, and data handling practices in detail.</p>
+      <a class="btn btn--lg" href="#" style="background:var(--white);color:var(--color-primary);border-color:var(--white);">Contact our security team</a>
+    </section>
+
+    <!-- Footer -->
+    <footer class="pub-footer">
+      <div class="pub-footer__inner">
+        <div class="pub-footer__brand">
+          <div class="pub-footer__logo">Sanzu</div>
+          <p class="pub-footer__desc">Post-loss administration software built for Portuguese funeral agencies.</p>
+        </div>
+        <div>
+          <div class="pub-footer__col-title">Product</div>
+          <ul class="pub-footer__links">
+            <li><a href="#">Features</a></li>
+            <li><a href="#">Pricing</a></li>
+            <li><a href="#">Case Management</a></li>
+            <li><a href="#">Document Extraction</a></li>
+          </ul>
+        </div>
+        <div>
+          <div class="pub-footer__col-title">Company</div>
+          <ul class="pub-footer__links">
+            <li><a href="#">About</a></li>
+            <li><a href="#">Contact</a></li>
+            <li><a href="#">Careers</a></li>
+            <li><a href="#">Blog</a></li>
+          </ul>
+        </div>
+        <div>
+          <div class="pub-footer__col-title">Legal</div>
+          <ul class="pub-footer__links">
+            <li><a href="#">Privacy Policy</a></li>
+            <li><a href="#">Terms of Service</a></li>
+            <li><a href="#">Cookie Policy</a></li>
+            <li><a href="#">GDPR</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="pub-footer__bottom">
+        <span>&copy; 2026 Sanzu, Lda. All rights reserved.</span>
+        <span>Made in Portugal <span style="color:var(--color-danger);">&#9829;</span></span>
+      </div>
+    </footer>
+  </div>
+
+
+  <!-- ============================================
+       SECTION 4: DEMO REQUEST / SIGNUP
+       ============================================ -->
+  <div class="screen-container" id="screen-demo">
+
+    <!-- Nav -->
+    <nav class="pub-nav">
+      <a class="pub-nav__logo" href="#">Sanzu</a>
+      <ul class="pub-nav__links">
+        <li><a href="#">How It Works</a></li>
+        <li><a href="#">Pricing</a></li>
+        <li><a href="#">Trust</a></li>
+        <li><a href="#">FAQ</a></li>
+        <li><a href="#" style="color:var(--color-primary);font-weight:var(--font-weight-semibold);">Contact</a></li>
+      </ul>
+      <div class="pub-nav__actions">
+        <a class="btn btn--ghost" href="#">Log in</a>
+        <a class="btn btn--primary" href="#">Start Free Trial</a>
+      </div>
+    </nav>
+
+    <!-- Demo Split Layout -->
+    <div class="demo-split">
+
+      <!-- Left: Value Props -->
+      <div class="demo-left">
+        <div class="demo-left__headline">See Sanzu in action</div>
+        <div class="demo-left__desc">
+          Request a personalized demo and discover how Sanzu can transform your agency's post-loss case management. We will walk you through the platform, answer your questions, and help you understand how Sanzu fits your workflow.
+        </div>
+
+        <ul class="demo-value-list">
+          <li>
+            <i data-lucide="check-circle"></i>
+            <div><strong>30-minute personalized walkthrough</strong> tailored to your agency's size and workflow</div>
+          </li>
+          <li>
+            <i data-lucide="check-circle"></i>
+            <div><strong>See real case management</strong> with Portuguese-context examples and templates</div>
+          </li>
+          <li>
+            <i data-lucide="check-circle"></i>
+            <div><strong>Understand pricing and ROI</strong> with a clear breakdown for your agency's volume</div>
+          </li>
+          <li>
+            <i data-lucide="check-circle"></i>
+            <div><strong>Get answers to compliance questions</strong> from our team who understands Portuguese regulations</div>
+          </li>
+          <li>
+            <i data-lucide="check-circle"></i>
+            <div><strong>No commitment required</strong> — just an honest conversation about your needs</div>
+          </li>
+        </ul>
+
+        <!-- Testimonial -->
+        <div class="demo-testimonial">
+          <div class="demo-testimonial__quote">"Sanzu transformed how we handle post-loss administration. Our families feel supported, our team is more efficient, and we have complete visibility into every case. The onboarding was smooth and the support is excellent."</div>
+          <div class="demo-testimonial__author">Ana Rodrigues</div>
+          <div class="demo-testimonial__role">Director, Funeraria Esperanca &mdash; Lisbon</div>
+        </div>
+      </div>
+
+      <!-- Right: Form -->
+      <div>
+        <div class="demo-form-card">
+          <div class="demo-form-card__title">Request a demo</div>
+          <div class="demo-form-card__subtitle">Fill in a few details and we will be in touch within one business day.</div>
+
+          <form onsubmit="event.preventDefault(); alert('Demo request submitted! (mockup)');">
+            <div class="form-group">
+              <label for="demo-agency">Agency name</label>
+              <input type="text" id="demo-agency" placeholder="e.g. Funeraria Esperanca">
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="demo-name">Contact name</label>
+                <input type="text" id="demo-name" placeholder="e.g. Maria Pereira">
+              </div>
+              <div class="form-group">
+                <label for="demo-email">Email</label>
+                <input type="email" id="demo-email" placeholder="maria@example.pt">
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="demo-phone">Phone <span class="optional">(optional)</span></label>
+                <input type="tel" id="demo-phone" placeholder="+351 912 345 678">
+              </div>
+              <div class="form-group">
+                <label for="demo-cases">How many cases per month?</label>
+                <select id="demo-cases">
+                  <option value="" disabled selected>Select range</option>
+                  <option value="1-5">1 &ndash; 5 cases</option>
+                  <option value="6-15">6 &ndash; 15 cases</option>
+                  <option value="16-30">16 &ndash; 30 cases</option>
+                  <option value="31-50">31 &ndash; 50 cases</option>
+                  <option value="50+">50+ cases</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="demo-message">Message <span class="optional">(optional)</span></label>
+              <textarea id="demo-message" placeholder="Tell us about your current workflow, or any specific questions you have about Sanzu."></textarea>
+            </div>
+
+            <button type="submit" class="btn btn--primary btn--full btn--lg" style="margin-top:var(--space-2);">
+              <i data-lucide="send" style="width:16px;height:16px;"></i>
+              Request Demo
+            </button>
+          </form>
+
+          <div class="demo-form__alt">
+            Or <a href="#">start your free trial immediately</a> &mdash; no demo needed.
+          </div>
+        </div>
+
+        <!-- Trust signals under form -->
+        <div style="display:flex;align-items:center;justify-content:center;gap:var(--space-4);margin-top:var(--space-5);flex-wrap:wrap;">
+          <div style="display:flex;align-items:center;gap:var(--space-1);font-size:var(--text-xs);color:var(--gray-500);">
+            <i data-lucide="lock" style="width:14px;height:14px;color:var(--color-success);"></i> SSL Encrypted
+          </div>
+          <div style="display:flex;align-items:center;gap:var(--space-1);font-size:var(--text-xs);color:var(--gray-500);">
+            <i data-lucide="shield-check" style="width:14px;height:14px;color:var(--color-success);"></i> GDPR Compliant
+          </div>
+          <div style="display:flex;align-items:center;gap:var(--space-1);font-size:var(--text-xs);color:var(--gray-500);">
+            <i data-lucide="mail-check" style="width:14px;height:14px;color:var(--color-success);"></i> No spam, ever
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="pub-footer">
+      <div class="pub-footer__inner">
+        <div class="pub-footer__brand">
+          <div class="pub-footer__logo">Sanzu</div>
+          <p class="pub-footer__desc">Post-loss administration software built for Portuguese funeral agencies.</p>
+        </div>
+        <div>
+          <div class="pub-footer__col-title">Product</div>
+          <ul class="pub-footer__links">
+            <li><a href="#">Features</a></li>
+            <li><a href="#">Pricing</a></li>
+            <li><a href="#">Case Management</a></li>
+            <li><a href="#">Document Extraction</a></li>
+          </ul>
+        </div>
+        <div>
+          <div class="pub-footer__col-title">Company</div>
+          <ul class="pub-footer__links">
+            <li><a href="#">About</a></li>
+            <li><a href="#">Contact</a></li>
+            <li><a href="#">Careers</a></li>
+            <li><a href="#">Blog</a></li>
+          </ul>
+        </div>
+        <div>
+          <div class="pub-footer__col-title">Legal</div>
+          <ul class="pub-footer__links">
+            <li><a href="#">Privacy Policy</a></li>
+            <li><a href="#">Terms of Service</a></li>
+            <li><a href="#">Cookie Policy</a></li>
+            <li><a href="#">GDPR</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="pub-footer__bottom">
+        <span>&copy; 2026 Sanzu, Lda. All rights reserved.</span>
+        <span>Made in Portugal <span style="color:var(--color-danger);">&#9829;</span></span>
+      </div>
+    </footer>
+  </div>
+
+
+  <script>
+    function showScreen(name) {
+      document.querySelectorAll('.screen-container').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.screen-tab').forEach(el => el.classList.remove('screen-tab--active'));
+      document.getElementById('screen-' + name).classList.add('active');
+      event.target.classList.add('screen-tab--active');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      lucide.createIcons();
+    }
+    lucide.createIcons();
+  </script>
+
+</body>
+</html>

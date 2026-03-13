@@ -1,0 +1,418 @@
+/**
+ * Tabs Component - Grief-Aware Design System
+ * WCAG 2.1 AA Compliant
+ * For organizing content in tabbed panels
+ * Variants: Default, Vertical, Pills, Underline
+ */
+
+/* ===================================
+ * BASE TABS STYLES
+ * =================================== */
+
+.tabs {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* Tab List - Container for tab buttons */
+.tabs-list {
+  display: flex;
+  gap: var(--space-2);
+  border-bottom: 2px solid var(--color-border-default);
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.tabs-list::-webkit-scrollbar {
+  height: 4px;
+}
+
+.tabs-list::-webkit-scrollbar-track {
+  background: var(--color-bg-secondary);
+}
+
+.tabs-list::-webkit-scrollbar-thumb {
+  background: var(--color-border-default);
+  border-radius: var(--radius-full);
+}
+
+/* Individual Tab Button */
+.tab {
+  /* Reset button styles */
+  background: transparent;
+  border: none;
+  cursor: pointer;
+
+  /* Layout */
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  white-space: nowrap;
+
+  /* Spacing */
+  padding: var(--space-3) var(--space-4);
+
+  /* Typography */
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+  line-height: var(--line-height-base);
+
+  /* Visual */
+  border-bottom: 2px solid transparent;
+  transition: all var(--transition-fast);
+
+  /* Position relative for active indicator */
+  position: relative;
+}
+
+.tab:hover:not([aria-selected="true"]):not(:disabled) {
+  color: var(--color-text-primary);
+  background-color: rgba(22, 74, 59, 0.05);
+}
+
+.tab[aria-selected="true"] {
+  color: var(--color-interactive-primary);
+  border-bottom-color: var(--color-interactive-primary);
+  font-weight: var(--font-weight-semibold);
+}
+
+.tab:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.tab:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* Tab Icon */
+.tab-icon {
+  font-size: var(--font-size-lg);
+  line-height: 1;
+}
+
+/* Tab Badge (for counts) */
+.tab-badge {
+  margin-left: var(--space-1);
+}
+
+/* ===================================
+ * TAB PANELS
+ * =================================== */
+
+.tab-panel {
+  padding: var(--space-6) 0;
+  animation: fadeIn var(--transition-fast);
+}
+
+.tab-panel[hidden] {
+  display: none;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tab-panel {
+    animation: none;
+  }
+}
+
+/* ===================================
+ * TAB VARIANTS
+ * =================================== */
+
+/* Pills Variant - Rounded tabs */
+.tabs-pills .tabs-list {
+  border-bottom: none;
+  gap: var(--space-2);
+}
+
+.tabs-pills .tab {
+  border-radius: var(--radius-md);
+  border-bottom: none;
+}
+
+.tabs-pills .tab[aria-selected="true"] {
+  background-color: var(--color-interactive-primary);
+  color: var(--color-text-inverse);
+}
+
+.tabs-pills .tab:hover:not([aria-selected="true"]) {
+  background-color: rgba(22, 74, 59, 0.1);
+}
+
+/* Underline Variant - Minimal styling */
+.tabs-underline .tabs-list {
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.tabs-underline .tab {
+  padding: var(--space-2) var(--space-3);
+  border-bottom-width: 2px;
+}
+
+/* Boxed Variant - Tabs with borders */
+.tabs-boxed .tabs-list {
+  border-bottom: none;
+  gap: 0;
+}
+
+.tabs-boxed .tab {
+  border: 1px solid var(--color-border-default);
+  border-bottom: none;
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  margin-bottom: -1px;
+}
+
+.tabs-boxed .tab[aria-selected="true"] {
+  background-color: var(--color-bg-primary);
+  border-bottom-color: var(--color-bg-primary);
+  z-index: 1;
+}
+
+.tabs-boxed .tab:not(:first-child) {
+  margin-left: -1px;
+}
+
+.tabs-boxed .tab-panel {
+  border: 1px solid var(--color-border-default);
+  border-radius: 0 var(--radius-md) var(--radius-md) var(--radius-md);
+  padding: var(--space-6);
+}
+
+/* ===================================
+ * VERTICAL TABS
+ * =================================== */
+
+.tabs-vertical {
+  flex-direction: row;
+  gap: var(--space-6);
+}
+
+.tabs-vertical .tabs-list {
+  flex-direction: column;
+  border-bottom: none;
+  border-right: 2px solid var(--color-border-default);
+  overflow-x: visible;
+  overflow-y: auto;
+  min-width: 200px;
+}
+
+.tabs-vertical .tab {
+  justify-content: flex-start;
+  border-bottom: none;
+  border-right: 2px solid transparent;
+}
+
+.tabs-vertical .tab[aria-selected="true"] {
+  border-right-color: var(--color-interactive-primary);
+  border-bottom-color: transparent;
+}
+
+.tabs-vertical .tab-panel {
+  flex: 1;
+  padding: 0;
+}
+
+/* ===================================
+ * TAB SIZES
+ * =================================== */
+
+.tabs-sm .tab {
+  font-size: var(--font-size-sm);
+  padding: var(--space-2) var(--space-3);
+}
+
+.tabs-md .tab {
+  font-size: var(--font-size-base);
+  padding: var(--space-3) var(--space-4);
+}
+
+.tabs-lg .tab {
+  font-size: var(--font-size-lg);
+  padding: var(--space-4) var(--space-5);
+}
+
+/* ===================================
+ * GRIEF-AWARE ENHANCEMENTS
+ * =================================== */
+
+/* Reduced density mode - larger touch targets */
+[data-density="reduced"] .tab {
+  padding: var(--space-4) var(--space-6);
+  font-size: var(--font-size-lg);
+}
+
+/* Empathetic tab with icon */
+.tab-empathetic {
+  color: var(--color-brand-forest);
+}
+
+.tab-empathetic[aria-selected="true"] {
+  background-color: rgba(242, 229, 201, 0.3);
+  border-color: var(--color-brand-moss);
+}
+
+/* Status-colored tabs */
+.tab-status-done[aria-selected="true"] {
+  border-color: var(--color-status-done);
+  color: var(--color-status-done);
+}
+
+.tab-status-blocked[aria-selected="true"] {
+  border-color: var(--color-status-blocked);
+  color: var(--color-status-blocked);
+}
+
+.tab-status-warning[aria-selected="true"] {
+  border-color: var(--color-warning);
+  color: var(--color-warning);
+}
+
+/* ===================================
+ * ACCESSIBILITY ENHANCEMENTS
+ * =================================== */
+
+/* Keyboard navigation indicators */
+.tab:focus {
+  /* :focus-visible handles this */
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  .tab {
+    border-width: 2px;
+  }
+
+  .tab[aria-selected="true"] {
+    border-bottom-width: 4px;
+    font-weight: var(--font-weight-semibold);
+  }
+}
+
+/* ===================================
+ * RESPONSIVE BEHAVIOR
+ * =================================== */
+
+@media (max-width: 768px) {
+  /* Stack tabs on mobile if needed */
+  .tabs-mobile-stack .tabs-list {
+    flex-direction: column;
+    border-bottom: none;
+    border-right: 2px solid var(--color-border-default);
+  }
+
+  .tabs-mobile-stack .tab {
+    border-bottom: none;
+    border-right: 2px solid transparent;
+    justify-content: flex-start;
+  }
+
+  .tabs-mobile-stack .tab[aria-selected="true"] {
+    border-right-color: var(--color-interactive-primary);
+    border-bottom-color: transparent;
+  }
+
+  /* Larger touch targets */
+  .tab {
+    min-height: 44px;
+    padding: var(--space-3) var(--space-4);
+  }
+
+  /* Vertical tabs become horizontal on mobile */
+  .tabs-vertical {
+    flex-direction: column;
+  }
+
+  .tabs-vertical .tabs-list {
+    flex-direction: row;
+    border-right: none;
+    border-bottom: 2px solid var(--color-border-default);
+    min-width: auto;
+  }
+
+  .tabs-vertical .tab {
+    border-right: none;
+    border-bottom: 2px solid transparent;
+  }
+
+  .tabs-vertical .tab[aria-selected="true"] {
+    border-bottom-color: var(--color-interactive-primary);
+    border-right-color: transparent;
+  }
+}
+
+/* ===================================
+ * REDUCED MOTION
+ * =================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  .tab,
+  .tab-panel {
+    transition: none;
+    animation: none;
+  }
+}
+
+/* ===================================
+ * LOADING STATE
+ * =================================== */
+
+.tabs-loading .tab-panel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  color: var(--color-text-secondary);
+}
+
+.tabs-loading-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--color-border-default);
+  border-top-color: var(--color-interactive-primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tabs-loading-spinner {
+    animation: none;
+    border-top-color: var(--color-interactive-primary);
+  }
+}
+
+/* ===================================
+ * PRINT STYLES
+ * =================================== */
+
+@media print {
+  .tabs-list {
+    display: none;
+  }
+
+  .tab-panel {
+    display: block !important;
+    page-break-inside: avoid;
+  }
+
+  .tab-panel::before {
+    content: attr(aria-label) ": ";
+    font-weight: var(--font-weight-semibold);
+    display: block;
+    margin-bottom: var(--space-2);
+  }
+}

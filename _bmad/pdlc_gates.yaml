@@ -1,0 +1,67 @@
+﻿strategy:
+  required_artifacts:
+    - "_bmad-output/strategy/*"
+  optional_artifacts: []
+  next_allowed_phases:
+    - "discovery"
+
+discovery:
+  required_artifacts:
+    - "_bmad-output/discovery/*"
+  optional_artifacts: []
+  next_allowed_phases:
+    - "opportunity"
+    - "definition"
+
+opportunity:
+  required_artifacts:
+    - "_bmad-output/opportunity/*"
+  optional_artifacts: []
+  next_allowed_phases:
+    - "design"
+    - "definition"
+
+design:
+  required_artifacts:
+    - "_bmad-output/design/*"
+  optional_artifacts: []
+  next_allowed_phases:
+    - "definition"
+    - "delivery"
+
+definition:
+  required_artifacts:
+    - "_bmad-output/definition/prd.md"
+  optional_artifacts: []
+  next_allowed_phases:
+    - "delivery"
+
+delivery:
+  required_artifacts:
+    - "_bmad-output/delivery/*"
+  optional_artifacts: []
+  next_allowed_phases:
+    - "gtm"
+    - "metrics"
+
+gtm:
+  required_artifacts:
+    - "_bmad-output/gtm/launch_plan.md"
+  optional_artifacts: []
+  next_allowed_phases:
+    - "metrics"
+
+metrics:
+  required_artifacts:
+    - "_bmad-output/metrics/metrics_plan.md"
+  optional_artifacts: []
+  next_allowed_phases:
+    - "deliverables"
+    - "discovery"
+
+deliverables:
+  required_artifacts:
+    - "_bmad-output/deliverables/deliverables_index.md"
+    - "_bmad-output/deliverables/promotion_checklist.md"
+  optional_artifacts: []
+  next_allowed_phases: []

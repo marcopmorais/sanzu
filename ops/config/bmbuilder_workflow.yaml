@@ -1,0 +1,170 @@
+﻿name: sanzu_bmbuilder_deterministic_engine
+version: 3.5
+owner: BMBuilder
+
+trigger:
+  source: clickup
+  event: status_changed
+  from: Ready for Build
+  to: Building
+
+pre_build_validation:
+  mode: hard_stop
+  required_fields:
+    - Strategy_Link
+    - Strategic_Doc_Link
+    - Economic_Hypothesis
+    - Figma_File_Link
+    - Figma_Flow_Link
+    - Figma_Frame_IDs
+    - Figma_Version
+    - UX_Maturity
+    - Edge_States_Documented
+    - Accessibility_Checked
+    - UX_Doc_Link
+    - Architecture_Approved
+    - Security_Approved
+    - Data_Compliance_Approved
+    - NFR_Defined
+    - Acceptance_Criteria_Defined
+    - Dependencies_Mapped
+    - Dev_Handoff_Confirmed
+  required_values:
+    UX_Maturity: Build-approved
+    Edge_States_Documented: true
+    Accessibility_Checked: true
+    Architecture_Approved: true
+    Security_Approved: true
+    Data_Compliance_Approved: true
+    NFR_Defined: true
+    Acceptance_Criteria_Defined: true
+    Dependencies_Mapped: true
+    Dev_Handoff_Confirmed: true
+  docs_alignment:
+    required:
+      - Strategic_Doc_Link
+      - UX_Doc_Link
+    conditional:
+      - condition: "Architecture_Impact == true"
+        require:
+          - Architecture_Doc_Link
+  revalidation_guard:
+    block_if: "UX_Revalidation_Required == true AND UX_Revalidated != true"
+    message: "Build blocked: Figma version changed and UX revalidation is pending"
+  structural_impact_guard:
+    condition: "Structural_Impact == true"
+    require:
+      - Decision_Log_Entry_ID
+    message: "Build blocked: structural impact requires Decision_Log entry"
+  sanzu_sensitive_scope_guard:
+    condition: "Affects_Document_Upload == true OR Affects_Role_Permissions == true OR Affects_Process_State_Transitions == true"
+    require_values:
+      Role_Permission_Matrix_Updated: true
+      Audit_Trail_Model_Updated: true
+      Figma_Role_Variations_Confirmed: true
+    require_fields:
+      - Decision_Log_Entry_ID
+    message: "Build blocked: Sanzu sensitive-scope controls are incomplete"
+  on_failure:
+    action: stop_build
+    return:
+      error: "Pre-build validation failed"
+      missing_fields: dynamic
+      failed_rules: dynamic
+
+build:
+  step_01_parse_prd:
+    input:
+      - prd_link
+    extract:
+      - stories
+      - acceptance_tests
+      - nfr_tests
+      - dependencies
+    output: prd_parsed.json
+
+  step_02_generate_build_plan:
+    input:
+      - prd_parsed.json
+      - architecture_review_link
+      - clickup_task_payload
+    output:
+      - build_plan.md
+      - task_breakdown.json
+
+  step_03_map_figma_scope:
+    input:
+      - Figma_File_Link
+      - Figma_Flow_Link
+      - Figma_Frame_IDs
+      - Figma_Version
+    output:
+      - figma_frame_mapping.json
+      - figma_traceability_report.md
+
+  step_04_attach_test_cases:
+    input:
+      - acceptance_tests
+      - nfr_tests
+    output:
+      - test_pack.md
+
+  step_05_dependency_validation:
+    input:
+      - dependencies
+    rules:
+      - all_dependencies_resolved
+      - no_circular_dependency
+    on_fail:
+      action: stop_build
+      return:
+        error: "Dependency validation failed"
+        dependency_errors: dynamic
+
+  step_06_generate_risk_summary:
+    input:
+      - Risk_Type
+      - dependencies
+      - architecture_review_link
+    output:
+      - risk_summary.md
+
+  step_07_generate_clickup_linkage:
+    input:
+      - Initiative_ID
+      - Feature_ID
+      - task_breakdown.json
+      - figma_frame_mapping.json
+    output:
+      - clickup_task_linkage.json
+
+post_build:
+  generate_build_report:
+    output_file: build_report.md
+    sections:
+      - scope
+      - dependencies
+      - risk
+      - acceptance_criteria_coverage
+      - nfr_coverage
+      - clickup_task_linkage
+      - figma_traceability
+      - metric_baseline
+  status_updates:
+    on_success:
+      - set_clickup_status: Building
+      - attach_artifact: build_report.md
+    on_failure:
+      - set_clickup_status: Ready for Build
+      - attach_artifact: build_report.md
+      - comment: "BMBuilder hard stop: missing mandatory pre-build controls"
+
+release_gate_reference:
+  required_before_ready_for_release:
+    - Release_Metric
+    - Baseline_Value
+    - Metrics_Doc_Link
+    - Acceptance_Tests_Pass
+    - NFR_Tests_Pass
+    - Audit_Logging_Validated
+    - Role_Permission_Validated

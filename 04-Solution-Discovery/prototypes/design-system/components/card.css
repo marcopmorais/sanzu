@@ -1,0 +1,477 @@
+/**
+ * Card Component - Grief-Aware Design System
+ * WCAG 2.1 AA Compliant
+ * Container component for grouping related content
+ * Variants: Default, Primary, Secondary, Info, Warning, Error
+ */
+
+/* ===================================
+ * BASE CARD STYLES
+ * =================================== */
+
+.card {
+  /* Layout */
+  display: flex;
+  flex-direction: column;
+
+  /* Visual */
+  background-color: var(--color-bg-primary);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+
+  /* Spacing */
+  padding: var(--space-6);
+
+  /* Interaction */
+  transition: all var(--transition-fast);
+}
+
+/* Hover effect for interactive cards */
+.card-interactive {
+  cursor: pointer;
+}
+
+.card-interactive:hover {
+  box-shadow: var(--shadow-md);
+  border-color: var(--color-border-strong);
+  transform: translateY(-2px);
+}
+
+.card-interactive:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+  box-shadow: var(--shadow-focus);
+}
+
+/* ===================================
+ * CARD VARIANTS
+ * =================================== */
+
+/* Primary - Highlight important content */
+.card-primary {
+  border-left: 4px solid var(--color-interactive-primary);
+  background-color: rgba(22, 74, 59, 0.02);
+}
+
+/* Secondary - Alternative emphasis */
+.card-secondary {
+  border-left: 4px solid var(--color-brand-moss);
+  background-color: rgba(45, 122, 99, 0.02);
+}
+
+/* Info - Informational content */
+.card-info {
+  background-color: var(--color-info-bg);
+  border-color: var(--color-info);
+  border-left-width: 4px;
+}
+
+/* Warning - Needs attention */
+.card-warning {
+  background-color: var(--color-warning-bg);
+  border-color: var(--color-warning);
+  border-left-width: 4px;
+}
+
+/* Error/Blocked - Critical attention required */
+.card-error,
+.card-blocked {
+  background-color: var(--color-error-bg);
+  border-color: var(--color-status-blocked);
+  border-left-width: 4px;
+}
+
+/* Success - Positive outcome */
+.card-success {
+  background-color: var(--color-success-bg);
+  border-color: var(--color-status-done);
+  border-left-width: 4px;
+}
+
+/* Ghost - Minimal styling for subtle cards */
+.card-ghost {
+  background-color: transparent;
+  border-color: var(--color-border-subtle);
+  box-shadow: none;
+}
+
+/* Elevated - Higher shadow for emphasis */
+.card-elevated {
+  box-shadow: var(--shadow-lg);
+}
+
+/* ===================================
+ * CARD SIZES
+ * =================================== */
+
+.card-sm {
+  padding: var(--space-4);
+}
+
+.card-md {
+  padding: var(--space-6);
+}
+
+.card-lg {
+  padding: var(--space-8);
+}
+
+/* ===================================
+ * CARD HEADER
+ * =================================== */
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--color-border-default);
+}
+
+.card-title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  margin: 0;
+  line-height: var(--line-height-tight);
+}
+
+.card-title-sm {
+  font-size: var(--font-size-base);
+}
+
+.card-title-lg {
+  font-size: var(--font-size-xl);
+}
+
+.card-subtitle {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  margin-top: var(--space-1);
+  line-height: var(--line-height-relaxed);
+}
+
+/* Empathetic subtitle for grief-aware context */
+.card-subtitle-empathetic {
+  font-style: italic;
+  color: var(--color-text-secondary);
+}
+
+/* ===================================
+ * CARD BODY
+ * =================================== */
+
+.card-body {
+  flex: 1;
+}
+
+.card-body > *:last-child {
+  margin-bottom: 0;
+}
+
+/* ===================================
+ * CARD FOOTER
+ * =================================== */
+
+.card-footer {
+  margin-top: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border-default);
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+}
+
+.card-footer-start {
+  justify-content: flex-start;
+}
+
+.card-footer-between {
+  justify-content: space-between;
+}
+
+/* ===================================
+ * CARD MEDIA
+ * For cards with images/icons
+ * =================================== */
+
+.card-media {
+  width: 100%;
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-4);
+  overflow: hidden;
+}
+
+.card-media img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.card-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  background-color: var(--color-bg-secondary);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-3);
+  font-size: var(--font-size-xl);
+}
+
+/* ===================================
+ * CARD BADGE/STATUS
+ * Small badge in top-right corner
+ * =================================== */
+
+.card-badge {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  padding: var(--space-1) var(--space-3);
+  background-color: var(--color-interactive-primary);
+  color: var(--color-text-inverse);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  border-radius: var(--radius-full);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.card-with-badge {
+  position: relative;
+}
+
+/* ===================================
+ * CARD GRID/LAYOUT UTILITIES
+ * =================================== */
+
+.card-grid {
+  display: grid;
+  gap: var(--space-6);
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+}
+
+.card-grid-sm {
+  gap: var(--space-4);
+}
+
+.card-grid-lg {
+  gap: var(--space-8);
+}
+
+@media (max-width: 768px) {
+  .card-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ===================================
+ * CARD STACK
+ * For vertically stacked cards with consistent spacing
+ * =================================== */
+
+.card-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.card-stack-sm {
+  gap: var(--space-2);
+}
+
+.card-stack-lg {
+  gap: var(--space-6);
+}
+
+/* ===================================
+ * SPECIAL CARD TYPES
+ * =================================== */
+
+/* Collapsible Card */
+.card-collapsible {
+  overflow: hidden;
+}
+
+.card-collapse-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  background: transparent;
+  border: none;
+  padding: var(--space-4);
+  cursor: pointer;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+  transition: background-color var(--transition-fast);
+}
+
+.card-collapse-trigger:hover {
+  background-color: rgba(22, 74, 59, 0.05);
+}
+
+.card-collapse-trigger[aria-expanded="true"] .card-collapse-icon {
+  transform: rotate(180deg);
+}
+
+.card-collapse-icon {
+  transition: transform var(--transition-fast);
+}
+
+.card-collapse-content[hidden] {
+  display: none;
+}
+
+/* Metric Card - For displaying numbers/stats */
+.card-metric {
+  text-align: center;
+  padding: var(--space-6);
+}
+
+.card-metric-value {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  line-height: 1;
+  margin-bottom: var(--space-2);
+}
+
+.card-metric-label {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.card-metric-trend {
+  font-size: var(--font-size-sm);
+  margin-top: var(--space-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+}
+
+/* ===================================
+ * GRIEF-AWARE ENHANCEMENTS
+ * =================================== */
+
+/* Help Card - For contextual assistance */
+.card-help {
+  background-color: var(--color-brand-sand);
+  border-color: var(--color-brand-moss);
+  border-left-width: 3px;
+}
+
+/* Next Action Card - High priority for user */
+.card-next-action {
+  border-left: 4px solid var(--color-status-ready);
+  background-color: rgba(74, 155, 127, 0.05);
+  box-shadow: var(--shadow-md);
+}
+
+/* Empathetic Message Card */
+.card-empathetic {
+  background-color: rgba(242, 229, 201, 0.3);
+  border-left: 3px solid var(--color-brand-moss);
+}
+
+.card-empathetic-message {
+  font-style: italic;
+  color: var(--color-text-secondary);
+  line-height: var(--line-height-relaxed);
+}
+
+/* ===================================
+ * ACCESSIBILITY ENHANCEMENTS
+ * =================================== */
+
+/* Ensure cards are keyboard navigable if interactive */
+.card-interactive:focus {
+  outline: none;
+}
+
+.card-interactive:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  .card {
+    border-width: 2px;
+  }
+
+  .card-primary,
+  .card-secondary,
+  .card-info,
+  .card-warning,
+  .card-error,
+  .card-success {
+    border-left-width: 6px;
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .card,
+  .card-interactive,
+  .card-collapse-trigger,
+  .card-collapse-icon {
+    transition: none;
+  }
+
+  .card-interactive:hover {
+    transform: none;
+  }
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  .card {
+    padding: var(--space-4);
+  }
+
+  .card-lg {
+    padding: var(--space-6);
+  }
+
+  .card-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .card-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .card-footer .btn {
+    width: 100%;
+  }
+}
+
+/* ===================================
+ * PRINT STYLES
+ * =================================== */
+
+@media print {
+  .card {
+    page-break-inside: avoid;
+    box-shadow: none;
+    border: 1px solid #000;
+  }
+
+  .card-interactive:hover {
+    transform: none;
+    box-shadow: none;
+  }
+}

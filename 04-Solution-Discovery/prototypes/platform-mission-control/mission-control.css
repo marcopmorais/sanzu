@@ -1,0 +1,606 @@
+/**
+ * Platform Mission Control Styles - Epic 12
+ * Admin/Operator Interface for Fleet Management
+ * Design: Operational clarity, data density, safe actions
+ */
+
+/* ===================================
+ * HEADER - Mission Control
+ * =================================== */
+
+.mc-header {
+  background-color: var(--color-brand-forest);
+  color: var(--color-text-inverse);
+  padding: var(--space-4) 0;
+  box-shadow: var(--shadow-md);
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
+}
+
+.mc-header-title {
+  color: var(--color-text-inverse);
+  font-size: var(--font-size-xl);
+  margin: 0;
+}
+
+.mc-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+}
+
+.mc-badge-live {
+  background-color: rgba(45, 122, 99, 0.2);
+  color: var(--color-status-done);
+  border: 1px solid var(--color-status-done);
+}
+
+.mc-badge-count {
+  background-color: var(--color-status-blocked);
+  color: var(--color-text-inverse);
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--font-size-xs);
+  min-width: 20px;
+  text-align: center;
+}
+
+.mc-pulse {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--color-status-done);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mc-pulse {
+    animation: none;
+  }
+}
+
+/* ===================================
+ * SECTIONS
+ * =================================== */
+
+.mc-section {
+  margin-bottom: var(--space-8);
+}
+
+/* ===================================
+ * FLEET METRIC CARDS
+ * =================================== */
+
+.mc-metric-card {
+  background-color: var(--color-bg-primary);
+  border: 2px solid var(--color-border-default);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  text-align: center;
+  transition: border-color var(--transition-fast), transform var(--transition-fast);
+}
+
+.mc-metric-card:hover {
+  border-color: var(--color-border-strong);
+  transform: translateY(-2px);
+}
+
+.mc-metric-label {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-2);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.mc-metric-value {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  line-height: 1;
+  margin-bottom: var(--space-2);
+}
+
+.mc-metric-trend {
+  font-size: var(--font-size-xs);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+}
+
+.mc-trend-positive {
+  color: var(--color-status-done);
+}
+
+.mc-trend-negative {
+  color: var(--color-status-blocked);
+}
+
+.mc-trend-neutral {
+  color: var(--color-text-tertiary);
+}
+
+/* Metric card variants by health */
+.mc-metric-healthy {
+  border-color: var(--color-status-done);
+  background-color: rgba(45, 122, 99, 0.03);
+}
+
+.mc-metric-warning {
+  border-color: var(--color-warning);
+  background-color: rgba(217, 119, 6, 0.03);
+}
+
+.mc-metric-critical {
+  border-color: var(--color-status-blocked);
+  background-color: rgba(198, 106, 61, 0.03);
+}
+
+/* ===================================
+ * QUEUE TABS
+ * =================================== */
+
+.mc-queue-tabs {
+  display: flex;
+  gap: var(--space-2);
+  border-bottom: 2px solid var(--color-border-default);
+  margin-bottom: var(--space-6);
+  overflow-x: auto;
+}
+
+.mc-queue-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.mc-queue-tab:hover:not(.mc-queue-tab-active) {
+  color: var(--color-text-primary);
+  background-color: rgba(22, 74, 59, 0.05);
+}
+
+.mc-queue-tab-active {
+  color: var(--color-interactive-primary);
+  border-bottom-color: var(--color-interactive-primary);
+}
+
+.mc-queue-tab:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+}
+
+/* ===================================
+ * QUEUE PANEL
+ * =================================== */
+
+.mc-queue-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* ===================================
+ * QUEUE ITEMS
+ * =================================== */
+
+.mc-queue-item {
+  background-color: var(--color-bg-primary);
+  border: 2px solid var(--color-border-default);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  transition: all var(--transition-fast);
+}
+
+.mc-queue-item:hover {
+  box-shadow: var(--shadow-md);
+}
+
+/* Severity variants */
+.mc-queue-item-critical {
+  border-left: 4px solid var(--color-status-blocked);
+  background-color: rgba(198, 106, 61, 0.02);
+}
+
+.mc-queue-item-warning {
+  border-left: 4px solid var(--color-warning);
+  background-color: rgba(217, 119, 6, 0.02);
+}
+
+.mc-queue-item-info {
+  border-left: 4px solid var(--color-info);
+  background-color: rgba(37, 99, 235, 0.02);
+}
+
+.mc-queue-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-4);
+  margin-bottom: var(--space-3);
+}
+
+.mc-severity {
+  font-size: var(--font-size-lg);
+  line-height: 1;
+}
+
+.mc-queue-item-title {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-2) 0;
+}
+
+.mc-queue-item-meta {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.mc-queue-item-action {
+  flex-shrink: 0;
+}
+
+/* Queue Item Details (Collapsible) */
+.mc-queue-item-details {
+  margin-top: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border-default);
+}
+
+.mc-queue-item-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+  padding: var(--space-2);
+  background: transparent;
+  border: none;
+  color: var(--color-interactive-primary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: background-color var(--transition-fast);
+}
+
+.mc-queue-item-toggle:hover {
+  background-color: rgba(22, 74, 59, 0.05);
+}
+
+.mc-queue-item-toggle[aria-expanded="true"] .mc-toggle-text::before {
+  content: "Hide ";
+}
+
+.mc-queue-item-toggle[aria-expanded="true"] span[aria-hidden] {
+  transform: rotate(180deg);
+}
+
+/* ===================================
+ * REASON PANEL
+ * =================================== */
+
+.mc-reason-panel {
+  padding: var(--space-4);
+  background-color: var(--color-brand-sand);
+  border-left: 3px solid var(--color-brand-moss);
+  border-radius: var(--radius-md);
+}
+
+.mc-reason-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background-color: rgba(22, 74, 59, 0.1);
+  border-radius: var(--radius-sm);
+}
+
+.mc-reason-code {
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+}
+
+.mc-reason-label {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+}
+
+/* ===================================
+ * EVENT STREAM
+ * =================================== */
+
+.mc-event-stream {
+  padding: var(--space-4);
+  background-color: var(--color-bg-secondary);
+  border-radius: var(--radius-md);
+}
+
+.mc-event-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.mc-event-item {
+  display: grid;
+  grid-template-columns: 140px 180px 1fr;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--color-border-subtle);
+  font-size: var(--font-size-sm);
+}
+
+.mc-event-item:last-child {
+  border-bottom: none;
+}
+
+.mc-event-time {
+  color: var(--color-text-tertiary);
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-xs);
+}
+
+.mc-event-type {
+  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-medium);
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-xs);
+}
+
+.mc-event-detail {
+  color: var(--color-text-primary);
+}
+
+@media (max-width: 768px) {
+  .mc-event-item {
+    grid-template-columns: 1fr;
+    gap: var(--space-1);
+  }
+}
+
+/* ===================================
+ * DEFAULT ACTION PANEL
+ * =================================== */
+
+.mc-default-action {
+  padding: var(--space-4);
+  background-color: var(--color-success-bg);
+  border-radius: var(--radius-md);
+  border-left: 3px solid var(--color-status-done);
+}
+
+/* ===================================
+ * MODAL - Remediation Workflow
+ * =================================== */
+
+.mc-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: var(--z-modal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mc-modal[hidden] {
+  display: none;
+}
+
+.mc-modal-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: var(--color-bg-overlay);
+}
+
+.mc-modal-content {
+  position: relative;
+  background-color: var(--color-bg-primary);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  max-width: 600px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.mc-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-6);
+  border-bottom: 1px solid var(--color-border-default);
+}
+
+.mc-modal-header h2 {
+  margin: 0;
+}
+
+.mc-modal-close {
+  background: transparent;
+  border: none;
+  font-size: var(--font-size-xl);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  padding: var(--space-2);
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+}
+
+.mc-modal-close:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+  color: var(--color-text-primary);
+}
+
+.mc-modal-body {
+  padding: var(--space-6);
+}
+
+.mc-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  padding: var(--space-6);
+  border-top: 1px solid var(--color-border-default);
+}
+
+/* ===================================
+ * REMEDIATION STEPS
+ * =================================== */
+
+.mc-remediation-step {
+  margin-bottom: var(--space-4);
+}
+
+.mc-impact-panel {
+  padding: var(--space-4);
+  background-color: var(--color-info-bg);
+  border-left: 3px solid var(--color-info);
+  border-radius: var(--radius-md);
+}
+
+.mc-impact-panel ul {
+  list-style: none;
+  padding-left: 0;
+  margin: var(--space-2) 0 0 0;
+}
+
+.mc-impact-panel li {
+  margin-bottom: var(--space-1);
+  padding-left: var(--space-4);
+}
+
+.mc-textarea {
+  width: 100%;
+  padding: var(--space-3);
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-base);
+  border: 2px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  resize: vertical;
+  transition: border-color var(--transition-fast);
+}
+
+.mc-textarea:focus {
+  outline: none;
+  border-color: var(--color-border-focus);
+  box-shadow: var(--shadow-focus);
+}
+
+/* ===================================
+ * FOOTER
+ * =================================== */
+
+.mc-footer {
+  padding: var(--space-6) 0;
+  border-top: 1px solid var(--color-border-default);
+}
+
+/* ===================================
+ * RESPONSIVE - Mobile Optimizations
+ * =================================== */
+
+@media (max-width: 768px) {
+  .mc-header {
+    padding: var(--space-3) 0;
+  }
+
+  .mc-header-title {
+    font-size: var(--font-size-lg);
+  }
+
+  .grid-4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .mc-queue-tabs {
+    gap: 0;
+  }
+
+  .mc-queue-tab {
+    font-size: var(--font-size-sm);
+    padding: var(--space-2) var(--space-3);
+  }
+
+  .mc-queue-item-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .mc-queue-item-action {
+    width: 100%;
+  }
+
+  .mc-modal-content {
+    width: 95%;
+  }
+
+  .mc-modal-header,
+  .mc-modal-body,
+  .mc-modal-footer {
+    padding: var(--space-4);
+  }
+}
+
+/* ===================================
+ * ACCESSIBILITY ENHANCEMENTS
+ * =================================== */
+
+/* Keyboard focus for all interactive elements */
+.mc-queue-item-toggle:focus-visible,
+.mc-modal-close:focus-visible,
+.mc-textarea:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .mc-metric-card,
+  .mc-queue-item {
+    border-width: 3px;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .mc-metric-card,
+  .mc-queue-item,
+  .mc-queue-tab,
+  .mc-queue-item-toggle,
+  .mc-modal-close {
+    transition: none;
+  }
+}

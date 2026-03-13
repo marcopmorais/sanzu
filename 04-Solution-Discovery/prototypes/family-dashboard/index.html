@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sanzu - Painel Familiar | Prototype Epic 9</title>
+
+  <!-- Design System Styles -->
+  <link rel="stylesheet" href="../design-system/tokens/grief-aware-tokens.css">
+  <link rel="stylesheet" href="../design-system/base.css">
+  <link rel="stylesheet" href="../design-system/components/button.css">
+  <link rel="stylesheet" href="./dashboard.css">
+
+  <meta name="description" content="Family Dashboard prototype testing Epic 9 features: Plain-language glossary and reason-coded blocked recovery">
+</head>
+<body>
+
+  <!-- Skip Link for Accessibility -->
+  <a href="#main-content" class="skip-link">Saltar para o conteúdo principal</a>
+
+  <!-- Header -->
+  <header class="dashboard-header">
+    <div class="container">
+      <div class="row row-between">
+        <div>
+          <h1 class="header-title">Processo de Maria Silva</h1>
+          <p class="header-subtitle empathetic-message">Estamos aqui para guiá-lo. Vamos passo a passo.</p>
+        </div>
+        <div class="row">
+          <span class="status-badge status-ready" role="status">
+            <span aria-hidden="true">●</span>
+            4 de 12 passos concluídos
+          </span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main id="main-content" class="container mt-6">
+
+    <!-- Progress Overview Card -->
+    <section class="card" aria-labelledby="progress-heading">
+      <h2 id="progress-heading" class="text-xl">Progresso Global</h2>
+      <p class="empathetic-message mb-4">Não precisa fazer tudo de uma vez. Concentre-se no próximo passo.</p>
+
+      <!-- Progress Bar -->
+      <div class="progress-bar-container" role="progressbar" aria-valuenow="33" aria-valuemin="0" aria-valuemax="100" aria-label="Progresso do processo">
+        <div class="progress-bar" style="width: 33%">
+          <span class="sr-only">33% concluído</span>
+        </div>
+      </div>
+      <p class="text-sm text-secondary mt-2">33% concluído - 4 de 12 passos</p>
+    </section>
+
+    <!-- Next Action Card - HIGHEST PRIORITY (Opportunity: Family Clarity) -->
+    <section class="card card-primary mt-6" aria-labelledby="next-action-heading">
+      <div class="row row-between">
+        <div>
+          <h2 id="next-action-heading" class="text-lg">
+            <span class="status-indicator status-ready" aria-hidden="true">●</span>
+            Próxima Ação
+          </h2>
+        </div>
+        <span class="text-sm text-tertiary">Estimado: 10 minutos</span>
+      </div>
+
+      <div class="mt-4">
+        <h3 class="text-base text-semibold">Carregar Certidão de Óbito</h3>
+        <p class="empathetic-message mt-2">
+          Sabemos que isto é difícil. Precisamos do certificado oficial para prosseguir com os próximos passos legais.
+        </p>
+
+        <!-- Plain-Language Glossary Link - EPIC 9.1 -->
+        <div class="glossary-inline mt-3">
+          <button class="glossary-trigger" aria-expanded="false" aria-controls="glossary-death-cert">
+            <span aria-hidden="true">📖</span>
+            O que é a Certidão de Óbito?
+          </button>
+          <div id="glossary-death-cert" class="glossary-panel" hidden>
+            <h4 class="text-sm text-semibold">Certidão de Óbito - Explicação Clara</h4>
+            <p class="text-sm mt-2">
+              É o documento oficial emitido pela Conservatória do Registo Civil que comprova legalmente o falecimento.
+              Sem este documento, não conseguimos avançar com heranças, seguros ou contas bancárias.
+            </p>
+            <p class="text-sm text-secondary mt-2">
+              <strong>Onde obter:</strong> Conservatória do Registo Civil da área onde ocorreu o falecimento, ou online via IRN.
+            </p>
+            <p class="text-sm text-secondary mt-1">
+              <strong>Prazo:</strong> Normalmente disponível 2-3 dias após o falecimento.
+            </p>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="btn-group mt-6">
+          <button class="btn btn-primary btn-md">
+            <span aria-hidden="true">📄</span>
+            Carregar Documento
+          </button>
+          <button class="btn btn-tertiary btn-md">
+            Marcar para mais tarde
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Blocked Step Example - EPIC 9.2 (Reason-Coded Blocked Recovery) -->
+    <section class="card card-blocked mt-6" aria-labelledby="blocked-heading">
+      <div class="row row-between">
+        <div>
+          <h2 id="blocked-heading" class="text-lg">
+            <span class="status-indicator status-blocked" aria-hidden="true">●</span>
+            Ação Bloqueada
+          </h2>
+        </div>
+        <span class="status-badge status-blocked">Aguarda informação</span>
+      </div>
+
+      <div class="mt-4">
+        <h3 class="text-base text-semibold">Declaração de Herdeiros</h3>
+
+        <!-- Reason-Coded Explanation - EPIC 9.2 -->
+        <div class="blocked-reason mt-3">
+          <p class="text-sm">
+            <strong>Porquê está bloqueado:</strong> Aguardamos o Número de Identificação Fiscal (NIF) do herdeiro João Silva.
+          </p>
+        </div>
+
+        <!-- Guided Recovery Action - EPIC 9.2 -->
+        <div class="recovery-action mt-4">
+          <h4 class="text-sm text-semibold">Como desbloquear:</h4>
+          <ol class="recovery-steps">
+            <li>Contacte João Silva e peça o NIF dele</li>
+            <li>Depois de obter, clique em "Adicionar NIF" abaixo</li>
+            <li>Notificaremos quando este passo estiver pronto para prosseguir</li>
+          </ol>
+
+          <!-- Plain-Language Glossary for NIF - EPIC 9.1 -->
+          <div class="glossary-inline mt-3">
+            <button class="glossary-trigger" aria-expanded="false" aria-controls="glossary-nif">
+              <span aria-hidden="true">📖</span>
+              O que é o NIF?
+            </button>
+            <div id="glossary-nif" class="glossary-panel" hidden>
+              <h4 class="text-sm text-semibold">NIF (Número de Identificação Fiscal)</h4>
+              <p class="text-sm mt-2">
+                É o número de contribuinte fiscal em Portugal. Todas as pessoas têm um, é usado para identificação em processos legais e fiscais.
+              </p>
+              <p class="text-sm text-secondary mt-2">
+                <strong>Onde encontrar:</strong> Cartão de Cidadão, declarações de IRS, ou pedindo ao Portal das Finanças.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recovery Action Button -->
+        <div class="btn-group mt-6">
+          <button class="btn btn-secondary btn-md">
+            <span aria-hidden="true">➕</span>
+            Adicionar NIF de João
+          </button>
+          <button class="btn btn-tertiary btn-md">
+            Contactar Agência para Ajuda
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- All Steps List (Collapsed by default for reduced cognitive load) -->
+    <section class="mt-8" aria-labelledby="all-steps-heading">
+      <div class="row row-between mb-4">
+        <h2 id="all-steps-heading" class="text-xl">Todos os Passos</h2>
+        <button class="btn btn-tertiary btn-sm" id="toggle-all-steps" aria-expanded="false" aria-controls="all-steps-list">
+          Ver todos (12)
+        </button>
+      </div>
+
+      <div id="all-steps-list" class="stack" hidden>
+        <!-- Step 1 - Done -->
+        <div class="step-item step-done">
+          <div class="row row-between">
+            <div class="row">
+              <span class="status-indicator status-done" aria-hidden="true">✓</span>
+              <h3 class="text-base">Registar Óbito</h3>
+            </div>
+            <span class="status-badge status-done">Concluído</span>
+          </div>
+        </div>
+
+        <!-- Step 2 - Done -->
+        <div class="step-item step-done">
+          <div class="row row-between">
+            <div class="row">
+              <span class="status-indicator status-done" aria-hidden="true">✓</span>
+              <h3 class="text-base">Obter Certidão de Óbito (via Conservatória)</h3>
+            </div>
+            <span class="status-badge status-done">Concluído</span>
+          </div>
+        </div>
+
+        <!-- Step 3 - Done -->
+        <div class="step-item step-done">
+          <div class="row row-between">
+            <div class="row">
+              <span class="status-indicator status-done" aria-hidden="true">✓</span>
+              <h3 class="text-base">Notificar Segurança Social</h3>
+            </div>
+            <span class="status-badge status-done">Concluído</span>
+          </div>
+        </div>
+
+        <!-- Step 4 - Done -->
+        <div class="step-item step-done">
+          <div class="row row-between">
+            <div class="row">
+              <span class="status-indicator status-done" aria-hidden="true">✓</span>
+              <h3 class="text-base">Cancelar Cartão de Cidadão</h3>
+            </div>
+            <span class="status-badge status-done">Concluído</span>
+          </div>
+        </div>
+
+        <!-- Step 5 - Ready (Next Action - shown above) -->
+        <div class="step-item step-ready">
+          <div class="row row-between">
+            <div class="row">
+              <span class="status-indicator status-ready" aria-hidden="true">●</span>
+              <h3 class="text-base">Carregar Certidão de Óbito</h3>
+            </div>
+            <span class="status-badge status-ready">Pronto para iniciar</span>
+          </div>
+        </div>
+
+        <!-- Step 6 - Blocked (shown above) -->
+        <div class="step-item step-blocked">
+          <div class="row row-between">
+            <div class="row">
+              <span class="status-indicator status-blocked" aria-hidden="true">⏸</span>
+              <h3 class="text-base">Declaração de Herdeiros</h3>
+            </div>
+            <span class="status-badge status-blocked">Aguarda NIF</span>
+          </div>
+        </div>
+
+        <!-- Remaining steps - Pending -->
+        <div class="step-item step-pending">
+          <div class="row row-between">
+            <div class="row">
+              <span class="status-indicator status-pending" aria-hidden="true">○</span>
+              <h3 class="text-base text-tertiary">Inventário de Bens</h3>
+            </div>
+            <span class="status-badge status-pending">Aguarda passos anteriores</span>
+          </div>
+        </div>
+
+        <!-- More pending steps... -->
+        <div class="step-item step-pending">
+          <div class="row row-between">
+            <div class="row">
+              <span class="status-indicator status-pending" aria-hidden="true">○</span>
+              <h3 class="text-base text-tertiary">Partilha de Herança</h3>
+            </div>
+            <span class="status-badge status-pending">Pendente</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Help & Support - Always Available -->
+    <section class="card card-help mt-8" aria-labelledby="help-heading">
+      <h2 id="help-heading" class="text-lg">Precisa de Ajuda?</h2>
+      <p class="empathetic-message mt-2">
+        A sua agência funerária está disponível para esclarecer dúvidas. Também pode consultar o glossário para entender os termos legais.
+      </p>
+      <div class="btn-group mt-4">
+        <button class="btn btn-secondary btn-md">
+          <span aria-hidden="true">💬</span>
+          Contactar Agência
+        </button>
+        <button class="btn btn-tertiary btn-md">
+          <span aria-hidden="true">📖</span>
+          Ver Glossário Completo
+        </button>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="dashboard-footer mt-12">
+    <div class="container">
+      <p class="text-sm text-secondary text-center">
+        Sanzu - Guiando famílias através do processo pós-perda com clareza e empatia
+      </p>
+    </div>
+  </footer>
+
+  <!-- JavaScript for Interactive Elements -->
+  <script src="./dashboard.js"></script>
+
+</body>
+</html>

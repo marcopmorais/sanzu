@@ -1,0 +1,27 @@
+Sanzu PDLC 3.5 Deterministic System Diagram
+
++---------------------+      +--------------------+      +----------------------+
+|    Local Status     |      |     Local Docs     |      |       Local UX       |
+| _bmad-output/status |      |       docs/        |      | _bmad-output/design  |
++----------+----------+      +----------+---------+      +----------+-----------+
+           |                            |                           |
+           +----------------------------+---------------------------+
+                                        |
+                                        v
+                             +----------+-----------+
+                             |      BMBuilder       |
+                             | Deterministic Engine |
+                             +----------+-----------+
+                                        |
+                                        v
+                             +----------+-----------+
+                             | Build / QA / Release |
+                             +----------+-----------+
+                                        |
+                                        v
+                             +----------+-----------+
+                             | Measuring / ROI Loop |
+                             +----------------------+
+
+Hard Rule:
+- No build without valid local status + linked local docs + validated local UX references and Build-approved UX.

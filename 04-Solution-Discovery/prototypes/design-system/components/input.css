@@ -1,0 +1,378 @@
+/**
+ * Input Component - Grief-Aware Design System
+ * WCAG 2.1 AA Compliant
+ * Types: Text, Email, Tel, Textarea, Select, Checkbox, Radio
+ * States: Default, Focus, Error, Disabled, Success
+ */
+
+/* ===================================
+ * BASE INPUT STYLES
+ * =================================== */
+
+.input {
+  /* Layout */
+  display: block;
+  width: 100%;
+
+  /* Typography */
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-regular);
+  line-height: var(--line-height-base);
+  color: var(--color-text-primary);
+
+  /* Spacing */
+  padding: var(--space-3) var(--space-4);
+
+  /* Visual */
+  background-color: var(--color-bg-primary);
+  border: 2px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+
+  /* Interaction */
+  transition: all var(--transition-fast);
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.input::placeholder {
+  color: var(--color-text-tertiary);
+  opacity: 1;
+}
+
+/* ===================================
+ * INPUT STATES
+ * =================================== */
+
+/* Hover */
+.input:hover:not(:disabled):not(.input-error) {
+  border-color: var(--color-border-strong);
+}
+
+/* Focus - Enhanced for accessibility */
+.input:focus {
+  outline: none;
+  border-color: var(--color-border-focus);
+  box-shadow: var(--shadow-focus);
+}
+
+/* Error State */
+.input-error {
+  border-color: var(--color-error);
+  background-color: var(--color-error-bg);
+}
+
+.input-error:focus {
+  border-color: var(--color-error);
+  box-shadow: 0 0 0 3px rgba(198, 106, 61, 0.2);
+}
+
+/* Success State */
+.input-success {
+  border-color: var(--color-success);
+  background-color: var(--color-success-bg);
+}
+
+/* Disabled */
+.input:disabled {
+  background-color: var(--color-bg-secondary);
+  border-color: var(--color-border-subtle);
+  color: var(--color-text-tertiary);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* ===================================
+ * INPUT SIZES
+ * =================================== */
+
+.input-sm {
+  font-size: var(--font-size-sm);
+  padding: var(--space-2) var(--space-3);
+}
+
+.input-md {
+  font-size: var(--font-size-base);
+  padding: var(--space-3) var(--space-4);
+}
+
+.input-lg {
+  font-size: var(--font-size-lg);
+  padding: var(--space-4) var(--space-5);
+}
+
+/* ===================================
+ * TEXTAREA
+ * =================================== */
+
+.textarea {
+  /* Inherits from .input base styles */
+  min-height: 120px;
+  resize: vertical;
+  line-height: var(--line-height-relaxed);
+}
+
+.textarea-sm {
+  min-height: 80px;
+}
+
+.textarea-lg {
+  min-height: 180px;
+}
+
+/* ===================================
+ * SELECT
+ * =================================== */
+
+.select {
+  /* Inherits from .input base styles */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%234a4a4a' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right var(--space-3) center;
+  padding-right: var(--space-8);
+}
+
+.select:focus {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23164a3b' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+}
+
+/* ===================================
+ * CHECKBOX & RADIO
+ * Custom styled for better grief-aware UX
+ * =================================== */
+
+/* Hide native checkbox/radio */
+.checkbox,
+.radio {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+}
+
+/* Custom checkbox/radio label */
+.checkbox-label,
+.radio-label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--font-size-base);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  user-select: none;
+  line-height: var(--line-height-relaxed);
+  padding: var(--space-2) 0;
+}
+
+/* Custom checkbox/radio box */
+.checkbox-label::before,
+.radio-label::before {
+  content: '';
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--color-border-default);
+  background-color: var(--color-bg-primary);
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.checkbox-label::before {
+  border-radius: var(--radius-sm);
+}
+
+.radio-label::before {
+  border-radius: 50%;
+}
+
+/* Hover state */
+.checkbox:not(:disabled) + .checkbox-label:hover::before,
+.radio:not(:disabled) + .radio-label:hover::before {
+  border-color: var(--color-border-strong);
+}
+
+/* Checked state */
+.checkbox:checked + .checkbox-label::before {
+  background-color: var(--color-interactive-primary);
+  border-color: var(--color-interactive-primary);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='white' d='M10 3L4.5 8.5 2 6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+.radio:checked + .radio-label::before {
+  background-color: var(--color-interactive-primary);
+  border-color: var(--color-interactive-primary);
+  box-shadow: inset 0 0 0 3px var(--color-bg-primary);
+}
+
+/* Focus state - WCAG 2.1 requirement */
+.checkbox:focus-visible + .checkbox-label::before,
+.radio:focus-visible + .radio-label::before {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+  box-shadow: var(--shadow-focus);
+}
+
+/* Disabled state */
+.checkbox:disabled + .checkbox-label,
+.radio:disabled + .radio-label {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.checkbox:disabled + .checkbox-label::before,
+.radio:disabled + .radio-label::before {
+  background-color: var(--color-bg-secondary);
+  border-color: var(--color-border-subtle);
+}
+
+/* ===================================
+ * INPUT GROUPS - Label + Input + Helper Text
+ * =================================== */
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+
+.input-label {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+  line-height: var(--line-height-base);
+}
+
+.input-label-required::after {
+  content: ' *';
+  color: var(--color-error);
+  font-weight: var(--font-weight-semibold);
+}
+
+.input-helper {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  line-height: var(--line-height-relaxed);
+}
+
+.input-helper-error {
+  color: var(--color-error);
+  font-weight: var(--font-weight-medium);
+}
+
+.input-helper-success {
+  color: var(--color-success);
+}
+
+/* ===================================
+ * GRIEF-AWARE ENHANCEMENTS
+ * Empathetic error messages, clear labels
+ * =================================== */
+
+/* Empathetic helper text styling */
+.input-helper-empathetic {
+  font-style: italic;
+  color: var(--color-text-secondary);
+}
+
+/* Icon prefix for inputs (optional visual clarity) */
+.input-with-icon {
+  padding-left: var(--space-10);
+  background-repeat: no-repeat;
+  background-position: var(--space-3) center;
+  background-size: 20px 20px;
+}
+
+/* ===================================
+ * ACCESSIBILITY ENHANCEMENTS
+ * =================================== */
+
+/* Minimum touch target size for mobile */
+@media (max-width: 768px) {
+  .input,
+  .select,
+  .checkbox-label,
+  .radio-label {
+    min-height: 44px;
+  }
+
+  .checkbox-label::before,
+  .radio-label::before {
+    width: 24px;
+    height: 24px;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .input,
+  .select {
+    border-width: 3px;
+  }
+
+  .checkbox-label::before,
+  .radio-label::before {
+    border-width: 3px;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .input,
+  .select,
+  .checkbox-label::before,
+  .radio-label::before {
+    transition: none;
+  }
+}
+
+/* ===================================
+ * INPUT VALIDATION PATTERNS
+ * Real-time feedback for user confidence
+ * =================================== */
+
+/* Valid email pattern (shown after user types) */
+.input[type="email"]:valid:not(:placeholder-shown) {
+  border-color: var(--color-success);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath fill='%232d7a63' d='M13 5L6 12 3 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right var(--space-3) center;
+  padding-right: var(--space-10);
+}
+
+/* Invalid pattern (only show after user has interacted) */
+.input:invalid:not(:placeholder-shown):not(:focus) {
+  border-color: var(--color-error);
+}
+
+/* ===================================
+ * FORM SECTIONS
+ * For multi-step or complex forms
+ * =================================== */
+
+.form-section {
+  padding: var(--space-6);
+  background-color: var(--color-bg-primary);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--space-6);
+}
+
+.form-section-title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-4);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--color-border-default);
+}
+
+.form-section-description {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  line-height: var(--line-height-relaxed);
+  margin-bottom: var(--space-4);
+  font-style: italic;
+}

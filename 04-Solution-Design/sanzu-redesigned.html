@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+<meta charset="UTF-8">
+<title>Sanzu - Redesigned Wireframes v2</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:Inter,sans-serif;background:#f8fafc;color:#1a202c}
+.container{max-width:1200px;margin:0 auto;padding:20px}
+h1{color:#1e3a5f;margin-bottom:32px}
+.wireframe{background:white;border:1px solid #e2e8f0;border-radius:12px;margin-bottom:48px;overflow:hidden;box-shadow:0 4px 12px rgba(30,58,95,0.08)}
+.header-label{background:#1e3a5f;color:white;padding:16px 24px;font-weight:600;font-size:14px}
+.nav{background:#1e3a5f;color:white;padding:16px 24px;display:flex;justify-content:space-between;align-items:center}
+.logo{font-weight:bold;font-size:20px;position:relative}
+.logo:after{content:'';position:absolute;bottom:-4px;left:0;width:60px;height:2px;background:#2dd4bf}
+.content{padding:32px}
+.process-email{background:#e8f1f8;padding:12px 16px;border-radius:8px;font-family:monospace;font-size:13px;color:#1e3a5f;margin-bottom:24px;display:flex;align-items:center;gap:8px}
+.process-email:before{content:'📧'}
+.progress-ring{width:200px;height:200px;margin:0 auto 24px;position:relative}
+.progress-text{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center}
+.progress-value{font-size:48px;font-weight:bold;color:#1e3a5f}
+.progress-label{font-size:14px;color:#6b7280}
+.next-step-card{background:linear-gradient(135deg,#e8f1f8 0%,#ffffff 100%);border-left:4px solid #2dd4bf;padding:24px;border-radius:12px;margin-bottom:24px}
+.next-step-card h3{color:#1e3a5f;margin-bottom:12px;font-size:18px}
+.next-step-card h3:before{content:'📌 ';font-size:20px}
+.workstream-section{margin-bottom:32px}
+.workstream-header{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:2px solid #e2e8f0;margin-bottom:16px}
+.workstream-title{font-weight:600;font-size:16px;color:#1e3a5f}
+.workstream-progress{font-size:14px;color:#6b7280}
+.step-card{background:white;border:1px solid #e2e8f0;border-radius:8px;padding:20px;margin-bottom:12px;position:relative;padding-left:48px}
+.status-dot{width:24px;height:24px;border-radius:50%;position:absolute;left:16px;top:20px}
+.dot-complete{background:#10b981}
+.dot-progress{background:#f59e0b}
+.dot-pending{background:#e2e8f0;border:2px solid #6b7280}
+.dot-blocked{background:#ef4444}
+.step-title{font-weight:600;font-size:15px;margin-bottom:8px;color:#1a202c}
+.step-meta{display:flex;gap:16px;font-size:13px;color:#6b7280;margin-bottom:12px;flex-wrap:wrap}
+.step-meta span:before{margin-right:4px}
+.assignee:before{content:'👤'}
+.deadline:before{content:'📅'}
+.docs:before{content:'📎'}
+.step-actions{display:flex;gap:8px;margin-top:12px}
+.btn{padding:8px 16px;border-radius:6px;border:none;font-size:14px;font-weight:500;cursor:pointer;transition:all 0.2s}
+.btn-primary{background:#2dd4bf;color:#1e3a5f}
+.btn-secondary{background:#e8f1f8;color:#1e3a5f}
+.btn-email{background:#1e3a5f;color:white}
+.btn-email:before{content:'📧 '}
+.timeline{border-left:2px solid #e2e8f0;padding-left:24px;margin-top:24px}
+.timeline-item{margin-bottom:20px;position:relative}
+.timeline-dot{width:10px;height:10px;background:#2dd4bf;border-radius:50%;position:absolute;left:-29px;top:4px}
+.timeline-time{font-size:12px;color:#6b7280}
+.timeline-text{font-size:14px;color:#1a202c;margin-top:4px}
+.progress-bars{margin:24px 0}
+.progress-item{margin-bottom:16px}
+.progress-item-header{display:flex;justify-content:space-between;margin-bottom:8px;font-size:14px}
+.progress-item-label{color:#1e3a5f;font-weight:500}
+.progress-item-percent{color:#6b7280}
+.progress-bar{height:8px;background:#e2e8f0;border-radius:4px;overflow:hidden}
+.progress-fill{height:100%;background:#10b981;transition:width 0.3s}
+.email-composer{background:#f8fafc;border:2px dashed #cbd5e0;border-radius:8px;padding:24px;margin:16px 0}
+.email-field{margin-bottom:12px}
+.email-field label{display:block;font-size:13px;font-weight:500;color:#1e3a5f;margin-bottom:4px}
+.email-field input,.email-field textarea{width:100%;padding:10px 12px;border:1px solid #cbd5e0;border-radius:6px;font-family:Inter,sans-serif;font-size:14px}
+.email-field textarea{min-height:200px;font-family:monospace}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>Sanzu v2 - Redesigned with Brand Identity + Email Feature</h1>
+
+<!-- Dashboard -->
+<div class="wireframe">
+<div class="header-label">Dashboard Principal - João Silva</div>
+<div class="nav">
+<div class="logo">Sanzu</div>
+<div>Maria Silva • Editor</div>
+</div>
+<div class="content">
+<div class="process-email"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="c7b7b5a8a4a2b4b4a887b4a6a9bdb2e9b7b3">[email&#160;protected]</a>/joao-silva-a1b2c3</div>
+
+<div class="progress-ring">
+<svg width="200" height="200" style="transform:rotate(-90deg)">
+<circle cx="100" cy="100" r="80" fill="none" stroke="#e2e8f0" stroke-width="16"/>
+<circle cx="100" cy="100" r="80" fill="none" stroke="#10b981" stroke-width="16" 
+stroke-dasharray="502" stroke-dashoffset="175" stroke-linecap="round"/>
+</svg>
+<div class="progress-text">
+<div class="progress-value">65%</div>
+<div class="progress-label">13 de 20 passos</div>
+</div>
+</div>
+
+<div class="next-step-card">
+<h3>Próximo Passo</h3>
+<div class="step-title">Notificar Banco XYZ sobre falecimento</div>
+<div class="step-meta">
+<span class="assignee">Família (Maria)</span>
+<span class="deadline">Prazo: 15/02/2026 (2 dias)</span>
+</div>
+<div class="step-actions">
+<button class="btn btn-email">Enviar Email</button>
+<button class="btn btn-primary">Ver Detalhes</button>
+</div>
+</div>
+
+<div class="progress-bars">
+<div class="progress-item">
+<div class="progress-item-header">
+<span class="progress-item-label">Registo Central</span>
+<span class="progress-item-percent">100% ✓</span>
+</div>
+<div class="progress-bar"><div class="progress-fill" style="width:100%"></div></div>
+</div>
+<div class="progress-item">
+<div class="progress-item-header">
+<span class="progress-item-label">Bancos</span>
+<span class="progress-item-percent">50% ●</span>
+</div>
+<div class="progress-bar"><div class="progress-fill" style="width:50%;background:#f59e0b"></div></div>
+</div>
+<div class="progress-item">
+<div class="progress-item-header">
+<span class="progress-item-label">Seguros</span>
+<span class="progress-item-percent">25% ●</span>
+</div>
+<div class="progress-bar"><div class="progress-fill" style="width:25%;background:#f59e0b"></div></div>
+</div>
+</div>
+
+<div class="timeline">
+<div class="timeline-item">
+<div class="timeline-dot"></div>
+<div class="timeline-time">Hoje às 14:32</div>
+<div class="timeline-text">Email enviado para EDP (cancelamento serviço)</div>
+</div>
+<div class="timeline-item">
+<div class="timeline-dot"></div>
+<div class="timeline-time">Hoje às 10:15</div>
+<div class="timeline-text">Passo "Confirmar óbito" marcado como concluído</div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- Step Detail with Email -->
+<div class="wireframe">
+<div class="header-label">Detalhe do Passo - Notificar Banco XYZ</div>
+<div class="nav">
+<div class="logo">Sanzu</div>
+<div>← Voltar ao Processo</div>
+</div>
+<div class="content">
+<div class="process-email"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="5e2e2c313d3b2d2d311e2d3f30242b702e2a">[email&#160;protected]</a>/joao-silva-a1b2c3</div>
+
+<div style="display:inline-block;padding:6px 12px;background:#e8f1f8;border-radius:6px;font-size:13px;font-weight:500;margin-bottom:16px">
+Família
+</div>
+
+<h2 style="margin-bottom:16px;color:#1e3a5f">Notificar Banco XYZ sobre falecimento</h2>
+<p style="color:#6b7280;margin-bottom:24px">Enviar notificação formal ao banco com documentação necessária.</p>
+
+<div class="step-meta" style="margin-bottom:24px">
+<span class="assignee">Maria Silva</span>
+<span class="deadline">Prazo: 15/02/2026 (2 dias)</span>
+<span class="docs">2 documentos anexados</span>
+</div>
+
+<div class="email-composer">
+<h3 style="margin-bottom:16px;color:#1e3a5f">📧 Enviar Email</h3>
+<div class="email-field">
+<label>Para:</label>
+<input type="text" value="obitos@bancoxyz.pt" readonly>
+</div>
+<div class="email-field">
+<label>CC:</label>
+<input type="text" value="processo@sanzu.pt/joao-silva-a1b2c3" readonly>
+</div>
+<div class="email-field">
+<label>Assunto:</label>
+<input type="text" value="Notificação de Falecimento - João Silva">
+</div>
+<div class="email-field">
+<label>Mensagem:</label>
+<textarea readonly>Exmo(a) Senhor(a),
+
+Venho por este meio notificar o falecimento de João Silva, ocorrido no dia 05/02/2026.
+
+Solicito as devidas providências relativamente à(s) conta(s) em nome do falecido.
+
+Anexo:
+- Certidão de óbito
+- Documento de identificação
+
+Atenciosamente,
+Maria Silva</textarea>
+</div>
+<div class="step-actions">
+<button class="btn btn-email">Enviar Email</button>
+<button class="btn btn-secondary">Editar Mensagem</button>
+</div>
+</div>
+
+<button class="btn btn-primary" style="width:100%;margin-top:24px;padding:16px">Marcar como Concluído</button>
+</div>
+</div>
+
+<!-- Step List -->
+<div class="wireframe">
+<div class="header-label">Lista de Passos - Todos os Workstreams</div>
+<div class="nav">
+<div class="logo">Sanzu</div>
+<div>João Silva</div>
+</div>
+<div class="content">
+<div class="process-email"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="f080829f939583839fb083919e8a85de8084">[email&#160;protected]</a>/joao-silva-a1b2c3</div>
+
+<div class="workstream-section">
+<div class="workstream-header">
+<div class="workstream-title">Registo Central</div>
+<div class="workstream-progress">3/3 ✓</div>
+</div>
+<div class="step-card">
+<div class="status-dot dot-complete"></div>
+<div class="step-title">Confirmar óbito médico</div>
+<div class="step-meta">
+<span class="assignee">Agência</span>
+<span class="deadline">Concluído: 06/02/26</span>
+<span class="docs">1 documento</span>
+</div>
+</div>
+</div>
+
+<div class="workstream-section">
+<div class="workstream-header">
+<div class="workstream-title">Bancos</div>
+<div class="workstream-progress">1/3 ●</div>
+</div>
+<div class="step-card">
+<div class="status-dot dot-complete"></div>
+<div class="step-title">Identificar contas bancárias</div>
+<div class="step-meta">
+<span class="assignee">Família</span>
+<span class="deadline">Concluído: 08/02/26</span>
+</div>
+</div>
+<div class="step-card">
+<div class="status-dot dot-progress"></div>
+<div class="step-title">Notificar Banco XYZ</div>
+<div class="step-meta">
+<span class="assignee">Família (Maria)</span>
+<span class="deadline">Prazo: 15/02/26</span>
+<span class="docs">2 documentos ✓</span>
+</div>
+<div class="step-actions">
+<button class="btn btn-email">Enviar Email</button>
+<button class="btn btn-secondary">Ver Detalhes</button>
+</div>
+</div>
+<div class="step-card">
+<div class="status-dot dot-pending"></div>
+<div class="step-title">Acompanhar resposta do banco</div>
+<div class="step-meta">
+<span class="assignee">Agência</span>
+<span class="deadline">Aguarda passo anterior</span>
+</div>
+</div>
+</div>
+
+<div class="workstream-section">
+<div class="workstream-header">
+<div class="workstream-title">Serviços & Utilitários</div>
+<div class="workstream-progress">0/2 ○</div>
+</div>
+<div class="step-car

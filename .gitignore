@@ -3,6 +3,7 @@
 # ===========================
 .env
 .env.*
+.claude/config.json
 *.pem
 *.key
 *.pfx
