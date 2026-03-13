@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import RemediationPage from "../../app/app/admin/remediation/page";
+import RemediationPage from "../../app/[locale]/app/admin/remediation/page";
 
 test("Remediation page renders workflow sections", () => {
   const html = renderToStaticMarkup(<RemediationPage />);

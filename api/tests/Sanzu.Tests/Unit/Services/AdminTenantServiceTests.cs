@@ -37,7 +37,7 @@ public sealed class AdminTenantServiceTests
             Id = tenantId,
             Name = "Test Agency",
             Status = TenantStatus.Active,
-            SubscriptionPlan = "Professional",
+            SubscriptionPlan = "Profissional",
             Location = "EU-West",
             CreatedAt = new DateTime(2025, 6, 15, 0, 0, 0, DateTimeKind.Utc)
         };
@@ -70,7 +70,7 @@ public sealed class AdminTenantServiceTests
         item.Id.Should().Be(tenantId);
         item.Name.Should().Be("Test Agency");
         item.Status.Should().Be("Active");
-        item.PlanTier.Should().Be("Professional");
+        item.PlanTier.Should().Be("Profissional");
         item.HealthScore.Should().Be(72);
         item.HealthBand.Should().Be("Green");
         item.SignupDate.Should().Be(new DateTime(2025, 6, 15, 0, 0, 0, DateTimeKind.Utc));
@@ -223,7 +223,7 @@ public sealed class AdminTenantServiceTests
             Id = tenantId,
             Name = "Paid Agency",
             Status = TenantStatus.Active,
-            SubscriptionPlan = "Professional",
+            SubscriptionPlan = "Profissional",
             SubscriptionBillingCycle = "Monthly",
             SubscriptionActivatedAt = DateTime.UtcNow.AddMonths(-6),
             FailedPaymentAttempts = 0,

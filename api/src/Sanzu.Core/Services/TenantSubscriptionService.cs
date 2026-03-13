@@ -11,15 +11,6 @@ namespace Sanzu.Core.Services;
 
 public sealed class TenantSubscriptionService : ITenantSubscriptionService
 {
-    private static readonly Dictionary<string, decimal> PlanMonthlyPrices = new(StringComparer.OrdinalIgnoreCase)
-    {
-        ["STARTER"] = 149m,
-        ["GROWTH"] = 399m,
-        ["ENTERPRISE"] = 0m
-    };
-
-    private const int AnnualMultiplierMonths = 10;
-
     private readonly IOrganizationRepository _organizationRepository;
     private readonly IUserRoleRepository _userRoleRepository;
     private readonly IAuditRepository _auditRepository;
@@ -71,8 +62,8 @@ public sealed class TenantSubscriptionService : ITenantSubscriptionService
                 "The requested plan and billing cycle are the same as the current subscription.");
         }
 
-        var currentMonthlyPrice = GetMonthlyPrice(tenant.SubscriptionPlan!);
-        var newMonthlyPrice = GetMonthlyPrice(newPlan);
+        var currentMonthlyPrice = PlanCatalog.GetMonthlyPrice(tenant.SubscriptionPlan!);
+        var newMonthlyPrice = PlanCatalog.GetMonthlyPrice(newPlan);
         var prorationAmount = CalculateProration(tenant, currentMonthlyPrice, newMonthlyPrice, newCycle);
 
         var description = newMonthlyPrice > currentMonthlyPrice
@@ -122,8 +113,8 @@ public sealed class TenantSubscriptionService : ITenantSubscriptionService
                         "The requested plan and billing cycle are the same as the current subscription.");
                 }
 
-                var currentMonthlyPrice = GetMonthlyPrice(tenant.SubscriptionPlan!);
-                var newMonthlyPrice = GetMonthlyPrice(newPlan);
+                var currentMonthlyPrice = PlanCatalog.GetMonthlyPrice(tenant.SubscriptionPlan!);
+                var newMonthlyPrice = PlanCatalog.GetMonthlyPrice(newPlan);
                 var calculatedProration = CalculateProration(tenant, currentMonthlyPrice, newMonthlyPrice, newCycle);
 
                 if (request.ConfirmedProrationAmount != calculatedProration)
@@ -264,13 +255,6 @@ public sealed class TenantSubscriptionService : ITenantSubscriptionService
         }
     }
 
-    private static decimal GetMonthlyPrice(string planCode)
-    {
-        return PlanMonthlyPrices.TryGetValue(planCode, out var price)
-            ? price
-            : 0m;
-    }
-
     private static decimal CalculateProration(
         Organization tenant,
         decimal currentMonthlyPrice,
@@ -300,7 +284,7 @@ public sealed class TenantSubscriptionService : ITenantSubscriptionService
     private static decimal GetPeriodPrice(decimal monthlyPrice, string billingCycle)
     {
         return string.Equals(billingCycle, "ANNUAL", StringComparison.OrdinalIgnoreCase)
-            ? monthlyPrice * AnnualMultiplierMonths
+            ? monthlyPrice * PlanCatalog.AnnualMultiplierMonths
             : monthlyPrice;
     }
 

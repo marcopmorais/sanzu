@@ -1,28 +1,15 @@
 using FluentValidation;
 using Sanzu.Core.Models.Requests;
+using Sanzu.Core.Services;
 
 namespace Sanzu.Core.Validators;
 
 public sealed class ActivateTenantBillingRequestValidator : AbstractValidator<ActivateTenantBillingRequest>
 {
-    private static readonly HashSet<string> SupportedPlans = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "STARTER",
-        "GROWTH",
-        "ENTERPRISE"
-    };
-
     private static readonly HashSet<string> SupportedBillingCycles = new(StringComparer.OrdinalIgnoreCase)
     {
         "MONTHLY",
         "ANNUAL"
-    };
-
-    private static readonly HashSet<string> SupportedPaymentMethodTypes = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "CARD",
-        "SEPA_DIRECT_DEBIT",
-        "BANK_TRANSFER"
     };
 
     public ActivateTenantBillingRequestValidator()
@@ -32,7 +19,7 @@ public sealed class ActivateTenantBillingRequestValidator : AbstractValidator<Ac
             .NotEmpty()
             .WithMessage("PlanCode is required.")
             .MaximumLength(32)
-            .Must(value => SupportedPlans.Contains(value.Trim()))
+            .Must(value => PlanCatalog.SupportedPlanCodes.Contains(value.Trim()))
             .WithMessage("PlanCode is not supported.");
 
         RuleFor(x => x.BillingCycle)
@@ -48,7 +35,7 @@ public sealed class ActivateTenantBillingRequestValidator : AbstractValidator<Ac
             .NotEmpty()
             .WithMessage("PaymentMethodType is required.")
             .MaximumLength(32)
-            .Must(value => SupportedPaymentMethodTypes.Contains(value.Trim()))
+            .Must(value => PlanCatalog.SupportedPaymentMethodTypes.Contains(value.Trim()))
             .WithMessage("PaymentMethodType is not supported.");
 
         RuleFor(x => x.PaymentMethodReference)

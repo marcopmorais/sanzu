@@ -249,7 +249,7 @@ public sealed class TenantSettingsControllerTests : IClassFixture<CustomWebAppli
             $"/api/v1/tenants/{signup.OrganizationId}/onboarding/billing/activate",
             new ActivateTenantBillingRequest
             {
-                PlanCode = "Starter",
+                PlanCode = "Inicial",
                 BillingCycle = "Monthly",
                 PaymentMethodType = "Card",
                 PaymentMethodReference = "pm_settings",

@@ -1,0 +1,1088 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sanzu Design System — Screen Mockups</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    :root {
+      --color-primary: #1971c2; --color-primary-light: #e7f5ff;
+      --color-primary-hover: #1864ab; --color-primary-active: #145591;
+      --color-success: #2f9e44; --color-success-light: #f0fff4;
+      --color-warning: #e8590c; --color-warning-light: #fff4e6;
+      --color-danger: #c92a2a; --color-danger-light: #fff5f5;
+      --color-info: #7048e8; --color-info-light: #f3f0ff;
+      --color-amber: #f59f00; --color-amber-light: #fff3bf;
+      --gray-900: #1e1e1e; --gray-700: #495057; --gray-500: #868e96;
+      --gray-300: #dee2e6; --gray-100: #f8f9fa; --white: #ffffff;
+      --font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+      --text-xs: 0.75rem; --text-sm: 0.875rem; --text-base: 1rem;
+      --text-lg: 1.125rem; --text-xl: 1.5rem; --text-2xl: 2rem;
+      --leading-xs: 1.5; --leading-sm: 1.5; --leading-base: 1.5;
+      --leading-lg: 1.4; --leading-xl: 1.3; --leading-2xl: 1.2;
+      --font-weight-normal: 400; --font-weight-medium: 500;
+      --font-weight-semibold: 600; --font-weight-bold: 700;
+      --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px;
+      --space-5: 24px; --space-6: 32px; --space-8: 48px; --space-10: 64px;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+      --shadow-md: 0 4px 6px rgba(0,0,0,0.07);
+      --shadow-lg: 0 10px 15px rgba(0,0,0,0.1);
+      --radius-sm: 4px; --radius-md: 8px; --radius-lg: 12px;
+      --border-default: 1px solid var(--gray-300);
+      --border-focus: 2px solid var(--color-primary);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: var(--font-family); color: var(--gray-900); background: var(--gray-100); }
+
+    /* ============================================
+       SCREEN SELECTOR
+       ============================================ */
+    .screen-nav {
+      position: sticky; top: 0; z-index: 50;
+      background: var(--white); border-bottom: var(--border-default);
+      padding: var(--space-3) var(--space-5);
+      display: flex; align-items: center; gap: var(--space-4); flex-wrap: wrap;
+      box-shadow: var(--shadow-sm);
+    }
+    .screen-nav__title { font-size: var(--text-lg); font-weight: var(--font-weight-bold); color: var(--gray-900); white-space: nowrap; }
+    .screen-nav__tabs { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+    .screen-tab {
+      font-family: var(--font-family); font-size: var(--text-sm); font-weight: var(--font-weight-medium);
+      padding: var(--space-2) var(--space-3); border-radius: var(--radius-sm);
+      border: 1.5px solid transparent; background: transparent;
+      color: var(--gray-700); cursor: pointer; transition: all 0.15s ease; white-space: nowrap;
+    }
+    .screen-tab:hover { background: var(--color-primary-light); color: var(--color-primary); }
+    .screen-tab--active { background: var(--color-primary); color: var(--white); border-color: var(--color-primary); }
+
+    .screen-container { display: none; }
+    .screen-container.active { display: block; }
+
+    /* ============================================
+       SHARED APP CHROME
+       ============================================ */
+    .app-shell { display: flex; min-height: calc(100vh - 52px); }
+
+    .sidebar {
+      width: 240px; background: var(--white); border-right: var(--border-default);
+      padding: var(--space-4) 0; flex-shrink: 0;
+    }
+    .sidebar__logo {
+      font-size: var(--text-lg); font-weight: var(--font-weight-bold);
+      color: var(--color-primary); padding: 0 var(--space-5); margin-bottom: var(--space-6);
+    }
+    .sidebar__section {
+      font-size: var(--text-xs); font-weight: var(--font-weight-semibold);
+      color: var(--gray-500); text-transform: uppercase; letter-spacing: 0.05em;
+      padding: var(--space-2) var(--space-5); margin-top: var(--space-4);
+    }
+    .sidebar__item {
+      display: flex; align-items: center; gap: var(--space-2);
+      font-size: var(--text-sm); font-weight: var(--font-weight-medium);
+      color: var(--gray-700); padding: var(--space-2) var(--space-5);
+      cursor: pointer; transition: all 0.15s ease; text-decoration: none;
+    }
+    .sidebar__item:hover { background: var(--gray-100); color: var(--gray-900); }
+    .sidebar__item--active {
+      background: var(--color-primary-light); color: var(--color-primary);
+      border-right: 3px solid var(--color-primary);
+    }
+    .sidebar__item i { width: 18px; height: 18px; }
+    .sidebar__badge {
+      margin-left: auto; font-size: 10px; font-weight: var(--font-weight-bold);
+      background: var(--color-danger); color: var(--white);
+      padding: 1px 6px; border-radius: 10px;
+    }
+
+    .topbar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: var(--space-3) var(--space-5);
+      background: var(--white); border-bottom: var(--border-default);
+    }
+    .topbar__breadcrumb { font-size: var(--text-sm); color: var(--gray-500); }
+    .topbar__breadcrumb strong { color: var(--gray-900); font-weight: var(--font-weight-semibold); }
+    .topbar__user {
+      display: flex; align-items: center; gap: var(--space-3);
+    }
+    .topbar__user-name { font-size: var(--text-sm); font-weight: var(--font-weight-medium); color: var(--gray-900); }
+
+    .main-content { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+    .page-body { flex: 1; padding: var(--space-5); overflow-y: auto; }
+
+    /* ============================================
+       SHARED COMPONENT STYLES (inline)
+       ============================================ */
+    .status-chip {
+      display: inline-flex; align-items: center; gap: var(--space-1);
+      font-size: var(--text-xs); font-weight: var(--font-weight-semibold);
+      padding: 3px var(--space-2); border-radius: var(--radius-sm);
+      border: 1.5px solid; line-height: 1.4; white-space: nowrap;
+    }
+    .chip--not-started { background: var(--gray-100); border-color: var(--gray-300); color: var(--gray-500); }
+    .chip--blocked { background: var(--color-danger-light); border-color: var(--color-danger); color: var(--color-danger); }
+    .chip--ready { background: var(--color-primary-light); border-color: var(--color-primary); color: var(--color-primary); }
+    .chip--in-progress { background: var(--color-warning-light); border-color: var(--color-warning); color: var(--color-warning); }
+    .chip--awaiting-evidence { background: var(--color-info-light); border-color: var(--color-info); color: var(--color-info); }
+    .chip--complete { background: var(--color-success-light); border-color: var(--color-success); color: var(--color-success); }
+    .chip--overdue { background: var(--color-danger-light); border-color: var(--color-danger); color: var(--color-danger); }
+    .chip--active { background: var(--color-success-light); border-color: var(--color-success); color: var(--color-success); }
+    .chip--healthy { background: var(--color-success-light); border-color: var(--color-success); color: var(--color-success); }
+    .chip--watch { background: var(--color-amber-light); border-color: var(--color-amber); color: var(--gray-900); }
+    .chip--critical { background: var(--color-danger-light); border-color: var(--color-danger); color: var(--color-danger); }
+    .chip--suspended { background: var(--color-warning-light); border-color: var(--color-warning); color: var(--color-warning); }
+    .chip--pending { background: var(--color-amber-light); border-color: var(--color-amber); color: var(--gray-900); }
+
+    .role-badge {
+      display: inline-flex; align-items: center; gap: var(--space-1);
+      font-size: var(--text-xs); font-weight: var(--font-weight-medium);
+      padding: 2px var(--space-2); border-radius: var(--radius-sm); border: 1px solid;
+    }
+    .rb--manager { background: var(--color-primary-light); border-color: var(--color-primary); color: var(--color-primary); }
+    .rb--editor { background: var(--color-success-light); border-color: var(--color-success); color: var(--color-success); }
+    .rb--reader { background: var(--gray-100); border-color: var(--gray-300); color: var(--gray-700); }
+    .rb--admin { background: var(--color-info-light); border-color: var(--color-info); color: var(--color-info); }
+    .rb--sanzu { background: var(--color-warning-light); border-color: var(--color-warning); color: var(--color-warning); }
+
+    .avatar {
+      display: inline-flex; align-items: center; justify-content: center;
+      border-radius: 50%; font-weight: var(--font-weight-semibold); color: var(--white); flex-shrink: 0;
+      width: 32px; height: 32px; font-size: 11px;
+    }
+    .av--manager { background: var(--color-primary); }
+    .av--editor { background: var(--color-success); }
+    .av--reader { background: var(--gray-500); }
+    .av--admin { background: var(--color-info); }
+
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2);
+      font-family: var(--font-family); font-size: var(--text-sm); font-weight: var(--font-weight-semibold);
+      padding: 8px var(--space-4); border-radius: var(--radius-sm);
+      border: 1.5px solid transparent; cursor: pointer; transition: all 0.15s ease; white-space: nowrap;
+    }
+    .btn--primary { background: var(--color-primary); color: var(--white); }
+    .btn--primary:hover { background: var(--color-primary-hover); }
+    .btn--secondary { background: var(--white); color: var(--color-primary); border-color: var(--color-primary); }
+    .btn--ghost { background: transparent; color: var(--color-primary); }
+    .btn--danger { background: var(--color-danger); color: var(--white); }
+    .btn--sm { font-size: var(--text-xs); padding: 5px var(--space-3); }
+
+    .metric-card {
+      background: var(--white); border: var(--border-default); border-radius: var(--radius-md);
+      padding: var(--space-4); box-shadow: var(--shadow-sm);
+    }
+    .metric-card__label { font-size: var(--text-xs); font-weight: var(--font-weight-medium); color: var(--gray-500); text-transform: uppercase; letter-spacing: 0.05em; }
+    .metric-card__value { font-size: var(--text-2xl); font-weight: var(--font-weight-bold); color: var(--gray-900); line-height: var(--leading-2xl); margin-top: var(--space-1); }
+    .metric-card__trend { font-size: var(--text-xs); font-weight: var(--font-weight-semibold); margin-top: var(--space-1); }
+    .trend--up { color: var(--color-success); }
+    .trend--down { color: var(--color-danger); }
+    .trend--flat { color: var(--gray-500); }
+
+    .card { background: var(--white); border: var(--border-default); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); }
+    .card__header { padding: var(--space-4) var(--space-5); border-bottom: var(--border-default); display: flex; align-items: center; justify-content: space-between; }
+    .card__title { font-size: var(--text-base); font-weight: var(--font-weight-semibold); color: var(--gray-900); }
+    .card__body { padding: var(--space-4) var(--space-5); }
+
+    .task-row {
+      display: flex; align-items: center; gap: var(--space-3);
+      padding: var(--space-3) var(--space-4); border-left: 3px solid;
+      border-bottom: 1px solid var(--gray-100); transition: background 0.15s ease;
+    }
+    .task-row:hover { background: var(--gray-100); }
+    .task-row:last-child { border-bottom: none; }
+    .tr--ready { border-left-color: var(--color-primary); }
+    .tr--blocked { border-left-color: var(--color-danger); }
+    .tr--in-progress { border-left-color: var(--color-warning); }
+    .tr--complete { border-left-color: var(--color-success); opacity: 0.7; }
+    .tr--overdue { border-left-color: var(--color-danger); }
+    .tr--awaiting { border-left-color: var(--color-info); }
+    .tr--promoted { background: var(--color-primary-light); border-left-width: 4px; }
+    .task-row__name { flex: 1; font-size: var(--text-sm); font-weight: var(--font-weight-medium); }
+    .task-row__meta { font-size: var(--text-xs); color: var(--gray-500); }
+
+    .next-action {
+      background: var(--white); border: 2px solid var(--color-primary);
+      border-radius: var(--radius-md); padding: var(--space-5);
+    }
+    .next-action__eyebrow { font-size: var(--text-xs); font-weight: var(--font-weight-semibold); color: var(--color-primary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: var(--space-2); }
+    .next-action__title { font-size: var(--text-lg); font-weight: var(--font-weight-semibold); margin-bottom: var(--space-2); }
+    .next-action__desc { font-size: var(--text-sm); color: var(--gray-700); margin-bottom: var(--space-4); }
+    .next-action__footer { display: flex; align-items: center; justify-content: space-between; }
+
+    .progress-track { height: 8px; background: var(--gray-100); border-radius: 4px; border: 1px solid var(--gray-300); overflow: hidden; }
+    .progress-fill { height: 100%; border-radius: 4px; transition: width 0.5s ease-out; }
+    .pf--primary { background: var(--color-primary); }
+    .pf--success { background: var(--color-success); }
+    .pf--danger { background: var(--color-danger); }
+
+    .case-list-row {
+      display: flex; align-items: center; gap: var(--space-4);
+      padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--gray-100);
+      transition: background 0.15s ease; cursor: pointer;
+    }
+    .case-list-row:hover { background: var(--gray-100); }
+    .case-list-row__title { font-size: var(--text-sm); font-weight: var(--font-weight-semibold); color: var(--gray-900); }
+    .case-list-row__id { font-size: var(--text-xs); font-family: var(--font-mono); color: var(--gray-500); }
+    .case-list-row__info { flex: 1; }
+    .case-list-row__progress { width: 120px; }
+
+    .timeline-item {
+      display: flex; gap: var(--space-3); padding: var(--space-3) 0;
+      border-bottom: 1px solid var(--gray-100); font-size: var(--text-sm);
+    }
+    .timeline-item:last-child { border-bottom: none; }
+    .timeline-item__text { flex: 1; line-height: 1.5; }
+    .timeline-item__text strong { font-weight: var(--font-weight-semibold); }
+    .timeline-item__time { font-size: var(--text-xs); color: var(--gray-500); white-space: nowrap; }
+
+    .tenant-row {
+      display: flex; align-items: center; gap: var(--space-4);
+      padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--gray-100);
+      transition: background 0.15s ease; cursor: pointer;
+    }
+    .tenant-row:hover { background: var(--gray-100); }
+    .tenant-row__name { font-size: var(--text-sm); font-weight: var(--font-weight-semibold); flex: 1; }
+    .tenant-row__meta { font-size: var(--text-xs); color: var(--gray-500); }
+
+    .detail-panel {
+      width: 320px; background: var(--white); border-left: var(--border-default);
+      padding: var(--space-5); flex-shrink: 0; overflow-y: auto;
+    }
+    .detail-panel__title { font-size: var(--text-base); font-weight: var(--font-weight-semibold); margin-bottom: var(--space-4); }
+
+    .doc-card {
+      display: flex; align-items: center; gap: var(--space-3);
+      padding: var(--space-3); border: var(--border-default); border-radius: var(--radius-md);
+      margin-bottom: var(--space-2); transition: box-shadow 0.15s ease;
+    }
+    .doc-card:hover { box-shadow: var(--shadow-md); }
+    .doc-card__icon { width: 36px; height: 36px; background: var(--color-primary-light); border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; color: var(--color-primary); flex-shrink: 0; }
+    .doc-card__info { flex: 1; min-width: 0; }
+    .doc-card__name { font-size: var(--text-sm); font-weight: var(--font-weight-medium); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .doc-card__meta { font-size: var(--text-xs); color: var(--gray-500); }
+    .doc-class { font-size: 10px; font-weight: var(--font-weight-semibold); padding: 1px 6px; border-radius: var(--radius-sm); text-transform: uppercase; }
+    .dc--legal { background: var(--color-danger-light); color: var(--color-danger); }
+    .dc--financial { background: var(--color-amber-light); color: var(--gray-900); }
+    .dc--personal { background: var(--color-info-light); color: var(--color-info); }
+
+    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-4); margin-bottom: var(--space-5); }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-5); }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-5); }
+
+    .case-header-bar {
+      background: var(--white); border: var(--border-default); border-radius: var(--radius-md);
+      padding: var(--space-4) var(--space-5); box-shadow: var(--shadow-sm);
+      display: flex; align-items: center; gap: var(--space-4); flex-wrap: wrap;
+      margin-bottom: var(--space-5);
+    }
+    .ch__title-group { flex: 1; min-width: 200px; }
+    .ch__case-id { font-size: var(--text-xs); font-family: var(--font-mono); color: var(--gray-500); }
+    .ch__title { font-size: var(--text-lg); font-weight: var(--font-weight-semibold); }
+    .ch__progress { min-width: 180px; flex: 1; }
+    .ch__meta { display: flex; align-items: center; gap: var(--space-3); }
+
+    .page-title { font-size: var(--text-xl); font-weight: var(--font-weight-semibold); margin-bottom: var(--space-5); }
+
+    @media (max-width: 1024px) {
+      .sidebar { display: none; }
+      .detail-panel { display: none; }
+      .grid-4 { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Screen Navigation -->
+  <div class="screen-nav">
+    <span class="screen-nav__title">Screens</span>
+    <div class="screen-nav__tabs">
+      <button class="screen-tab screen-tab--active" onclick="showScreen('manager-dashboard')">Manager Dashboard</button>
+      <button class="screen-tab" onclick="showScreen('editor-dashboard')">Editor Dashboard</button>
+      <button class="screen-tab" onclick="showScreen('reader-dashboard')">Reader Dashboard</button>
+      <button class="screen-tab" onclick="showScreen('admin-dashboard')">Admin Dashboard</button>
+      <button class="screen-tab" onclick="showScreen('platform-admin')">Platform Admin</button>
+      <button class="screen-tab" onclick="showScreen('case-workspace')">Case Workspace</button>
+      <button class="screen-tab" onclick="showScreen('extraction-review')">Extraction Review</button>
+    </div>
+  </div>
+
+  <!-- ============================================
+       SCREEN 1: MANAGER DASHBOARD (Maria)
+       ============================================ -->
+  <div class="screen-container active" id="screen-manager-dashboard">
+    <div class="app-shell">
+      <div class="sidebar">
+        <div class="sidebar__logo">Sanzu</div>
+        <a class="sidebar__item sidebar__item--active"><i data-lucide="layout-dashboard"></i> Dashboard</a>
+        <a class="sidebar__item"><i data-lucide="briefcase"></i> Cases <span class="sidebar__badge">3</span></a>
+        <a class="sidebar__item"><i data-lucide="file-text"></i> Documents</a>
+        <a class="sidebar__item"><i data-lucide="users"></i> People</a>
+        <a class="sidebar__item"><i data-lucide="clock"></i> Timeline</a>
+        <a class="sidebar__item"><i data-lucide="inbox"></i> Inbox <span class="sidebar__badge">2</span></a>
+        <div class="sidebar__section">Settings</div>
+        <a class="sidebar__item"><i data-lucide="settings"></i> Preferences</a>
+      </div>
+      <div class="main-content">
+        <div class="topbar">
+          <div class="topbar__breadcrumb"><strong>Dashboard</strong></div>
+          <div class="topbar__user">
+            <span class="role-badge rb--manager"><i data-lucide="shield" style="width:12px;height:12px;"></i> Manager</span>
+            <span class="topbar__user-name">Maria Pereira</span>
+            <span class="avatar av--manager" style="width:32px;height:32px;font-size:11px;">MP</span>
+          </div>
+        </div>
+        <div class="page-body">
+          <div class="page-title">Good morning, Maria</div>
+
+          <div class="grid-4">
+            <div class="metric-card">
+              <div class="metric-card__label">Active cases</div>
+              <div class="metric-card__value">12</div>
+              <div class="metric-card__trend trend--up">+3 this week</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-card__label">Pending tasks</div>
+              <div class="metric-card__value">28</div>
+              <div class="metric-card__trend trend--flat">No change</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-card__label">Overdue</div>
+              <div class="metric-card__value" style="color:var(--color-danger);">3</div>
+              <div class="metric-card__trend trend--down">+1 today</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-card__label">Completion rate</div>
+              <div class="metric-card__value">87%</div>
+              <div class="metric-card__trend trend--up">+4%</div>
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <!-- Case List -->
+            <div class="card">
+              <div class="card__header">
+                <span class="card__title">My Cases</span>
+                <button class="btn btn--primary btn--sm">New Case</button>
+              </div>
+              <div>
+                <div class="case-list-row">
+                  <div class="case-list-row__info">
+                    <div class="case-list-row__title">Estate of Maria Santos</div>
+                    <div class="case-list-row__id">CASE-2026-00142</div>
+                  </div>
+                  <span class="status-chip chip--in-progress">In progress</span>
+                  <div class="case-list-row__progress">
+                    <div class="progress-track"><div class="progress-fill pf--primary" style="width:33%;"></div></div>
+                  </div>
+                  <span style="font-size:var(--text-xs);color:var(--color-warning);font-weight:600;">5d</span>
+                </div>
+                <div class="case-list-row">
+                  <div class="case-list-row__info">
+                    <div class="case-list-row__title">Estate of Antonio Ferreira</div>
+                    <div class="case-list-row__id">CASE-2026-00139</div>
+                  </div>
+                  <span class="status-chip chip--overdue">Overdue</span>
+                  <div class="case-list-row__progress">
+                    <div class="progress-track"><div class="progress-fill pf--danger" style="width:60%;"></div></div>
+                  </div>
+                  <span style="font-size:var(--text-xs);color:var(--color-danger);font-weight:700;">-2d</span>
+                </div>
+                <div class="case-list-row">
+                  <div class="case-list-row__info">
+                    <div class="case-list-row__title">Estate of Rosa Oliveira</div>
+                    <div class="case-list-row__id">CASE-2026-00145</div>
+                  </div>
+                  <span class="status-chip chip--active">Active</span>
+                  <div class="case-list-row__progress">
+                    <div class="progress-track"><div class="progress-fill pf--primary" style="width:75%;"></div></div>
+                  </div>
+                  <span style="font-size:var(--text-xs);color:var(--color-primary);">12d</span>
+                </div>
+                <div class="case-list-row">
+                  <div class="case-list-row__info">
+                    <div class="case-list-row__title">Estate of Manuel Costa</div>
+                    <div class="case-list-row__id">CASE-2026-00148</div>
+                  </div>
+                  <span class="status-chip chip--complete">Complete</span>
+                  <div class="case-list-row__progress">
+                    <div class="progress-track"><div class="progress-fill pf--success" style="width:100%;"></div></div>
+                  </div>
+                  <span style="font-size:var(--text-xs);color:var(--color-success);">Done</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Alerts / Urgent -->
+            <div>
+              <div class="card" style="margin-bottom: var(--space-4); border-color: var(--color-danger);">
+                <div class="card__header" style="background: var(--color-danger-light);">
+                  <span class="card__title" style="color: var(--color-danger);"><i data-lucide="alert-triangle" style="width:16px;height:16px;vertical-align:middle;"></i> Requires Attention</span>
+                </div>
+                <div class="card__body">
+                  <div style="font-size:var(--text-sm);margin-bottom:var(--space-3);">
+                    <strong>Tax deadline overdue</strong> — Estate of Antonio Ferreira
+                    <div style="font-size:var(--text-xs);color:var(--color-danger);margin-top:2px;">Overdue by 2 days. NIF submission pending from family.</div>
+                  </div>
+                  <div style="font-size:var(--text-sm);">
+                    <strong>Evidence needed</strong> — Estate of Maria Santos
+                    <div style="font-size:var(--text-xs);color:var(--color-warning);margin-top:2px;">Utility bill for address verification due tomorrow.</div>
+                  </div>
+                </div>
+              </div>
+              <div class="card">
+                <div class="card__header">
+                  <span class="card__title">Recent Activity</span>
+                </div>
+                <div class="card__body">
+                  <div class="timeline-item">
+                    <span class="avatar av--editor" style="width:24px;height:24px;font-size:10px;">J</span>
+                    <div class="timeline-item__text"><strong>Joao Santos</strong> uploaded Death Certificate</div>
+                    <span class="timeline-item__time">2h ago</span>
+                  </div>
+                  <div class="timeline-item">
+                    <span class="avatar av--manager" style="width:24px;height:24px;font-size:10px;">M</span>
+                    <div class="timeline-item__text"><strong>Maria Pereira</strong> closed case CASE-2026-00148</div>
+                    <span class="timeline-item__time">5h ago</span>
+                  </div>
+                  <div class="timeline-item">
+                    <span class="avatar av--editor" style="width:24px;height:24px;font-size:10px;">A</span>
+                    <div class="timeline-item__text"><strong>Ana Rodrigues</strong> accepted invite to case</div>
+                    <span class="timeline-item__time">Yesterday</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================
+       SCREEN 2: EDITOR DASHBOARD (Joao)
+       ============================================ -->
+  <div class="screen-container" id="screen-editor-dashboard">
+    <div class="app-shell">
+      <div class="sidebar">
+        <div class="sidebar__logo">Sanzu</div>
+        <a class="sidebar__item sidebar__item--active"><i data-lucide="layout-dashboard"></i> Dashboard</a>
+        <a class="sidebar__item"><i data-lucide="check-square"></i> My Tasks</a>
+        <a class="sidebar__item"><i data-lucide="file-text"></i> Documents</a>
+        <a class="sidebar__item"><i data-lucide="users"></i> People</a>
+        <a class="sidebar__item"><i data-lucide="clock"></i> Timeline</a>
+      </div>
+      <div class="main-content">
+        <div class="topbar">
+          <div class="topbar__breadcrumb"><strong>Dashboard</strong></div>
+          <div class="topbar__user">
+            <span class="role-badge rb--editor"><i data-lucide="edit-3" style="width:12px;height:12px;"></i> Editor</span>
+            <span class="topbar__user-name">Joao Santos</span>
+            <span class="avatar av--editor" style="width:32px;height:32px;font-size:11px;">JS</span>
+          </div>
+        </div>
+        <div class="page-body">
+          <div class="page-title">Welcome back, Joao</div>
+
+          <div style="display:flex;gap:var(--space-5);flex-wrap:wrap;">
+            <div style="flex:1;min-width:300px;">
+              <!-- Next Action Card -->
+              <div class="next-action" style="margin-bottom:var(--space-5);">
+                <div class="next-action__eyebrow">Your next action</div>
+                <div class="next-action__title">Upload utility bill for address verification</div>
+                <div class="next-action__desc">This document confirms the address of the deceased. The tax authority requires it for NIF registration. You can upload a photo or scanned PDF.</div>
+                <div class="next-action__footer">
+                  <span style="font-size:var(--text-xs);color:var(--color-warning);font-weight:600;"><i data-lucide="alert-circle" style="width:14px;height:14px;vertical-align:middle;"></i> Due tomorrow</span>
+                  <button class="btn btn--primary"><i data-lucide="upload" style="width:16px;height:16px;"></i> Upload document</button>
+                </div>
+              </div>
+
+              <!-- Progress -->
+              <div class="card">
+                <div class="card__header">
+                  <span class="card__title">Estate of Maria Santos</span>
+                  <span class="status-chip chip--in-progress">In progress</span>
+                </div>
+                <div class="card__body">
+                  <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:var(--space-2);">
+                    <span style="font-size:var(--text-sm);font-weight:500;">4 of 12 steps done</span>
+                    <span style="font-size:var(--text-xs);font-family:var(--font-mono);color:var(--gray-500);">33%</span>
+                  </div>
+                  <div class="progress-track" style="height:12px;">
+                    <div class="progress-fill pf--primary" style="width:33%;"></div>
+                  </div>
+                  <div style="margin-top:var(--space-4);font-size:var(--text-sm);color:var(--gray-700);">
+                    Step complete — 4 of 12 done. Keep going!
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- My Tasks -->
+            <div style="flex:1;min-width:300px;">
+              <div class="card">
+                <div class="card__header">
+                  <span class="card__title">My Tasks</span>
+                </div>
+                <div>
+                  <div class="task-row tr--complete">
+                    <span class="status-chip chip--complete" style="font-size:10px;padding:2px 6px;">Done</span>
+                    <span class="task-row__name">Upload death certificate</span>
+                  </div>
+                  <div class="task-row tr--complete">
+                    <span class="status-chip chip--complete" style="font-size:10px;padding:2px 6px;">Done</span>
+                    <span class="task-row__name">Complete intake questionnaire</span>
+                  </div>
+                  <div class="task-row tr--in-progress">
+                    <span class="status-chip chip--in-progress" style="font-size:10px;padding:2px 6px;">In progress</span>
+                    <span class="task-row__name">Submit NIF to tax authority</span>
+                    <span class="task-row__meta" style="color:var(--color-warning);">5 days</span>
+                  </div>
+                  <div class="task-row tr--awaiting tr--promoted">
+                    <span class="status-chip chip--awaiting-evidence" style="font-size:10px;padding:2px 6px;">Needs evidence</span>
+                    <span class="task-row__name" style="font-weight:600;">Upload utility bill</span>
+                    <span class="task-row__meta" style="color:var(--color-warning);font-weight:700;">Tomorrow</span>
+                  </div>
+                  <div class="task-row tr--blocked">
+                    <span class="status-chip chip--blocked" style="font-size:10px;padding:2px 6px;">Blocked</span>
+                    <span class="task-row__name">Notify insurance provider</span>
+                    <span class="task-row__meta">Pending</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================
+       SCREEN 3: READER DASHBOARD
+       ============================================ -->
+  <div class="screen-container" id="screen-reader-dashboard">
+    <div class="app-shell">
+      <div class="sidebar">
+        <div class="sidebar__logo">Sanzu</div>
+        <a class="sidebar__item sidebar__item--active"><i data-lucide="layout-dashboard"></i> Dashboard</a>
+        <a class="sidebar__item"><i data-lucide="clock"></i> Timeline</a>
+        <a class="sidebar__item"><i data-lucide="users"></i> People</a>
+      </div>
+      <div class="main-content">
+        <div class="topbar">
+          <div class="topbar__breadcrumb"><strong>Dashboard</strong></div>
+          <div class="topbar__user">
+            <span class="role-badge rb--reader"><i data-lucide="eye" style="width:12px;height:12px;"></i> Reader</span>
+            <span class="topbar__user-name">Ana Rodrigues</span>
+            <span class="avatar av--reader" style="width:32px;height:32px;font-size:11px;">AR</span>
+          </div>
+        </div>
+        <div class="page-body">
+          <div class="page-title">Case Progress</div>
+
+          <div style="max-width:600px;">
+            <!-- Case overview -->
+            <div class="case-header-bar">
+              <div class="ch__title-group">
+                <div class="ch__case-id">CASE-2026-00142</div>
+                <div class="ch__title">Estate of Maria Santos</div>
+              </div>
+              <span class="status-chip chip--in-progress">In progress</span>
+            </div>
+
+            <!-- Big progress -->
+            <div class="card" style="margin-bottom:var(--space-5);">
+              <div class="card__body" style="text-align:center;padding:var(--space-6);">
+                <div style="font-size:3rem;font-weight:var(--font-weight-bold);color:var(--color-primary);">33%</div>
+                <div style="font-size:var(--text-sm);color:var(--gray-700);margin-top:var(--space-2);">4 of 12 steps completed</div>
+                <div class="progress-track" style="height:12px;margin-top:var(--space-4);max-width:300px;margin-left:auto;margin-right:auto;">
+                  <div class="progress-fill pf--primary" style="width:33%;"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Milestone timeline -->
+            <div class="card">
+              <div class="card__header">
+                <span class="card__title">Milestones</span>
+              </div>
+              <div class="card__body">
+                <div style="display:flex;align-items:center;gap:var(--space-3);margin-bottom:var(--space-4);">
+                  <div style="width:24px;height:24px;border-radius:50%;background:var(--color-success);display:flex;align-items:center;justify-content:center;"><i data-lucide="check" style="width:14px;height:14px;color:white;"></i></div>
+                  <div><div style="font-size:var(--text-sm);font-weight:600;">Death Registration</div><div style="font-size:var(--text-xs);color:var(--color-success);">Completed Feb 13</div></div>
+                </div>
+                <div style="display:flex;align-items:center;gap:var(--space-3);margin-bottom:var(--space-4);">
+                  <div style="width:24px;height:24px;border-radius:50%;background:var(--color-primary);display:flex;align-items:center;justify-content:center;"><i data-lucide="loader" style="width:14px;height:14px;color:white;"></i></div>
+                  <div><div style="font-size:var(--text-sm);font-weight:600;">Tax & Financial</div><div style="font-size:var(--text-xs);color:var(--color-primary);">In progress — 2 of 5 tasks done</div></div>
+                </div>
+                <div style="display:flex;align-items:center;gap:var(--space-3);margin-bottom:var(--space-4);">
+                  <div style="width:24px;height:24px;border-radius:50%;background:var(--gray-300);display:flex;align-items:center;justify-content:center;"><span style="font-size:10px;color:var(--gray-500);font-weight:600;">3</span></div>
+                  <div><div style="font-size:var(--text-sm);font-weight:500;color:var(--gray-500);">Insurance & Benefits</div><div style="font-size:var(--text-xs);color:var(--gray-500);">Not started yet</div></div>
+                </div>
+                <div style="display:flex;align-items:center;gap:var(--space-3);">
+                  <div style="width:24px;height:24px;border-radius:50%;background:var(--gray-300);display:flex;align-items:center;justify-content:center;"><span style="font-size:10px;color:var(--gray-500);font-weight:600;">4</span></div>
+                  <div><div style="font-size:var(--text-sm);font-weight:500;color:var(--gray-500);">Final Settlement</div><div style="font-size:var(--text-xs);color:var(--gray-500);">Not started yet</div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================
+       SCREEN 4: ADMIN DASHBOARD (Ana)
+       ============================================ -->
+  <div class="screen-container" id="screen-admin-dashboard">
+    <div class="app-shell">
+      <div class="sidebar">
+        <div class="sidebar__logo">Sanzu</div>
+        <a class="sidebar__item sidebar__item--active"><i data-lucide="layout-dashboard"></i> Dashboard</a>
+        <a class="sidebar__item"><i data-lucide="briefcase"></i> All Cases</a>
+        <a class="sidebar__item"><i data-lucide="file-text"></i> Documents</a>
+        <a class="sidebar__item"><i data-lucide="users"></i> People</a>
+        <a class="sidebar__item"><i data-lucide="settings"></i> Settings</a>
+        <a class="sidebar__item"><i data-lucide="credit-card"></i> Billing</a>
+        <a class="sidebar__item"><i data-lucide="bar-chart-3"></i> Reports</a>
+      </div>
+      <div class="main-content">
+        <div class="topbar">
+          <div class="topbar__breadcrumb"><strong>Agency Dashboard</strong></div>
+          <div class="topbar__user">
+            <span class="role-badge rb--admin"><i data-lucide="settings" style="width:12px;height:12px;"></i> Agency Admin</span>
+            <span class="topbar__user-name">Ana Oliveira</span>
+            <span class="avatar av--admin" style="width:32px;height:32px;font-size:11px;">AO</span>
+          </div>
+        </div>
+        <div class="page-body">
+          <div class="page-title">Agency Overview</div>
+          <div class="grid-4">
+            <div class="metric-card">
+              <div class="metric-card__label">Total active cases</div>
+              <div class="metric-card__value">38</div>
+              <div class="metric-card__trend trend--up">+7 this month</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-card__label">Staff members</div>
+              <div class="metric-card__value">6</div>
+              <div class="metric-card__trend trend--flat">No change</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-card__label">Completion rate</div>
+              <div class="metric-card__value">91%</div>
+              <div class="metric-card__trend trend--up">+2%</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-card__label">Overdue cases</div>
+              <div class="metric-card__value" style="color:var(--color-danger);">4</div>
+              <div class="metric-card__trend trend--down">+2 this week</div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card__header">
+              <span class="card__title">Staff Performance</span>
+              <button class="btn btn--ghost btn--sm">Export Report</button>
+            </div>
+            <div style="overflow-x:auto;">
+              <table style="width:100%;font-size:var(--text-sm);border-collapse:collapse;">
+                <thead>
+                  <tr style="border-bottom:2px solid var(--gray-300);">
+                    <th style="text-align:left;padding:var(--space-3) var(--space-4);font-weight:var(--font-weight-semibold);color:var(--gray-700);">Staff</th>
+                    <th style="text-align:center;padding:var(--space-3);font-weight:var(--font-weight-semibold);color:var(--gray-700);">Active</th>
+                    <th style="text-align:center;padding:var(--space-3);font-weight:var(--font-weight-semibold);color:var(--gray-700);">Overdue</th>
+                    <th style="text-align:center;padding:var(--space-3);font-weight:var(--font-weight-semibold);color:var(--gray-700);">Completion</th>
+                    <th style="text-align:center;padding:var(--space-3);font-weight:var(--font-weight-semibold);color:var(--gray-700);">Avg. Duration</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr style="border-bottom:1px solid var(--gray-100);">
+                    <td style="padding:var(--space-3) var(--space-4);display:flex;align-items:center;gap:var(--space-2);"><span class="avatar av--manager" style="width:24px;height:24px;font-size:10px;">MP</span> Maria Pereira</td>
+                    <td style="text-align:center;padding:var(--space-3);">12</td>
+                    <td style="text-align:center;padding:var(--space-3);color:var(--color-danger);font-weight:600;">2</td>
+                    <td style="text-align:center;padding:var(--space-3);">89%</td>
+                    <td style="text-align:center;padding:var(--space-3);">18d</td>
+                  </tr>
+                  <tr style="border-bottom:1px solid var(--gray-100);">
+                    <td style="padding:var(--space-3) var(--space-4);display:flex;align-items:center;gap:var(--space-2);"><span class="avatar av--manager" style="width:24px;height:24px;font-size:10px;">CF</span> Carlos Fonseca</td>
+                    <td style="text-align:center;padding:var(--space-3);">10</td>
+                    <td style="text-align:center;padding:var(--space-3);color:var(--color-danger);font-weight:600;">1</td>
+                    <td style="text-align:center;padding:var(--space-3);">94%</td>
+                    <td style="text-align:center;padding:var(--space-3);">15d</td>
+                  </tr>
+                  <tr style="border-bottom:1px solid var(--gray-100);">
+                    <td style="padding:var(--space-3) var(--space-4);display:flex;align-items:center;gap:var(--space-2);"><span class="avatar av--manager" style="width:24px;height:24px;font-size:10px;">SL</span> Sofia Lima</td>
+                    <td style="text-align:center;padding:var(--space-3);">8</td>
+                    <td style="text-align:center;padding:var(--space-3);color:var(--color-success);">0</td>
+                    <td style="text-align:center;padding:var(--space-3);color:var(--color-success);font-weight:600;">97%</td>
+                    <td style="text-align:center;padding:var(--space-3);">14d</td>
+                  </tr>
+                  <tr>
+                    <td style="padding:var(--space-3) var(--space-4);display:flex;align-items:center;gap:var(--space-2);"><span class="avatar av--manager" style="width:24px;height:24px;font-size:10px;">RN</span> Ricardo Nunes</td>
+                    <td style="text-align:center;padding:var(--space-3);">8</td>
+                    <td style="text-align:center;padding:var(--space-3);color:var(--color-danger);font-weight:600;">1</td>
+                    <td style="text-align:center;padding:var(--space-3);">85%</td>
+                    <td style="text-align:center;padding:var(--space-3);">21d</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================
+       SCREEN 5: PLATFORM ADMIN (Sanzu Admin)
+       ============================================ -->
+  <div class="screen-container" id="screen-platform-admin">
+    <div class="app-shell">
+      <div class="sidebar">
+        <div class="sidebar__logo">Sanzu <span style="font-size:var(--text-xs);color:var(--color-warning);">Admin</span></div>
+        <a class="sidebar__item sidebar__item--active"><i data-lucide="bar-chart-3"></i> KPI Dashboard</a>
+        <a class="sidebar__item"><i data-lucide="building-2"></i> Tenants</a>
+        <a class="sidebar__item"><i data-lucide="stethoscope"></i> Diagnostics</a>
+        <a class="sidebar__item"><i data-lucide="shield-check"></i> Policies</a>
+        <a class="sidebar__item"><i data-lucide="bell"></i> Alerts <span class="sidebar__badge">1</span></a>
+      </div>
+      <div class="main-content">
+        <div class="topbar">
+          <div class="topbar__breadcrumb"><strong>Platform KPI Dashboard</strong></div>
+          <div class="topbar__user">
+            <span class="role-badge rb--sanzu"><i data-lucide="crown" style="width:12px;height:12px;"></i> Sanzu Admin</span>
+            <span class="topbar__user-name">Admin</span>
+          </div>
+        </div>
+        <div class="page-body">
+          <div class="page-title">Platform Health</div>
+
+          <div class="grid-4">
+            <div class="metric-card">
+              <div class="metric-card__label">Active tenants</div>
+              <div class="metric-card__value">47</div>
+              <div class="metric-card__trend trend--up">+3 this month</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-card__label">Platform completion</div>
+              <div class="metric-card__value">88%</div>
+              <div class="metric-card__trend trend--up">+2%</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-card__label">Avg. case duration</div>
+              <div class="metric-card__value">17d</div>
+              <div class="metric-card__trend trend--up">-1d improvement</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-card__label">Flagged tenants</div>
+              <div class="metric-card__value" style="color:var(--color-danger);">2</div>
+              <div class="metric-card__trend trend--down">+1 this week</div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card__header">
+              <span class="card__title">Tenant Health</span>
+              <div style="display:flex;gap:var(--space-2);">
+                <button class="btn btn--primary btn--sm">All</button>
+                <button class="btn btn--ghost btn--sm">Watch</button>
+                <button class="btn btn--ghost btn--sm">Critical</button>
+              </div>
+            </div>
+            <div>
+              <div class="tenant-row">
+                <div class="tenant-row__name">Agencia Lopes & Filhos</div>
+                <span class="tenant-row__meta">12 active cases</span>
+                <span class="status-chip chip--healthy">Healthy</span>
+                <span style="font-size:var(--text-xs);color:var(--gray-500);">94% completion</span>
+              </div>
+              <div class="tenant-row">
+                <div class="tenant-row__name">Funeraria Central Lisboa</div>
+                <span class="tenant-row__meta">8 active cases</span>
+                <span class="status-chip chip--healthy">Healthy</span>
+                <span style="font-size:var(--text-xs);color:var(--gray-500);">91% completion</span>
+              </div>
+              <div class="tenant-row" style="background:var(--color-amber-light);">
+                <div class="tenant-row__name">Servicos Funerarios Norte</div>
+                <span class="tenant-row__meta">6 active cases</span>
+                <span class="status-chip chip--watch">Watch</span>
+                <span style="font-size:var(--text-xs);color:var(--color-amber);font-weight:600;">72% completion</span>
+              </div>
+              <div class="tenant-row" style="background:var(--color-danger-light);">
+                <div class="tenant-row__name">Agencia #23 — Coimbra</div>
+                <span class="tenant-row__meta">4 active cases</span>
+                <span class="status-chip chip--critical">Critical</span>
+                <span style="font-size:var(--text-xs);color:var(--color-danger);font-weight:700;">62% completion</span>
+              </div>
+              <div class="tenant-row">
+                <div class="tenant-row__name">Paz Eterna — Porto</div>
+                <span class="tenant-row__meta">15 active cases</span>
+                <span class="status-chip chip--healthy">Healthy</span>
+                <span style="font-size:var(--text-xs);color:var(--gray-500);">89% completion</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================
+       SCREEN 6: CASE WORKSPACE
+       ============================================ -->
+  <div class="screen-container" id="screen-case-workspace">
+    <div class="app-shell">
+      <div class="sidebar">
+        <div class="sidebar__logo">Sanzu</div>
+        <a class="sidebar__item"><i data-lucide="layout-dashboard"></i> Dashboard</a>
+        <a class="sidebar__item sidebar__item--active"><i data-lucide="briefcase"></i> Cases</a>
+        <a class="sidebar__item"><i data-lucide="file-text"></i> Documents</a>
+        <a class="sidebar__item"><i data-lucide="users"></i> People</a>
+        <a class="sidebar__item"><i data-lucide="clock"></i> Timeline</a>
+        <a class="sidebar__item"><i data-lucide="inbox"></i> Inbox</a>
+        <div class="sidebar__section">Settings</div>
+        <a class="sidebar__item"><i data-lucide="settings"></i> Preferences</a>
+      </div>
+      <div class="main-content" style="display:flex;flex-direction:column;">
+        <div class="topbar">
+          <div class="topbar__breadcrumb">Cases / <strong>Estate of Maria Santos</strong></div>
+          <div class="topbar__user">
+            <span class="role-badge rb--manager"><i data-lucide="shield" style="width:12px;height:12px;"></i> Manager</span>
+            <span class="topbar__user-name">Maria Pereira</span>
+            <span class="avatar av--manager" style="width:32px;height:32px;font-size:11px;">MP</span>
+          </div>
+        </div>
+        <div style="flex:1;display:flex;overflow:hidden;">
+          <div class="page-body" style="flex:1;overflow-y:auto;">
+            <!-- Case Header -->
+            <div class="case-header-bar">
+              <div class="ch__title-group">
+                <div class="ch__case-id">CASE-2026-00142</div>
+                <div class="ch__title">Estate of Maria Santos</div>
+              </div>
+              <span class="status-chip chip--in-progress">In progress</span>
+              <div class="ch__progress">
+                <div style="display:flex;justify-content:space-between;font-size:var(--text-xs);margin-bottom:4px;">
+                  <span style="font-weight:500;color:var(--gray-700);">4 of 12 steps</span>
+                  <span style="font-family:var(--font-mono);color:var(--gray-500);">33%</span>
+                </div>
+                <div class="progress-track"><div class="progress-fill pf--primary" style="width:33%;"></div></div>
+              </div>
+              <div class="ch__meta">
+                <span style="font-size:var(--text-xs);color:var(--color-warning);font-weight:600;"><i data-lucide="calendar-clock" style="width:14px;height:14px;vertical-align:middle;"></i> 5 days</span>
+                <span class="role-badge rb--manager"><i data-lucide="shield" style="width:12px;height:12px;"></i> Manager</span>
+              </div>
+            </div>
+
+            <!-- Tab nav -->
+            <div style="display:flex;gap:var(--space-1);margin-bottom:var(--space-5);border-bottom:2px solid var(--gray-300);padding-bottom:0;">
+              <button class="btn" style="background:transparent;color:var(--color-primary);border:none;border-bottom:2px solid var(--color-primary);border-radius:0;padding:var(--space-2) var(--space-4);font-weight:600;">Tasks</button>
+              <button class="btn" style="background:transparent;color:var(--gray-500);border:none;border-radius:0;padding:var(--space-2) var(--space-4);">Documents</button>
+              <button class="btn" style="background:transparent;color:var(--gray-500);border:none;border-radius:0;padding:var(--space-2) var(--space-4);">Timeline</button>
+              <button class="btn" style="background:transparent;color:var(--gray-500);border:none;border-radius:0;padding:var(--space-2) var(--space-4);">Inbox</button>
+            </div>
+
+            <!-- Task List -->
+            <div class="card">
+              <div class="card__header">
+                <span class="card__title">Tasks</span>
+                <div style="display:flex;gap:var(--space-2);">
+                  <button class="btn btn--sm btn--primary">All (12)</button>
+                  <button class="btn btn--sm btn--ghost">Ready (2)</button>
+                  <button class="btn btn--sm btn--ghost">Blocked (2)</button>
+                </div>
+              </div>
+              <div>
+                <div class="task-row tr--complete"><span class="status-chip chip--complete" style="font-size:10px;padding:2px 6px;">Done</span><span class="task-row__name">Register death at civil registry</span><span class="task-row__meta">Maria P.</span></div>
+                <div class="task-row tr--complete"><span class="status-chip chip--complete" style="font-size:10px;padding:2px 6px;">Done</span><span class="task-row__name">Upload death certificate</span><span class="task-row__meta">Joao S.</span></div>
+                <div class="task-row tr--complete"><span class="status-chip chip--complete" style="font-size:10px;padding:2px 6px;">Done</span><span class="task-row__name">Complete intake questionnaire</span><span class="task-row__meta">Joao S.</span></div>
+                <div class="task-row tr--complete"><span class="status-chip chip--complete" style="font-size:10px;padding:2px 6px;">Done</span><span class="task-row__name">Validate death certificate data</span><span class="task-row__meta">Maria P.</span></div>
+                <div class="task-row tr--in-progress"><span class="status-chip chip--in-progress" style="font-size:10px;padding:2px 6px;">In progress</span><span class="task-row__name">Submit NIF to tax authority</span><span class="task-row__meta" style="color:var(--color-warning);">5 days</span></div>
+                <div class="task-row tr--awaiting tr--promoted"><span class="status-chip chip--awaiting-evidence" style="font-size:10px;padding:2px 6px;">Needs evidence</span><span class="task-row__name" style="font-weight:600;">Provide utility bill</span><span class="task-row__meta" style="color:var(--color-warning);font-weight:700;">Tomorrow</span></div>
+                <div class="task-row tr--ready"><span class="status-chip chip--ready" style="font-size:10px;padding:2px 6px;">Ready</span><span class="task-row__name">Request bank account freeze</span><span class="task-row__meta">12 days</span></div>
+                <div class="task-row tr--blocked"><span class="status-chip chip--blocked" style="font-size:10px;padding:2px 6px;">Blocked</span><span class="task-row__name">Notify insurance provider</span><span class="task-row__meta">Pending</span></div>
+                <div class="task-row tr--blocked"><span class="status-chip chip--blocked" style="font-size:10px;padding:2px 6px;">Blocked</span><span class="task-row__name">Submit inheritance declaration</span><span class="task-row__meta">Pending</span></div>
+                <div class="task-row" style="border-left-color:var(--gray-300);"><span class="status-chip chip--not-started" style="font-size:10px;padding:2px 6px;">Not started</span><span class="task-row__name">Close bank accounts</span><span class="task-row__meta">—</span></div>
+                <div class="task-row" style="border-left-color:var(--gray-300);"><span class="status-chip chip--not-started" style="font-size:10px;padding:2px 6px;">Not started</span><span class="task-row__name">Transfer property title</span><span class="task-row__meta">—</span></div>
+                <div class="task-row" style="border-left-color:var(--gray-300);"><span class="status-chip chip--not-started" style="font-size:10px;padding:2px 6px;">Not started</span><span class="task-row__name">Final settlement review</span><span class="task-row__meta">—</span></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Detail Panel (right sidebar) -->
+          <div class="detail-panel">
+            <div class="detail-panel__title">Participants</div>
+            <div style="margin-bottom:var(--space-5);">
+              <div style="display:flex;align-items:center;gap:var(--space-2);margin-bottom:var(--space-3);">
+                <span class="avatar av--manager" style="width:28px;height:28px;font-size:10px;">MP</span>
+                <div><div style="font-size:var(--text-sm);font-weight:500;">Maria Pereira</div><span class="role-badge rb--manager" style="font-size:10px;"><i data-lucide="shield" style="width:10px;height:10px;"></i> Manager</span></div>
+              </div>
+              <div style="display:flex;align-items:center;gap:var(--space-2);margin-bottom:var(--space-3);">
+                <span class="avatar av--editor" style="width:28px;height:28px;font-size:10px;">JS</span>
+                <div><div style="font-size:var(--text-sm);font-weight:500;">Joao Santos</div><span class="role-badge rb--editor" style="font-size:10px;"><i data-lucide="edit-3" style="width:10px;height:10px;"></i> Editor</span></div>
+              </div>
+              <div style="display:flex;align-items:center;gap:var(--space-2);">
+                <span class="avatar av--reader" style="width:28px;height:28px;font-size:10px;">AR</span>
+                <div><div style="font-size:var(--text-sm);font-weight:500;">Ana Rodrigues</div><span class="role-badge rb--reader" style="font-size:10px;"><i data-lucide="eye" style="width:10px;height:10px;"></i> Reader</span></div>
+              </div>
+              <button class="btn btn--secondary btn--sm" style="margin-top:var(--space-3);width:100%;">Invite participant</button>
+            </div>
+
+            <div class="detail-panel__title">Documents</div>
+            <div class="doc-card">
+              <div class="doc-card__icon"><i data-lucide="file-text" style="width:16px;height:16px;"></i></div>
+              <div class="doc-card__info"><div class="doc-card__name">Death Certificate</div><div class="doc-card__meta">PDF &middot; 2.3 MB</div></div>
+              <span class="doc-class dc--legal">Legal</span>
+            </div>
+            <div class="doc-card">
+              <div class="doc-card__icon" style="background:var(--color-amber-light);color:var(--gray-900);"><i data-lucide="file-spreadsheet" style="width:16px;height:16px;"></i></div>
+              <div class="doc-card__info"><div class="doc-card__name">Bank Statement</div><div class="doc-card__meta">PDF &middot; 1.1 MB</div></div>
+              <span class="doc-class dc--financial">Financial</span>
+            </div>
+            <button class="btn btn--primary btn--sm" style="margin-top:var(--space-3);width:100%;"><i data-lucide="upload" style="width:14px;height:14px;"></i> Upload document</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================
+       SCREEN 7: EXTRACTION REVIEW
+       ============================================ -->
+  <div class="screen-container" id="screen-extraction-review">
+    <div class="app-shell">
+      <div class="sidebar">
+        <div class="sidebar__logo">Sanzu</div>
+        <a class="sidebar__item"><i data-lucide="layout-dashboard"></i> Dashboard</a>
+        <a class="sidebar__item sidebar__item--active"><i data-lucide="briefcase"></i> Cases</a>
+        <a class="sidebar__item"><i data-lucide="file-text"></i> Documents</a>
+        <a class="sidebar__item"><i data-lucide="users"></i> People</a>
+        <a class="sidebar__item"><i data-lucide="clock"></i> Timeline</a>
+      </div>
+      <div class="main-content" style="display:flex;flex-direction:column;">
+        <div class="topbar">
+          <div class="topbar__breadcrumb">Cases / Estate of Maria Santos / <strong>Review Extraction</strong></div>
+          <div class="topbar__user">
+            <span class="role-badge rb--manager"><i data-lucide="shield" style="width:12px;height:12px;"></i> Manager</span>
+            <span class="topbar__user-name">Maria Pereira</span>
+          </div>
+        </div>
+        <div style="flex:1;display:flex;overflow:hidden;">
+          <!-- Source Document Preview -->
+          <div style="flex:1;background:var(--gray-100);padding:var(--space-5);overflow-y:auto;border-right:var(--border-default);">
+            <div style="font-size:var(--text-sm);font-weight:600;color:var(--gray-700);margin-bottom:var(--space-3);">Source Document</div>
+            <div style="background:var(--white);border:var(--border-default);border-radius:var(--radius-md);padding:var(--space-6);box-shadow:var(--shadow-sm);max-width:500px;font-size:var(--text-sm);line-height:1.8;">
+              <div style="text-align:center;margin-bottom:var(--space-6);">
+                <div style="font-size:var(--text-lg);font-weight:700;">DECLARACAO FISCAL</div>
+                <div style="font-size:var(--text-xs);color:var(--gray-500);">Autoridade Tributaria e Aduaneira</div>
+              </div>
+              <p>Declara-se para os devidos efeitos que o contribuinte n.o <mark style="background:var(--color-success-light);border:1px solid var(--color-success);border-radius:2px;padding:0 4px;">234567891</mark> referente ao ano fiscal de 2025, apresentou as seguintes obrigacoes declarativas:</p>
+              <p style="margin-top:var(--space-4);">Nome: <mark style="background:var(--color-danger-light);border:1px solid var(--color-danger);border-radius:2px;padding:0 4px;">M. Santos</mark></p>
+              <p style="margin-top:var(--space-2);">Morada: <mark style="background:var(--color-success-light);border:1px solid var(--color-success);border-radius:2px;padding:0 4px;">Rua das Flores 42, 1200-195 Lisboa</mark></p>
+              <p style="margin-top:var(--space-2);">Data de nascimento: <mark style="background:var(--color-success-light);border:1px solid var(--color-success);border-radius:2px;padding:0 4px;">15/03/1958</mark></p>
+              <p style="margin-top:var(--space-4);font-size:var(--text-xs);color:var(--gray-500);">Emitido em: 10/01/2026</p>
+            </div>
+            <div style="font-size:var(--text-xs);color:var(--gray-500);margin-top:var(--space-3);display:flex;align-items:center;gap:var(--space-2);">
+              <span style="color:var(--color-success);">Green highlight</span> = High confidence &middot;
+              <span style="color:var(--color-danger);">Red highlight</span> = Low confidence
+            </div>
+          </div>
+
+          <!-- Extraction Fields -->
+          <div style="width:420px;background:var(--white);padding:var(--space-5);overflow-y:auto;flex-shrink:0;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-5);">
+              <div>
+                <div style="font-size:var(--text-base);font-weight:600;">Review Extracted Data</div>
+                <div style="font-size:var(--text-xs);color:var(--gray-500);">4 fields extracted from Tax Declaration</div>
+              </div>
+            </div>
+
+            <!-- Field 1: NIF -->
+            <div style="border:var(--border-default);border-radius:var(--radius-md);padding:var(--space-4);margin-bottom:var(--space-3);">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-2);">
+                <span style="font-size:var(--text-xs);font-weight:600;color:var(--gray-500);text-transform:uppercase;letter-spacing:0.05em;">Tax Number (NIF)</span>
+                <span style="display:inline-flex;align-items:center;gap:4px;font-size:var(--text-xs);color:var(--color-success);font-weight:500;"><span style="width:8px;height:8px;border-radius:50%;background:var(--color-success);display:inline-block;"></span> 96%</span>
+              </div>
+              <div style="font-size:var(--text-xs);color:var(--gray-500);background:var(--gray-100);padding:var(--space-2) var(--space-3);border-radius:var(--radius-sm);border-left:3px solid var(--color-info);margin-bottom:var(--space-2);font-family:var(--font-mono);">"...contribuinte n.o <strong>234567891</strong> referente ao..."</div>
+              <div style="font-size:var(--text-base);font-weight:500;padding:var(--space-2) 0;margin-bottom:var(--space-2);">234567891</div>
+              <div style="display:flex;gap:var(--space-2);">
+                <button class="btn btn--primary btn--sm">Accept</button>
+                <button class="btn btn--secondary btn--sm">Edit</button>
+                <button class="btn btn--ghost btn--sm" style="color:var(--color-danger);">Reject</button>
+              </div>
+            </div>
+
+            <!-- Field 2: Name (low confidence) -->
+            <div style="border:2px solid var(--color-danger);border-radius:var(--radius-md);padding:var(--space-4);margin-bottom:var(--space-3);background:var(--color-danger-light);">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-2);">
+                <span style="font-size:var(--text-xs);font-weight:600;color:var(--gray-500);text-transform:uppercase;letter-spacing:0.05em;">Full Name</span>
+                <span style="display:inline-flex;align-items:center;gap:4px;font-size:var(--text-xs);color:var(--color-danger);font-weight:600;"><span style="width:8px;height:8px;border-radius:50%;background:var(--color-danger);display:inline-block;"></span> 42% — Verify carefully</span>
+              </div>
+              <div style="font-size:var(--text-xs);color:var(--gray-500);background:var(--white);padding:var(--space-2) var(--space-3);border-radius:var(--radius-sm);border-left:3px solid var(--color-info);margin-bottom:var(--space-2);font-family:var(--font-mono);">"Nome: <strong>M. Santos</strong>"</div>
+              <div style="font-size:var(--text-base);font-weight:500;padding:var(--space-2) 0;margin-bottom:var(--space-2);color:var(--color-danger);">M. Santos</div>
+              <div style="display:flex;gap:var(--space-2);">
+                <button class="btn btn--primary btn--sm">Accept</button>
+                <button class="btn btn--secondary btn--sm">Edit</button>
+                <button class="btn btn--ghost btn--sm" style="color:var(--color-danger);">Reject</button>
+              </div>
+            </div>
+
+            <!-- Field 3: Address -->
+            <div style="border:var(--border-default);border-radius:var(--radius-md);padding:var(--space-4);margin-bottom:var(--space-3);">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-2);">
+                <span style="font-size:var(--text-xs);font-weight:600;color:var(--gray-500);text-transform:uppercase;letter-spacing:0.05em;">Address</span>
+                <span style="display:inline-flex;align-items:center;gap:4px;font-size:var(--text-xs);color:var(--color-success);font-weight:500;"><span style="width:8px;height:8px;border-radius:50%;background:var(--color-success);display:inline-block;"></span> 94%</span>
+              </div>
+              <div style="font-size:var(--text-xs);color:var(--gray-500);background:var(--gray-100);padding:var(--space-2) var(--space-3);border-radius:var(--radius-sm);border-left:3px solid var(--color-info);margin-bottom:var(--space-2);font-family:var(--font-mono);">"Morada: <strong>Rua das Flores 42, 1200-195 Lisboa</strong>"</div>
+              <div style="font-size:var(--text-base);font-weight:500;padding:var(--space-2) 0;margin-bottom:var(--space-2);">Rua das Flores 42, 1200-195 Lisboa</div>
+              <div style="display:flex;gap:var(--space-2);">
+                <button class="btn btn--primary btn--sm">Accept</button>
+                <button class="btn btn--secondary btn--sm">Edit</button>
+                <button class="btn btn--ghost btn--sm" style="color:var(--color-danger);">Reject</button>
+              </div>
+            </div>
+
+            <!-- Field 4: DOB -->
+            <div style="border:var(--border-default);border-radius:var(--radius-md);padding:var(--space-4);margin-bottom:var(--space-5);">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-2);">
+                <span style="font-size:var(--text-xs);font-weight:600;color:var(--gray-500);text-transform:uppercase;letter-spacing:0.05em;">Date of Birth</span>
+                <span style="display:inline-flex;align-items:center;gap:4px;font-size:var(--text-xs);color:var(--color-success);font-weight:500;"><span style="width:8px;height:8px;border-radius:50%;background:var(--color-success);display:inline-block;"></span> 98%</span>
+              </div>
+              <div style="font-size:var(--text-xs);color:var(--gray-500);background:var(--gray-100);padding:var(--space-2) var(--space-3);border-radius:var(--radius-sm);border-left:3px solid var(--color-info);margin-bottom:var(--space-2);font-family:var(--font-mono);">"Data de nascimento: <strong>15/03/1958</strong>"</div>
+              <div style="font-size:var(--text-base);font-weight:500;padding:var(--space-2) 0;margin-bottom:var(--space-2);">15/03/1958</div>
+              <div style="display:flex;gap:var(--space-2);">
+                <button class="btn btn--primary btn--sm">Accept</button>
+                <button class="btn btn--secondary btn--sm">Edit</button>
+                <button class="btn btn--ghost btn--sm" style="color:var(--color-danger);">Reject</button>
+              </div>
+            </div>
+
+            <!-- Bulk actions -->
+            <div style="border-top:2px solid var(--gray-300);padding-top:var(--space-4);display:flex;gap:var(--space-2);">
+              <button class="btn btn--primary" style="flex:1;">Accept All High-Confidence</button>
+              <button class="btn btn--secondary">Accept All</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function showScreen(name) {
+      document.querySelectorAll('.screen-container').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.screen-tab').forEach(el => el.classList.remove('screen-tab--active'));
+      document.getElementById('screen-' + name).classList.add('active');
+      event.target.classList.add('screen-tab--active');
+      lucide.createIcons();
+    }
+    lucide.createIcons();
+  </script>
+
+</body>
+</html>

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import HandoffInboxPage from "../../app/app/cases/[caseId]/handoffs/inbox/page";
+import HandoffInboxPage from "../../app/[locale]/app/cases/[caseId]/handoffs/inbox/page";
 
 describe("Story 5.6 handoff and process inbox routes", () => {
   it("renders handoff metadata and role-blocked state controls", () => {

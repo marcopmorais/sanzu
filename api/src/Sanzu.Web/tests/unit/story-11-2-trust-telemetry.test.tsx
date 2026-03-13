@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import TrustTelemetryPage from "../../app/app/governance/telemetry/page";
+import TrustTelemetryPage from "../../app/[locale]/app/governance/telemetry/page";
 
 test("Trust telemetry page renders key sections", () => {
   const html = renderToStaticMarkup(<TrustTelemetryPage />);

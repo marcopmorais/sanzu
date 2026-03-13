@@ -1,8 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import PlaybooksListPage from "../../app/app/settings/playbooks/page";
-import CreatePlaybookPage from "../../app/app/settings/playbooks/new/page";
+import PlaybooksListPage from "../../app/[locale]/app/settings/playbooks/page";
+import CreatePlaybookPage from "../../app/[locale]/app/settings/playbooks/new/page";
 
 describe("Story 10-1 agency playbooks routes", () => {
   it("renders playbooks list page with expected structure", () => {

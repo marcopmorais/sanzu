@@ -18,19 +18,19 @@ public sealed class TenantSubscriptionServiceTests
     public async Task PreviewPlanChange_ShouldReturnPreview_WhenUpgrading()
     {
         var dbContext = CreateContext();
-        var (tenantId, userId) = await SeedActiveTenantAsync(dbContext, "STARTER", "MONTHLY");
+        var (tenantId, userId) = await SeedActiveTenantAsync(dbContext, "INICIAL", "MONTHLY");
         var service = CreateService(dbContext);
 
         var result = await service.PreviewPlanChangeAsync(
             tenantId,
             userId,
-            new PreviewPlanChangeRequest { PlanCode = "Growth", BillingCycle = "Monthly" },
+            new PreviewPlanChangeRequest { PlanCode = "Profissional", BillingCycle = "Monthly" },
             CancellationToken.None);
 
-        result.CurrentPlan.Should().Be("STARTER");
-        result.NewPlan.Should().Be("GROWTH");
-        result.CurrentMonthlyPrice.Should().Be(149m);
-        result.NewMonthlyPrice.Should().Be(399m);
+        result.CurrentPlan.Should().Be("INICIAL");
+        result.NewPlan.Should().Be("PROFISSIONAL");
+        result.CurrentMonthlyPrice.Should().Be(49m);
+        result.NewMonthlyPrice.Should().Be(99m);
         result.ProrationAmount.Should().BeGreaterThanOrEqualTo(0);
         result.Description.Should().Contain("Upgrade");
     }
@@ -39,17 +39,17 @@ public sealed class TenantSubscriptionServiceTests
     public async Task PreviewPlanChange_ShouldReturnNegativeProration_WhenDowngrading()
     {
         var dbContext = CreateContext();
-        var (tenantId, userId) = await SeedActiveTenantAsync(dbContext, "GROWTH", "MONTHLY");
+        var (tenantId, userId) = await SeedActiveTenantAsync(dbContext, "PROFISSIONAL", "MONTHLY");
         var service = CreateService(dbContext);
 
         var result = await service.PreviewPlanChangeAsync(
             tenantId,
             userId,
-            new PreviewPlanChangeRequest { PlanCode = "Starter", BillingCycle = "Monthly" },
+            new PreviewPlanChangeRequest { PlanCode = "Inicial", BillingCycle = "Monthly" },
             CancellationToken.None);
 
-        result.CurrentPlan.Should().Be("GROWTH");
-        result.NewPlan.Should().Be("STARTER");
+        result.CurrentPlan.Should().Be("PROFISSIONAL");
+        result.NewPlan.Should().Be("INICIAL");
         result.ProrationAmount.Should().BeLessThanOrEqualTo(0);
         result.Description.Should().Contain("Downgrade");
     }
@@ -58,13 +58,13 @@ public sealed class TenantSubscriptionServiceTests
     public async Task PreviewPlanChange_ShouldThrowStateException_WhenSamePlanAndCycle()
     {
         var dbContext = CreateContext();
-        var (tenantId, userId) = await SeedActiveTenantAsync(dbContext, "STARTER", "MONTHLY");
+        var (tenantId, userId) = await SeedActiveTenantAsync(dbContext, "INICIAL", "MONTHLY");
         var service = CreateService(dbContext);
 
         var act = () => service.PreviewPlanChangeAsync(
             tenantId,
             userId,
-            new PreviewPlanChangeRequest { PlanCode = "Starter", BillingCycle = "Monthly" },
+            new PreviewPlanChangeRequest { PlanCode = "Inicial", BillingCycle = "Monthly" },
             CancellationToken.None);
 
         await act.Should().ThrowAsync<TenantOnboardingStateException>()
@@ -75,13 +75,13 @@ public sealed class TenantSubscriptionServiceTests
     public async Task PreviewPlanChange_ShouldThrowStateException_WhenTenantNotActive()
     {
         var dbContext = CreateContext();
-        var (tenantId, userId) = await SeedTenantAsync(dbContext, TenantStatus.Pending, "STARTER", "MONTHLY");
+        var (tenantId, userId) = await SeedTenantAsync(dbContext, TenantStatus.Pending, "INICIAL", "MONTHLY");
         var service = CreateService(dbContext);
 
         var act = () => service.PreviewPlanChangeAsync(
             tenantId,
             userId,
-            new PreviewPlanChangeRequest { PlanCode = "Growth", BillingCycle = "Monthly" },
+            new PreviewPlanChangeRequest { PlanCode = "Profissional", BillingCycle = "Monthly" },
             CancellationToken.None);
 
         await act.Should().ThrowAsync<TenantOnboardingStateException>()
@@ -92,13 +92,13 @@ public sealed class TenantSubscriptionServiceTests
     public async Task ChangePlan_ShouldUpdatePlanAndWriteAudit_WhenUpgrading()
     {
         var dbContext = CreateContext();
-        var (tenantId, userId) = await SeedActiveTenantAsync(dbContext, "STARTER", "MONTHLY");
+        var (tenantId, userId) = await SeedActiveTenantAsync(dbContext, "INICIAL", "MONTHLY");
         var service = CreateService(dbContext);
 
         var preview = await service.PreviewPlanChangeAsync(
             tenantId,
             userId,
-            new PreviewPlanChangeRequest { PlanCode = "Growth", BillingCycle = "Monthly" },
+            new PreviewPlanChangeRequest { PlanCode = "Profissional", BillingCycle = "Monthly" },
             CancellationToken.None);
 
         var result = await service.ChangePlanAsync(
@@ -106,30 +106,30 @@ public sealed class TenantSubscriptionServiceTests
             userId,
             new ChangePlanRequest
             {
-                PlanCode = "Growth",
+                PlanCode = "Profissional",
                 BillingCycle = "Monthly",
                 ConfirmedProrationAmount = preview.ProrationAmount
             },
             CancellationToken.None);
 
-        result.PlanCode.Should().Be("GROWTH");
-        result.PreviousPlan.Should().Be("STARTER");
+        result.PlanCode.Should().Be("PROFISSIONAL");
+        result.PreviousPlan.Should().Be("INICIAL");
         result.TenantId.Should().Be(tenantId);
 
         var tenant = await dbContext.Organizations.FindAsync(tenantId);
-        tenant!.SubscriptionPlan.Should().Be("GROWTH");
-        tenant.PreviousSubscriptionPlan.Should().Be("STARTER");
+        tenant!.SubscriptionPlan.Should().Be("PROFISSIONAL");
+        tenant.PreviousSubscriptionPlan.Should().Be("INICIAL");
 
         var audit = await dbContext.AuditEvents.FirstAsync(x => x.EventType == "TenantSubscriptionPlanChanged");
-        audit.Metadata.Should().Contain("STARTER");
-        audit.Metadata.Should().Contain("GROWTH");
+        audit.Metadata.Should().Contain("INICIAL");
+        audit.Metadata.Should().Contain("PROFISSIONAL");
     }
 
     [Fact]
     public async Task ChangePlan_ShouldThrowConflict_WhenProrationMismatch()
     {
         var dbContext = CreateContext();
-        var (tenantId, userId) = await SeedActiveTenantAsync(dbContext, "STARTER", "MONTHLY");
+        var (tenantId, userId) = await SeedActiveTenantAsync(dbContext, "INICIAL", "MONTHLY");
         var service = CreateService(dbContext);
 
         var act = () => service.ChangePlanAsync(
@@ -137,7 +137,7 @@ public sealed class TenantSubscriptionServiceTests
             userId,
             new ChangePlanRequest
             {
-                PlanCode = "Growth",
+                PlanCode = "Profissional",
                 BillingCycle = "Monthly",
                 ConfirmedProrationAmount = 9999.99m
             },
@@ -151,7 +151,7 @@ public sealed class TenantSubscriptionServiceTests
     public async Task ChangePlan_ShouldThrowStateException_WhenSamePlanAndCycle()
     {
         var dbContext = CreateContext();
-        var (tenantId, userId) = await SeedActiveTenantAsync(dbContext, "GROWTH", "MONTHLY");
+        var (tenantId, userId) = await SeedActiveTenantAsync(dbContext, "PROFISSIONAL", "MONTHLY");
         var service = CreateService(dbContext);
 
         var act = () => service.ChangePlanAsync(
@@ -159,7 +159,7 @@ public sealed class TenantSubscriptionServiceTests
             userId,
             new ChangePlanRequest
             {
-                PlanCode = "Growth",
+                PlanCode = "Profissional",
                 BillingCycle = "Monthly",
                 ConfirmedProrationAmount = 0m
             },
@@ -173,7 +173,7 @@ public sealed class TenantSubscriptionServiceTests
     public async Task CancelSubscription_ShouldSuspendTenantAndWriteAudit_WhenValid()
     {
         var dbContext = CreateContext();
-        var (tenantId, userId) = await SeedActiveTenantAsync(dbContext, "GROWTH", "MONTHLY");
+        var (tenantId, userId) = await SeedActiveTenantAsync(dbContext, "PROFISSIONAL", "MONTHLY");
         var service = CreateService(dbContext);
 
         var result = await service.CancelSubscriptionAsync(
@@ -203,7 +203,7 @@ public sealed class TenantSubscriptionServiceTests
     public async Task CancelSubscription_ShouldThrowStateException_WhenAlreadyCancelled()
     {
         var dbContext = CreateContext();
-        var (tenantId, userId) = await SeedActiveTenantAsync(dbContext, "GROWTH", "MONTHLY");
+        var (tenantId, userId) = await SeedActiveTenantAsync(dbContext, "PROFISSIONAL", "MONTHLY");
 
         var tenant = await dbContext.Organizations.FindAsync(tenantId);
         tenant!.SubscriptionCancelledAt = DateTime.UtcNow.AddDays(-1);
@@ -229,7 +229,7 @@ public sealed class TenantSubscriptionServiceTests
     public async Task CancelSubscription_ShouldThrowStateException_WhenTenantNotActive()
     {
         var dbContext = CreateContext();
-        var (tenantId, userId) = await SeedTenantAsync(dbContext, TenantStatus.Pending, "STARTER", "MONTHLY");
+        var (tenantId, userId) = await SeedTenantAsync(dbContext, TenantStatus.Pending, "INICIAL", "MONTHLY");
         var service = CreateService(dbContext);
 
         var act = () => service.CancelSubscriptionAsync(
@@ -250,13 +250,13 @@ public sealed class TenantSubscriptionServiceTests
     public async Task ChangePlan_ShouldHandleBillingCycleChange_WhenOnlyBillingCycleChanges()
     {
         var dbContext = CreateContext();
-        var (tenantId, userId) = await SeedActiveTenantAsync(dbContext, "STARTER", "MONTHLY");
+        var (tenantId, userId) = await SeedActiveTenantAsync(dbContext, "INICIAL", "MONTHLY");
         var service = CreateService(dbContext);
 
         var preview = await service.PreviewPlanChangeAsync(
             tenantId,
             userId,
-            new PreviewPlanChangeRequest { PlanCode = "Starter", BillingCycle = "Annual" },
+            new PreviewPlanChangeRequest { PlanCode = "Inicial", BillingCycle = "Annual" },
             CancellationToken.None);
 
         var result = await service.ChangePlanAsync(
@@ -264,13 +264,13 @@ public sealed class TenantSubscriptionServiceTests
             userId,
             new ChangePlanRequest
             {
-                PlanCode = "Starter",
+                PlanCode = "Inicial",
                 BillingCycle = "Annual",
                 ConfirmedProrationAmount = preview.ProrationAmount
             },
             CancellationToken.None);
 
-        result.PlanCode.Should().Be("STARTER");
+        result.PlanCode.Should().Be("INICIAL");
         result.BillingCycle.Should().Be("ANNUAL");
         result.PreviousBillingCycle.Should().Be("MONTHLY");
     }

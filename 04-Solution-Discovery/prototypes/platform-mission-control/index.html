@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sanzu Platform Mission Control | Epic 12 Prototype</title>
+
+  <!-- Design System Styles -->
+  <link rel="stylesheet" href="../design-system/tokens/grief-aware-tokens.css">
+  <link rel="stylesheet" href="../design-system/base.css">
+  <link rel="stylesheet" href="../design-system/components/button.css">
+  <link rel="stylesheet" href="./mission-control.css">
+
+  <meta name="description" content="Platform Mission Control prototype - Epic 12: Fleet posture, admin queues, event stream, and closed-loop remediation">
+</head>
+<body>
+
+  <!-- Skip Link for Accessibility -->
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+
+  <!-- Header - Platform Mission Control -->
+  <header class="mc-header">
+    <div class="container">
+      <div class="row row-between">
+        <div class="row">
+          <h1 class="mc-header-title">Platform Mission Control</h1>
+          <span class="mc-badge mc-badge-live">
+            <span class="mc-pulse" aria-hidden="true"></span>
+            Live
+          </span>
+        </div>
+        <div class="row">
+          <span class="text-sm text-secondary">Admin: maria.silva@sanzu.ai</span>
+          <button class="btn btn-tertiary btn-sm">
+            <span aria-hidden="true">⚙️</span>
+            Settings
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main id="main-content" class="container mt-6">
+
+    <!-- Fleet Posture Overview - High-Level Health -->
+    <section class="mc-section" aria-labelledby="fleet-heading">
+      <div class="row row-between mb-4">
+        <h2 id="fleet-heading" class="text-xl">Fleet Posture</h2>
+        <div class="row">
+          <span class="text-sm text-secondary">Last updated: 2 min ago</span>
+          <button class="btn btn-tertiary btn-sm" aria-label="Refresh fleet data">
+            <span aria-hidden="true">🔄</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Fleet Health Metrics -->
+      <div class="grid grid-4">
+        <!-- Total Tenants -->
+        <div class="mc-metric-card">
+          <div class="mc-metric-label">Total Tenants</div>
+          <div class="mc-metric-value">34</div>
+          <div class="mc-metric-trend mc-trend-neutral">
+            <span aria-hidden="true">→</span>
+            No change
+          </div>
+        </div>
+
+        <!-- Healthy -->
+        <div class="mc-metric-card mc-metric-healthy">
+          <div class="mc-metric-label">Healthy</div>
+          <div class="mc-metric-value">28</div>
+          <div class="mc-metric-trend mc-trend-positive">
+            <span aria-hidden="true">↗</span>
+            +2 from yesterday
+          </div>
+        </div>
+
+        <!-- At Risk -->
+        <div class="mc-metric-card mc-metric-warning">
+          <div class="mc-metric-label">At Risk</div>
+          <div class="mc-metric-value">4</div>
+          <div class="mc-metric-trend mc-trend-neutral">
+            <span aria-hidden="true">→</span>
+            No change
+          </div>
+        </div>
+
+        <!-- Critical -->
+        <div class="mc-metric-card mc-metric-critical">
+          <div class="mc-metric-label">Critical</div>
+          <div class="mc-metric-value">2</div>
+          <div class="mc-metric-trend mc-trend-negative">
+            <span aria-hidden="true">↗</span>
+            +1 from yesterday
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Admin Operational Queues - EPIC 12 Core -->
+    <section class="mc-section mt-8" aria-labelledby="queues-heading">
+      <h2 id="queues-heading" class="text-xl mb-4">Operational Queues</h2>
+      <p class="text-sm text-secondary mb-6">Issues requiring admin attention, sorted by severity and age</p>
+
+      <!-- Queue Tabs -->
+      <div class="mc-queue-tabs" role="tablist">
+        <button class="mc-queue-tab mc-queue-tab-active" role="tab" aria-selected="true" aria-controls="queue-panel-all" id="tab-all">
+          All Issues
+          <span class="mc-badge mc-badge-count">8</span>
+        </button>
+        <button class="mc-queue-tab" role="tab" aria-selected="false" aria-controls="queue-panel-onboarding" id="tab-onboarding">
+          Onboarding Stuck
+          <span class="mc-badge mc-badge-count">2</span>
+        </button>
+        <button class="mc-queue-tab" role="tab" aria-selected="false" aria-controls="queue-panel-compliance" id="tab-compliance">
+          Compliance
+          <span class="mc-badge mc-badge-count">1</span>
+        </button>
+        <button class="mc-queue-tab" role="tab" aria-selected="false" aria-controls="queue-panel-kpi" id="tab-kpi">
+          KPI Breach
+          <span class="mc-badge mc-badge-count">2</span>
+        </button>
+        <button class="mc-queue-tab" role="tab" aria-selected="false" aria-controls="queue-panel-payment" id="tab-payment">
+          Failed Payment
+          <span class="mc-badge mc-badge-count">1</span>
+        </button>
+        <button class="mc-queue-tab" role="tab" aria-selected="false" aria-controls="queue-panel-support" id="tab-support">
+          Support Escalation
+          <span class="mc-badge mc-badge-count">2</span>
+        </button>
+      </div>
+
+      <!-- Queue Panel: All Issues (Active) -->
+      <div class="mc-queue-panel" role="tabpanel" id="queue-panel-all" aria-labelledby="tab-all">
+
+        <!-- Queue Item 1 - Critical (ADM_FailedPayment) -->
+        <div class="mc-queue-item mc-queue-item-critical" data-tenant-id="TNT_001">
+          <div class="mc-queue-item-header">
+            <div class="row">
+              <span class="mc-severity mc-severity-critical" aria-label="Critical severity">
+                <span aria-hidden="true">🔴</span>
+              </span>
+              <div>
+                <h3 class="mc-queue-item-title">Failed Payment - Grace Period Expiring</h3>
+                <div class="mc-queue-item-meta">
+                  <span class="text-sm">Tenant: <strong>Funerária Lisboa Centro</strong> (TNT_001)</span>
+                  <span class="text-sm text-tertiary">•</span>
+                  <span class="text-sm text-tertiary">First detected: 5 days ago</span>
+                </div>
+              </div>
+            </div>
+            <button class="btn btn-primary btn-sm mc-queue-item-action" data-action="remediate" data-queue-item-id="QI_001">
+              Remediate
+            </button>
+          </div>
+
+          <!-- Reason-Coded Explanation (Collapsed by default) -->
+          <div class="mc-queue-item-details" hidden>
+            <div class="mc-reason-panel">
+              <h4 class="text-sm text-semibold mb-2">Why this is in the queue:</h4>
+              <div class="mc-reason-tag">
+                <span class="mc-reason-code">PaymentOrBilling</span>
+                <span class="mc-reason-label">Billing issue</span>
+              </div>
+              <p class="text-sm mt-2">
+                Payment failed on 2026-02-09. Grace period expires in <strong>2 days</strong>.
+                Tenant has 3 active cases that will be restricted if payment is not recovered.
+              </p>
+            </div>
+
+            <div class="mc-event-stream mt-4">
+              <h4 class="text-sm text-semibold mb-2">Recent events:</h4>
+              <ul class="mc-event-list">
+                <li class="mc-event-item">
+                  <span class="mc-event-time">2026-02-14 08:23</span>
+                  <span class="mc-event-type">PaymentRetryFailed</span>
+                  <span class="mc-event-detail">Automatic retry #3 failed - card declined</span>
+                </li>
+                <li class="mc-event-item">
+                  <span class="mc-event-time">2026-02-12 14:15</span>
+                  <span class="mc-event-type">PaymentRetryFailed</span>
+                  <span class="mc-event-detail">Automatic retry #2 failed - insufficient funds</span>
+                </li>
+                <li class="mc-event-item">
+                  <span class="mc-event-time">2026-02-09 09:00</span>
+                  <span class="mc-event-type">PaymentFailed</span>
+                  <span class="mc-event-detail">Initial charge failed - card declined</span>
+                </li>
+              </ul>
+            </div>
+
+            <div class="mc-default-action mt-4">
+              <h4 class="text-sm text-semibold mb-2">Recommended action:</h4>
+              <p class="text-sm">
+                <strong>Extend grace period</strong> (7 days) and send payment recovery email to tenant owner.
+              </p>
+            </div>
+          </div>
+
+          <button class="mc-queue-item-toggle" aria-expanded="false" aria-controls="details-QI_001">
+            <span class="mc-toggle-text">Show details</span>
+            <span aria-hidden="true">▼</span>
+          </button>
+        </div>
+
+        <!-- Queue Item 2 - Warning (ADM_KpiThresholdBreach) -->
+        <div class="mc-queue-item mc-queue-item-warning" data-tenant-id="TNT_005">
+          <div class="mc-queue-item-header">
+            <div class="row">
+              <span class="mc-severity mc-severity-warning" aria-label="Warning severity">
+                <span aria-hidden="true">🟡</span>
+              </span>
+              <div>
+                <h3 class="mc-queue-item-title">KPI Breach - Case Completion Rate Declining</h3>
+                <div class="mc-queue-item-meta">
+                  <span class="text-sm">Tenant: <strong>Agência Serenidade</strong> (TNT_005)</span>
+                  <span class="text-sm text-tertiary">•</span>
+                  <span class="text-sm text-tertiary">First detected: 2 days ago</span>
+                </div>
+              </div>
+            </div>
+            <button class="btn btn-primary btn-sm mc-queue-item-action" data-action="remediate" data-queue-item-id="QI_002">
+              Remediate
+            </button>
+          </div>
+
+          <div class="mc-queue-item-details" hidden>
+            <div class="mc-reason-panel">
+              <h4 class="text-sm text-semibold mb-2">Why this is in the queue:</h4>
+              <div class="mc-reason-tag">
+                <span class="mc-reason-code">KpiThresholdBreach</span>
+                <span class="mc-reason-label">KPI threshold breach</span>
+              </div>
+              <p class="text-sm mt-2">
+                Case completion rate dropped to <strong>62%</strong> (threshold: 70%).
+                5 of 8 active cases are blocked on <em>EvidenceMissing</em>.
+              </p>
+            </div>
+
+            <div class="mc-event-stream mt-4">
+              <h4 class="text-sm text-semibold mb-2">Recent KPI readings:</h4>
+              <ul class="mc-event-list">
+                <li class="mc-event-item">
+                  <span class="mc-event-time">2026-02-14</span>
+                  <span class="mc-event-type">KpiReading</span>
+                  <span class="mc-event-detail">Completion rate: 62% (below threshold)</span>
+                </li>
+                <li class="mc-event-item">
+                  <span class="mc-event-time">2026-02-13</span>
+                  <span class="mc-event-type">KpiReading</span>
+                  <span class="mc-event-detail">Completion rate: 65% (below threshold)</span>
+                </li>
+                <li class="mc-event-item">
+                  <span class="mc-event-time">2026-02-12</span>
+                  <span class="mc-event-type">KpiReading</span>
+                  <span class="mc-event-detail">Completion rate: 68% (warning)</span>
+                </li>
+              </ul>
+            </div>
+
+            <div class="mc-default-action mt-4">
+              <h4 class="text-sm text-semibold mb-2">Recommended action:</h4>
+              <p class="text-sm">
+                <strong>Contact tenant</strong> to review blocked cases and provide support on evidence collection best practices.
+              </p>
+            </div>
+          </div>
+
+          <button class="mc-queue-item-toggle" aria-expanded="false">
+            <span class="mc-toggle-text">Show details</span>
+            <span aria-hidden="true">▼</span>
+          </button>
+        </div>
+
+        <!-- Queue Item 3 - Info (ADM_OnboardingStuck) -->
+        <div class="mc-queue-item mc-queue-item-info" data-tenant-id="TNT_012">
+          <div class="mc-queue-item-header">
+            <div class="row">
+              <span class="mc-severity mc-severity-info" aria-label="Info severity">
+                <span aria-hidden="true">🔵</span>
+              </span>
+              <div>
+                <h3 class="mc-queue-item-title">Onboarding Stuck - No Progress in 48h</h3>
+                <div class="mc-queue-item-meta">
+                  <span class="text-sm">Tenant: <strong>Funeral Home Porto</strong> (TNT_012)</span>
+                  <span class="text-sm text-tertiary">•</span>
+                  <span class="text-sm text-tertiary">First detected: 1 day ago</span>
+                </div>
+              </div>
+            </div>
+            <button class="btn btn-primary btn-sm mc-queue-item-action" data-action="remediate" data-queue-item-id="QI_003">
+              Remediate
+            </button>
+          </div>
+
+          <div class="mc-queue-item-details" hidden>
+            <div class="mc-reason-panel">
+              <h4 class="text-sm text-semibold mb-2">Why this is in the queue:</h4>
+              <div class="mc-reason-tag">
+                <span class="mc-reason-code">IdentityOrAuth</span>
+                <span class="mc-reason-label">Identity or access problem</span>
+              </div>
+              <p class="text-sm mt-2">
+                Owner invited 2 team members on 2026-02-12, but invites have not been accepted.
+                No login activity in the past 48 hours.
+              </p>
+            </div>
+
+            <div class="mc-event-stream mt-4">
+              <h4 class="text-sm text-semibold mb-2">Recent events:</h4>
+              <ul class="mc-event-list">
+                <li class="mc-event-item">
+                  <span class="mc-event-time">2026-02-12 16:45</span>
+                  <span class="mc-event-type">InviteSent</span>
+                  <span class="mc-event-detail">Invite sent to editor@funeralhomeporto.pt</span>
+                </li>
+                <li class="mc-event-item">
+                  <span class="mc-event-time">2026-02-12 16:44</span>
+                  <span class="mc-event-type">InviteSent</span>
+                  <span class="mc-event-detail">Invite sent to manager@funeralhomeporto.pt</span>
+                </li>
+                <li class="mc-event-item">
+                  <span class="mc-event-time">2026-02-11 11:20</span>
+                  <span class="mc-event-type">TenantCreated</span>
+                  <span class="mc-event-detail">Tenant account created</span>
+                </li>
+              </ul>
+            </div>
+
+            <div class="mc-default-action mt-4">
+              <h4 class="text-sm text-semibold mb-2">Recommended action:</h4>
+              <p class="text-sm">
+                <strong>Resend invites</strong> and send onboarding reminder email to tenant owner.
+              </p>
+            </div>
+          </div>
+
+          <button class="mc-queue-item-toggle" aria-expanded="false">
+            <span class="mc-toggle-text">Show details</span>
+            <span aria-hidden="true">▼</span>
+          </button>
+        </div>
+
+      </div>
+
+      <!-- Other queue panels (hidden initially) -->
+      <div class="mc-queue-panel" role="tabpanel" id="queue-panel-onboarding" aria-labelledby="tab-onboarding" hidden>
+        <p class="text-sm text-secondary">Filtered view: Onboarding Stuck queue (2 items)</p>
+      </div>
+
+    </section>
+
+    <!-- Closed-Loop Remediation Modal (Hidden by default) -->
+    <aside class="mc-modal" id="remediation-modal" hidden aria-labelledby="modal-title" aria-modal="true" role="dialog">
+      <div class="mc-modal-overlay"></div>
+      <div class="mc-modal-content">
+        <div class="mc-modal-header">
+          <h2 id="modal-title" class="text-lg">Remediate Issue - TNT_001</h2>
+          <button class="mc-modal-close" aria-label="Close modal">
+            <span aria-hidden="true">✕</span>
+          </button>
+        </div>
+
+        <div class="mc-modal-body">
+          <!-- Step 1: Explain Impact (Impact Preview) -->
+          <section class="mc-remediation-step">
+            <h3 class="text-base text-semibold mb-2">1. Impact Preview</h3>
+            <div class="mc-impact-panel">
+              <p class="text-sm mb-2"><strong>Proposed action:</strong> Extend grace period by 7 days</p>
+              <p class="text-sm mb-2"><strong>Impact:</strong></p>
+              <ul class="text-sm">
+                <li>✓ Tenant TNT_001 will remain active until 2026-02-21</li>
+                <li>✓ 3 active cases will not be restricted</li>
+                <li>⚠️ Payment recovery email will be sent to owner@lisboacentro.pt</li>
+              </ul>
+            </div>
+          </section>
+
+          <!-- Step 2: Act (Confirmation + Audit Note) -->
+          <section class="mc-remediation-step mt-6">
+            <h3 class="text-base text-semibold mb-2">2. Audit Note (Required)</h3>
+            <label for="audit-note" class="text-sm text-secondary mb-2">
+              Explain why you're taking this action for compliance records:
+            </label>
+            <textarea
+              id="audit-note"
+              class="mc-textarea"
+              rows="3"
+              required
+              placeholder="Example: Tenant requested extension due to accounting department delay. Confirmed payment intent via phone call."
+            ></textarea>
+          </section>
+
+          <!-- Step 3: Verify (Post-Action) -->
+          <section class="mc-remediation-step mt-6">
+            <h3 class="text-base text-semibold mb-2">3. Verification</h3>
+            <p class="text-sm text-secondary">
+              After applying, this issue will be marked as <strong>Remediation In Progress</strong>.
+              It will auto-verify when payment is recovered or re-escalate if grace period expires.
+            </p>
+          </section>
+        </div>
+
+        <div class="mc-modal-footer">
+          <button class="btn btn-tertiary btn-md" id="modal-cancel">Cancel</button>
+          <button class="btn btn-primary btn-md" id="modal-confirm">
+            Apply Remediation
+          </button>
+        </div>
+      </div>
+    </aside>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="mc-footer mt-12">
+    <div class="container">
+      <p class="text-sm text-secondary text-center">
+        Sanzu Platform Mission Control - Epic 12 Prototype (Phase 4: Solution Discovery)
+      </p>
+    </div>
+  </footer>
+
+  <!-- JavaScript for Interactive Elements -->
+  <script src="./mission-control.js"></script>
+
+</body>
+</html>

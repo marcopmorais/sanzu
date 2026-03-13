@@ -20,20 +20,20 @@ vi.mock("@/lib/api-client/generated/admin", () => ({
 
 describe("FunnelAnalyticsPage", () => {
   test("page module exports default component", async () => {
-    const mod = await import("../../app/app/admin/analytics/funnel/page");
+    const mod = await import("../../app/[locale]/app/admin/analytics/funnel/page");
     expect(mod.default).toBeDefined();
     expect(typeof mod.default).toBe("function");
   });
 
   test("renders page title", async () => {
-    const mod = await import("../../app/app/admin/analytics/funnel/page");
+    const mod = await import("../../app/[locale]/app/admin/analytics/funnel/page");
     const Page = mod.default;
     const html = renderToStaticMarkup(<Page />);
     expect(html).toContain("Funnel Analytics");
   });
 
   test("renders cohort filter controls", async () => {
-    const mod = await import("../../app/app/admin/analytics/funnel/page");
+    const mod = await import("../../app/[locale]/app/admin/analytics/funnel/page");
     const Page = mod.default;
     const html = renderToStaticMarkup(<Page />);
     expect(html).toContain("Cohort");
@@ -44,7 +44,7 @@ describe("FunnelAnalyticsPage", () => {
   });
 
   test("renders loading state initially", async () => {
-    const mod = await import("../../app/app/admin/analytics/funnel/page");
+    const mod = await import("../../app/[locale]/app/admin/analytics/funnel/page");
     const Page = mod.default;
     const html = renderToStaticMarkup(<Page />);
     expect(html).toContain("Loading funnel data...");
@@ -60,7 +60,7 @@ describe("FunnelAnalyticsPage", () => {
     const fs = await import("node:fs");
     const path = await import("node:path");
     const src = fs.readFileSync(
-      path.resolve(__dirname, "../../app/app/admin/analytics/funnel/page.tsx"),
+      path.resolve(__dirname, "../../app/[locale]/app/admin/analytics/funnel/page.tsx"),
       "utf-8"
     );
     expect(src).toContain("Acquisition Funnel");

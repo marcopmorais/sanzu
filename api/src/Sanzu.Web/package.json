@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "next": "14.2.32",
+    "next-intl": "^4.8.3",
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "recharts": "^3.7.0"

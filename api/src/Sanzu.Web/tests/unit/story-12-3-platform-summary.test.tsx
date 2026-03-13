@@ -7,7 +7,7 @@ test("Admin API client exports getPlatformSummary", async () => {
 });
 
 test("Platform operations summary page exports default component", async () => {
-  const mod = await import("../../app/app/admin/platform/page");
+  const mod = await import("../../app/[locale]/app/admin/platform/page");
   expect(mod.default).toBeDefined();
   expect(typeof mod.default).toBe("function");
 });

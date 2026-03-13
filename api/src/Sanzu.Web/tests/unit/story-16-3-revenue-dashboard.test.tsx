@@ -37,15 +37,15 @@ describe("PlanDistributionChart", () => {
 
   test("renders with data without throwing", () => {
     const data = [
-      { planName: "Starter", tenantCount: 5, mrr: 745, percentage: 65.2 },
-      { planName: "Professional", tenantCount: 2, mrr: 798, percentage: 34.8 },
+      { planName: "Inicial", tenantCount: 5, mrr: 745, percentage: 65.2 },
+      { planName: "Profissional", tenantCount: 2, mrr: 798, percentage: 34.8 },
     ];
     expect(() => renderToStaticMarkup(<PlanDistributionChart data={data} />)).not.toThrow();
   });
 
   test("includes sr-only text for accessibility", () => {
     const data = [
-      { planName: "Starter", tenantCount: 5, mrr: 745, percentage: 65.2 },
+      { planName: "Inicial", tenantCount: 5, mrr: 745, percentage: 65.2 },
     ];
     const html = renderToStaticMarkup(<PlanDistributionChart data={data} />);
     expect(html).toContain("sr-only");
@@ -53,7 +53,7 @@ describe("PlanDistributionChart", () => {
 
   test("includes data-testid attribute", () => {
     const data = [
-      { planName: "Starter", tenantCount: 5, mrr: 745, percentage: 65.2 },
+      { planName: "Inicial", tenantCount: 5, mrr: 745, percentage: 65.2 },
     ];
     const html = renderToStaticMarkup(<PlanDistributionChart data={data} />);
     expect(html).toContain("plan-distribution-chart");

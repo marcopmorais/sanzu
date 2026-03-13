@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import GovernanceOversightPage from "../../app/app/governance/oversight/page";
+import GovernanceOversightPage from "../../app/[locale]/app/governance/oversight/page";
 
 describe("Story 6.5 governance and oversight route", () => {
   it("renders compliance exception context and operational KPI trends", () => {

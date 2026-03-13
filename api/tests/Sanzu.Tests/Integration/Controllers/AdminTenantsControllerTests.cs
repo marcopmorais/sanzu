@@ -309,7 +309,7 @@ public sealed class AdminTenantsControllerTests : IClassFixture<CustomWebApplica
             Name = $"Tenant-{nameSuffix}",
             Location = "EU-West",
             Status = status,
-            SubscriptionPlan = "Professional",
+            SubscriptionPlan = "Profissional",
             OnboardingCompletedAt = DateTime.UtcNow.AddDays(-30),
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow

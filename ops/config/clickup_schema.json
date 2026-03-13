@@ -1,0 +1,351 @@
+﻿{
+  "version": "3.5.2",
+  "space": {
+    "name": "Sanzu Product System",
+    "folders": [
+      "00_Portfolio",
+      "01_Strategy",
+      "02_Discovery",
+      "03_Definition",
+      "04_Design",
+      "05_Architecture",
+      "06_Delivery",
+      "07_Release",
+      "08_Growth",
+      "09_Lifecycle",
+      "10_Knowledge_Base"
+    ]
+  },
+  "system_principle": {
+    "operational_system": "ClickUp",
+    "knowledge_system": "ClickUp Docs",
+    "experience_source_of_truth": "Figma",
+    "hard_rule": "No build without alignment across ClickUp tasks, linked docs, and validated Figma linkage"
+  },
+  "official_template_mapping": {
+    "01_Strategy": "Product Managers Strategic Plan Template",
+    "02_Discovery": "Quick Start Product Management Template",
+    "03_Definition": "Product Development Work Breakdown Structure Template",
+    "06_Delivery": "Software Development Template",
+    "07_Release": "New Product Development / Example Project Plan Template",
+    "08_Growth": "Product Roadmap Template",
+    "09_Lifecycle": "Product Management Quarterly Review Template",
+    "10_Knowledge_Base": "Sanzu Knowledge OS Docs"
+  },
+  "status_model": {
+    "statuses": [
+      "Draft",
+      "Discovery",
+      "Definition",
+      "Design",
+      "Architecture Review",
+      "Ready for Build",
+      "Building",
+      "QA",
+      "Ready for Release",
+      "Released",
+      "Measuring",
+      "Iterating",
+      "Closed"
+    ],
+    "allowed_transitions": {
+      "Draft": ["Discovery"],
+      "Discovery": ["Definition"],
+      "Definition": ["Design"],
+      "Design": ["Architecture Review"],
+      "Architecture Review": ["Ready for Build"],
+      "Ready for Build": ["Building"],
+      "Building": ["QA"],
+      "QA": ["Ready for Release"],
+      "Ready for Release": ["Released"],
+      "Released": ["Measuring"],
+      "Measuring": ["Iterating"],
+      "Iterating": ["Closed"]
+    }
+  },
+  "custom_fields": [
+    {"name": "Strategic_Theme", "type": "dropdown", "required": true, "phase": "Portfolio"},
+    {"name": "Capital_Type", "type": "dropdown", "options": ["Run", "Grow", "Transform"], "required": true, "phase": "Portfolio"},
+    {"name": "Investment_Size", "type": "number", "required": true, "phase": "Portfolio"},
+    {"name": "Confidence_Level", "type": "number", "min": 1, "max": 5, "required": true, "phase": "Portfolio"},
+    {"name": "Strategic_Fit_Score", "type": "number", "min": 1, "max": 5, "required": true, "phase": "Portfolio"},
+
+    {"name": "Strategic_Doc_Link", "type": "url", "required": true, "phase": "Discovery"},
+    {"name": "Strategy_Link", "type": "relation", "required": true, "phase": "All"},
+    {"name": "Initiative_ID", "type": "text", "required": true, "phase": "All"},
+    {"name": "Feature_ID", "type": "text", "required": true, "phase": "All"},
+
+    {"name": "Problem_Statement", "type": "long_text", "required": true, "phase": "Discovery"},
+    {"name": "Evidence_Level", "type": "dropdown", "options": ["Low", "Medium", "High"], "required": true, "phase": "Discovery"},
+    {"name": "Interview_Count", "type": "number", "required": true, "phase": "Discovery"},
+    {"name": "Risk_Type", "type": "dropdown", "required": true, "phase": "Discovery"},
+    {"name": "Opportunity_Link", "type": "url", "required": true, "phase": "Discovery"},
+
+    {"name": "Economic_Hypothesis", "type": "long_text", "required": true, "phase": "Definition"},
+    {"name": "Acceptance_Criteria_Defined", "type": "boolean", "required": true, "phase": "Definition"},
+    {"name": "Dependencies_Mapped", "type": "boolean", "required": true, "phase": "Definition"},
+
+    {"name": "Figma_File_Link", "type": "url", "required": true, "phase": "Design"},
+    {"name": "Figma_Flow_Link", "type": "url", "required": true, "phase": "Design"},
+    {"name": "Figma_Frame_IDs", "type": "text", "required": true, "phase": "Design"},
+    {"name": "Figma_Version", "type": "text", "required": true, "phase": "Design"},
+    {"name": "UX_Maturity", "type": "dropdown", "options": ["Concept", "Structured", "Test-ready", "Build-approved"], "required": true, "phase": "Design"},
+    {"name": "Edge_States_Documented", "type": "boolean", "required": true, "phase": "Design"},
+    {"name": "Accessibility_Checked", "type": "boolean", "required": true, "phase": "Design"},
+    {"name": "UX_Doc_Link", "type": "url", "required": true, "phase": "Design"},
+    {"name": "Dev_Handoff_Confirmed", "type": "boolean", "required": true, "phase": "Design"},
+
+    {"name": "UX_Revalidation_Required", "type": "boolean", "required": true, "phase": "Design", "auto": true},
+    {"name": "UX_Revalidated", "type": "boolean", "required": true, "phase": "Design"},
+
+    {"name": "Architecture_Approved", "type": "boolean", "required": true, "phase": "Architecture"},
+    {"name": "Security_Approved", "type": "boolean", "required": true, "phase": "Architecture"},
+    {"name": "Data_Compliance_Approved", "type": "boolean", "required": true, "phase": "Architecture"},
+    {"name": "NFR_Defined", "type": "boolean", "required": true, "phase": "Architecture"},
+    {"name": "Architecture_Impact", "type": "boolean", "required": false, "phase": "Architecture"},
+    {"name": "Architecture_Doc_Link", "type": "url", "required": false, "phase": "Architecture"},
+
+    {"name": "Structural_Impact", "type": "boolean", "required": false, "phase": "All"},
+    {"name": "Decision_Log_Entry_ID", "type": "text", "required": false, "phase": "All"},
+    {"name": "Decision_Log_Link", "type": "url", "required": false, "phase": "All"},
+
+    {"name": "Affects_Document_Upload", "type": "boolean", "required": false, "phase": "All"},
+    {"name": "Affects_Role_Permissions", "type": "boolean", "required": false, "phase": "All"},
+    {"name": "Affects_Process_State_Transitions", "type": "boolean", "required": false, "phase": "All"},
+    {"name": "Role_Permission_Matrix_Updated", "type": "boolean", "required": false, "phase": "All"},
+    {"name": "Audit_Trail_Model_Updated", "type": "boolean", "required": false, "phase": "All"},
+    {"name": "Figma_Role_Variations_Confirmed", "type": "boolean", "required": false, "phase": "Design"},
+
+    {"name": "BMBuilder_Ready", "type": "boolean", "required": true, "phase": "Delivery", "auto": true},
+
+    {"name": "Acceptance_Tests_Pass", "type": "boolean", "required": true, "phase": "QA"},
+    {"name": "NFR_Tests_Pass", "type": "boolean", "required": true, "phase": "QA"},
+    {"name": "Audit_Logging_Validated", "type": "boolean", "required": true, "phase": "QA"},
+    {"name": "Role_Permission_Validated", "type": "boolean", "required": true, "phase": "QA"},
+
+    {"name": "Release_Metric", "type": "text", "required": true, "phase": "Release"},
+    {"name": "Baseline_Value", "type": "number", "required": true, "phase": "Release"},
+    {"name": "Expected_Impact", "type": "number", "required": true, "phase": "Release"},
+    {"name": "Observation_Window_Days", "type": "number", "required": true, "phase": "Release"},
+    {"name": "Metrics_Doc_Link", "type": "url", "required": true, "phase": "Release"},
+    {"name": "Rollback_Plan_Link", "type": "url", "required": true, "phase": "Release"},
+
+    {"name": "ROI_Recalculated", "type": "boolean", "required": true, "phase": "Lifecycle"},
+    {"name": "Kill_or_Scale_Decision", "type": "dropdown", "options": ["Scale", "Iterate", "Kill"], "required": true, "phase": "Lifecycle"}
+  ],
+  "automations": [
+    {
+      "name": "A_Discovery_Definition_Block",
+      "trigger": "status_change",
+      "from": "Discovery",
+      "to": "Definition",
+      "conditions": [
+        "Strategic_Doc_Link not empty",
+        "Evidence_Level in ['Medium','High']",
+        "Interview_Count >= 5"
+      ],
+      "on_fail": {
+        "revert_to": "Discovery",
+        "comment": "Discovery -> Definition blocked: missing strategic doc link or insufficient evidence/interviews"
+      }
+    },
+    {
+      "name": "B_Definition_Design_Block",
+      "trigger": "status_change",
+      "from": "Definition",
+      "to": "Design",
+      "conditions": [
+        "Figma_File_Link not empty"
+      ],
+      "on_fail": {
+        "revert_to": "Definition",
+        "comment": "Definition -> Design blocked: Figma_File_Link is required"
+      }
+    },
+    {
+      "name": "C_Design_Architecture_Block",
+      "trigger": "status_change",
+      "from": "Design",
+      "to": "Architecture Review",
+      "conditions": [
+        "UX_Maturity == 'Build-approved'",
+        "Figma_Flow_Link not empty",
+        "Figma_Frame_IDs not empty",
+        "Edge_States_Documented == true",
+        "Accessibility_Checked == true",
+        "UX_Doc_Link not empty",
+        "UX_Revalidation_Required == false OR UX_Revalidated == true"
+      ],
+      "on_fail": {
+        "revert_to": "Design",
+        "comment": "Design -> Architecture Review blocked: UX maturity, Figma links/frames, or revalidation requirements not met"
+      }
+    },
+    {
+      "name": "D_Figma_Version_Revalidation",
+      "trigger": "field_changed",
+      "field": "Figma_Version",
+      "conditions": [],
+      "on_pass": {
+        "set": {
+          "UX_Revalidation_Required": true,
+          "UX_Revalidated": false
+        },
+        "comment": "Figma version changed: UX revalidation required before next status transition"
+      }
+    },
+    {
+      "name": "E_Architecture_ReadyForBuild_Block",
+      "trigger": "status_change",
+      "from": "Architecture Review",
+      "to": "Ready for Build",
+      "conditions": [
+        "Architecture_Approved == true",
+        "Security_Approved == true",
+        "Data_Compliance_Approved == true",
+        "NFR_Defined == true",
+        "Figma_File_Link not empty",
+        "Dev_Handoff_Confirmed == true",
+        "Architecture_Impact == false OR Architecture_Doc_Link not empty",
+        "UX_Revalidation_Required == false OR UX_Revalidated == true"
+      ],
+      "on_fail": {
+        "set": {"BMBuilder_Ready": false},
+        "revert_to": "Architecture Review",
+        "comment": "Architecture -> Ready for Build blocked: approvals, Figma handoff, or docs traceability missing"
+      }
+    },
+    {
+      "name": "F_ReadyForBuild_Building_Block",
+      "trigger": "status_change",
+      "from": "Ready for Build",
+      "to": "Building",
+      "conditions": [
+        "Strategy_Link not empty",
+        "Strategic_Doc_Link not empty",
+        "Economic_Hypothesis not empty",
+        "Figma_File_Link not empty",
+        "Figma_Flow_Link not empty",
+        "Figma_Frame_IDs not empty",
+        "UX_Maturity == 'Build-approved'",
+        "Edge_States_Documented == true",
+        "Accessibility_Checked == true",
+        "Architecture_Approved == true",
+        "Security_Approved == true",
+        "Data_Compliance_Approved == true",
+        "NFR_Defined == true",
+        "Acceptance_Criteria_Defined == true",
+        "Dependencies_Mapped == true",
+        "UX_Revalidation_Required == false OR UX_Revalidated == true",
+        "Structural_Impact == false OR Decision_Log_Entry_ID not empty",
+        "(Affects_Document_Upload == false AND Affects_Role_Permissions == false AND Affects_Process_State_Transitions == false) OR (Role_Permission_Matrix_Updated == true AND Audit_Trail_Model_Updated == true AND Decision_Log_Entry_ID not empty AND Figma_Role_Variations_Confirmed == true)"
+      ],
+      "on_pass": {
+        "set": {"BMBuilder_Ready": true},
+        "webhook": "bmbuilder/start"
+      },
+      "on_fail": {
+        "set": {"BMBuilder_Ready": false},
+        "revert_to": "Ready for Build",
+        "comment": "Ready for Build -> Building blocked: missing DoR/Figma/docs/compliance requirements"
+      }
+    },
+    {
+      "name": "G_QA_ReadyForRelease_Block",
+      "trigger": "status_change",
+      "from": "QA",
+      "to": "Ready for Release",
+      "conditions": [
+        "Acceptance_Tests_Pass == true",
+        "NFR_Tests_Pass == true",
+        "Audit_Logging_Validated == true",
+        "Role_Permission_Validated == true",
+        "Release_Metric not empty",
+        "Baseline_Value is number",
+        "Metrics_Doc_Link not empty"
+      ],
+      "on_fail": {
+        "revert_to": "QA",
+        "comment": "QA -> Ready for Release blocked: quality tests or release metrics/docs missing"
+      }
+    },
+    {
+      "name": "H_ReadyForRelease_Released_Block",
+      "trigger": "status_change",
+      "from": "Ready for Release",
+      "to": "Released",
+      "conditions": [
+        "Release_Metric not empty",
+        "Baseline_Value is number",
+        "Metrics_Doc_Link not empty",
+        "Rollback_Plan_Link not empty",
+        "Observation_Window_Days > 0"
+      ],
+      "on_fail": {
+        "revert_to": "Ready for Release",
+        "comment": "Ready for Release -> Released blocked: release metrics, rollback, or observation window missing"
+      }
+    },
+    {
+      "name": "I_Released_Measuring_Auto",
+      "trigger": "status_change",
+      "from": "Released",
+      "to": "Measuring",
+      "conditions": [],
+      "on_pass": {
+        "create_task": {
+          "folder": "08_Growth",
+          "template": "Product Roadmap Template",
+          "title_prefix": "EXP_"
+        }
+      }
+    },
+    {
+      "name": "J_Measuring_Iterating_Block",
+      "trigger": "status_change",
+      "from": "Measuring",
+      "to": "Iterating",
+      "conditions": [
+        "Kill_or_Scale_Decision in ['Scale','Iterate','Kill']",
+        "ROI_Recalculated == true"
+      ],
+      "on_fail": {
+        "revert_to": "Measuring",
+        "comment": "Measuring -> Iterating blocked: missing decision or ROI recalculation"
+      }
+    },
+    {
+      "name": "K_Iterating_Closed_Pass",
+      "trigger": "status_change",
+      "from": "Iterating",
+      "to": "Closed",
+      "conditions": [],
+      "on_pass": {
+        "comment": "Iterating -> Closed completed"
+      }
+    }
+  ],
+  "dashboard_mapping": {
+    "portfolio_health_dashboard": "dashboards/Portfolio_Health_Dashboard_Definition.md",
+    "delivery_health_dashboard": "dashboards/Delivery_Health_Dashboard_Definition.md",
+    "governance_compliance_dashboard": "dashboards/Governance_Compliance_Dashboard_Definition.md",
+    "knowledge_integrity_dashboard": "dashboards/Knowledge_Integrity_Dashboard_Definition.md",
+    "figma_compliance_dashboard": "dashboards/Figma_Compliance_Dashboard_Definition.md",
+    "kpis": [
+      "Active initiatives by Capital_Type",
+      "Dev load",
+      "% blocked by architecture",
+      "% without validated discovery",
+      "Portfolio risk score",
+      "% initiatives missing doc links",
+      "% blocked by compliance",
+      "Docs past review cadence",
+      "% blocked items",
+      "% features without Figma links",
+      "% features without frame IDs",
+      "% features without Build-approved UX",
+      "% features using outdated Figma version",
+      "% builds blocked by UX gate"
+    ]
+  }
+}

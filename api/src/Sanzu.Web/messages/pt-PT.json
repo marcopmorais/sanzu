@@ -1,0 +1,183 @@
+{
+  "metadata": {
+    "title": "Sanzu — Gestão de Processos de Confiança",
+    "description": "Plataforma de gestão de processos de confiança para agências e famílias."
+  },
+  "common": {
+    "nav": {
+      "home": "Início",
+      "pricing": "Preços",
+      "resources": "Recursos",
+      "trust": "Confiança",
+      "demo": "Demonstração",
+      "start": "Começar",
+      "legal": "Legal"
+    },
+    "footer": {
+      "copyright": "© {year} Sanzu. Todos os direitos reservados.",
+      "legal": "Termos Legais",
+      "privacy": "Política de Privacidade"
+    },
+    "buttons": {
+      "save": "Guardar",
+      "cancel": "Cancelar",
+      "back": "Voltar",
+      "next": "Seguinte",
+      "submit": "Submeter",
+      "confirm": "Confirmar",
+      "delete": "Eliminar",
+      "edit": "Editar",
+      "close": "Fechar",
+      "retry": "Tentar novamente",
+      "export": "Exportar",
+      "search": "Pesquisar"
+    },
+    "errors": {
+      "generic": "Ocorreu um erro. Por favor, tente novamente.",
+      "notFound": "Página não encontrada.",
+      "loading": "A carregar...",
+      "unauthorized": "Não autorizado.",
+      "forbidden": "Acesso negado."
+    },
+    "pagination": {
+      "previous": "Anterior",
+      "next": "Seguinte",
+      "page": "Página {page} de {totalPages}",
+      "total": "({count} total)"
+    },
+    "filters": {
+      "all": "Todos",
+      "search": "Pesquisar...",
+      "from": "De",
+      "to": "Até"
+    },
+    "locale": {
+      "pt-PT": "Português",
+      "en-GB": "English",
+      "fr-FR": "Français",
+      "switchLocale": "Mudar idioma"
+    }
+  },
+  "home": {
+    "tagline": "Plataforma de gestão de processos de confiança para agências e famílias.",
+    "bookDemo": "Agendar Demonstração",
+    "startOnboarding": "Iniciar Registo",
+    "explore": "Explorar",
+    "trustLink": "Confiança",
+    "pricingLink": "Preços",
+    "resourcesLink": "Recursos",
+    "privacyLink": "Privacidade",
+    "termsLink": "Termos",
+    "storyRoutes": "Rotas de Funcionalidades",
+    "onboardingLink": "Registo",
+    "billingActivationLink": "Ativação de Faturação",
+    "billingHistoryLink": "Histórico de Faturação",
+    "paymentRecoveryLink": "Recuperação de Pagamento"
+  },
+  "pricing": {
+    "title": "Preços",
+    "subtitle": "Planos claros com utilização e faturação transparentes. Comece com um período experimental gratuito de 30 dias.",
+    "inicialPrice": "€49 / mês",
+    "inicialAnnual": "ou €490/ano (poupe €98)",
+    "inicialCases": "10 processos incluídos por mês",
+    "inicialOverage": "€4,50 por processo adicional",
+    "inicialFeatures": "Registo, faturação e operações de ciclo de vida de processos.",
+    "profissionalPrice": "€99 / mês",
+    "profissionalAnnual": "ou €990/ano (poupe €198)",
+    "profissionalCases": "30 processos incluídos por mês",
+    "profissionalOverage": "€3,00 por processo adicional",
+    "profissionalFeatures": "Colaboração por funções e fluxos de revisão de documentos.",
+    "agenciaPrice": "€199 / mês",
+    "agenciaAnnual": "ou €1.990/ano (poupe €398)",
+    "agenciaCases": "80 processos incluídos por mês",
+    "agenciaOverage": "€2,00 por processo adicional",
+    "agenciaFeatures1": "Supervisão de governação e controlo de KPIs da plataforma.",
+    "agenciaFeatures2": "Suporte prioritário e operações de análise de políticas.",
+    "enterpriseDescription": "Preços personalizados para grandes agências com suporte dedicado.",
+    "startFreeTrial": "Iniciar Período Experimental",
+    "talkToSales": "Falar com Vendas",
+    "trialNotice": "Todos os planos incluem um período experimental gratuito de 30 dias. Faturação anual poupa 2 meses. IVA (23%) aplicável. Pagamento apenas por cartão."
+  },
+  "resources": {
+    "title": "Recursos",
+    "subtitle": "Guias e conteúdo de referência para registo e sucesso operacional.",
+    "tableLabel": "Biblioteca de recursos",
+    "columnResource": "Recurso",
+    "columnAudience": "Público-alvo",
+    "columnFormat": "Formato",
+    "onboardingRunbook": "Manual de registo",
+    "agencyAdministrators": "Administradores de agência",
+    "formatGuide": "Guia",
+    "complianceChecklist": "Lista de verificação de conformidade",
+    "operationsLeaders": "Responsáveis de operações",
+    "formatChecklist": "Lista de verificação",
+    "workflowPrimer": "Introdução a fluxos de trabalho",
+    "processManagers": "Gestores de processos",
+    "formatPlaybook": "Manual operacional"
+  },
+  "trust": {
+    "title": "Confiança",
+    "subtitle": "Postura de segurança, conformidade e fiabilidade para agências e famílias.",
+    "tenantIsolation": "Isolamento de inquilinos com fronteiras rigorosas de espaço de trabalho.",
+    "auditability": "Auditabilidade imutável para ações de ciclo de vida e políticas.",
+    "policyControls": "Controlos de políticas com fluxos de aprovação seguros por função.",
+    "legalLinks": "Consulte os compromissos legais em <privacy>Privacidade</privacy> e <terms>Termos</terms>."
+  },
+  "demo": {
+    "title": "Solicitar Demonstração",
+    "subtitle": "Via de conversão pública para intenção qualificada de demonstração.",
+    "description": "Conte-nos o contexto da sua equipa para que possamos personalizar a apresentação.",
+    "formLabel": "Formulário de pedido de demonstração",
+    "fullName": "Nome completo",
+    "workEmail": "Email profissional",
+    "organization": "Organização",
+    "teamSize": "Dimensão da equipa",
+    "validationNote": "Validação: é necessário email profissional e reconhecimento de consentimento antes de submeter.",
+    "submitError": "Não foi possível submeter o pedido de demonstração. Verifique os campos obrigatórios e tente novamente.",
+    "submitting": "A submeter...",
+    "submitButton": "Submeter Pedido de Demonstração",
+    "viewSuccess": "Ver Estado de Sucesso",
+    "privacyConsent": "Ao submeter, concorda com o tratamento de contactos da Sanzu ao abrigo da <link>Política de Privacidade</link>.",
+    "successTitle": "Pedido de Demonstração Recebido",
+    "successSubtitle": "Estado de sucesso do fluxo de conversão de demonstração.",
+    "successMessage": "Recebemos o seu pedido e iremos contactá-lo com os próximos passos dentro de um dia útil.",
+    "successNext": "Seguinte: verifique a sua caixa de entrada para opções de agendamento ou regresse a <link>Preços</link>."
+  },
+  "start": {
+    "title": "Começar com Sanzu",
+    "subtitle": "Via de conversão pública que inicia a criação de conta e registo.",
+    "description": "Crie o seu espaço de trabalho de inquilino e perfil de administrador principal.",
+    "formLabel": "Formulário de criação de conta",
+    "agencyName": "Nome da agência",
+    "adminFullName": "Nome completo do administrador",
+    "adminEmail": "Email do administrador",
+    "location": "Localização",
+    "acceptTerms": "Aceito os Termos de Serviço",
+    "validationNote": "Validação: são necessários o nome da agência, email profissional e consentimento dos termos.",
+    "submitError": "Não foi possível iniciar a criação de conta. Verifique os campos obrigatórios e a aceitação dos termos.",
+    "submitting": "A submeter...",
+    "submitButton": "Criar Conta",
+    "viewSuccess": "Ver Estado de Sucesso",
+    "termsConsent": "Ao continuar, aceita os <link>Termos de Serviço</link>.",
+    "successTitle": "Criação de Conta Iniciada",
+    "successSubtitle": "Estado de sucesso do fluxo de conversão de criação de conta.",
+    "successMessage": "A configuração do seu espaço de trabalho está em curso. Continue para os passos de registo a partir do link de convite.",
+    "successNext": "Precisa de orientação de implementação agora? Visite <link>Recursos</link>."
+  },
+  "legal": {
+    "privacy": {
+      "title": "Política de Privacidade",
+      "subtitle": "Via legal pública para divulgações de privacidade e tratamento de dados.",
+      "dataProcessing": "Os dados são processados apenas para prestação de serviço, segurança e obrigações de suporte.",
+      "tenantIsolation": "Os dados do espaço de trabalho do inquilino permanecem logicamente isolados de outros inquilinos.",
+      "auditRetention": "Os registos de auditoria são retidos de acordo com a política configurada e requisitos legais."
+    },
+    "terms": {
+      "title": "Termos de Serviço",
+      "subtitle": "Via legal pública para termos de serviço e condições contratuais.",
+      "authorizedUse": "A utilização do serviço é limitada a pessoal autorizado da agência e participantes convidados.",
+      "accessControls": "Os controlos de acesso baseados em funções são aplicados como parte do modelo de segurança.",
+      "billingTerms": "Os termos de faturação e subscrição aplicam-se de acordo com o plano selecionado e política do inquilino."
+    }
+  }
+}

@@ -257,7 +257,7 @@ public sealed class CasePlaybookApplicationTests : IClassFixture<CustomWebApplic
             $"/api/v1/tenants/{signup.OrganizationId}/onboarding/billing/activate",
             new ActivateTenantBillingRequest
             {
-                PlanCode = "Growth",
+                PlanCode = "Profissional",
                 BillingCycle = "Monthly",
                 PaymentMethodType = "Card",
                 PaymentMethodReference = "pm_playbook_tests",

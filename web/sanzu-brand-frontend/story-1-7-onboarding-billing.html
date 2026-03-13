@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Story 1.7</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./assets/brand.css">
+</head>
+<body>
+  <div class="page">
+    <div class="topbar">
+      <div class="topbar-inner">
+        <a class="brand" href="./index.html">Sanzu</a>
+        <span class="chip">Story 1.7</span>
+      </div>
+    </div>
+
+    <section class="hero">
+      <h1>Onboarding and Billing Activation</h1>
+      <p>Step-wise setup with policy-safe payment confirmation and clear recovery states for agency administrators.</p>
+    </section>
+
+    <main class="layout">
+      <section class="panel">
+        <div class="panel-head">Onboarding Workspace</div>
+        <div class="panel-body">
+          <div class="stepper">
+            <div class="step done">1. Workspace</div>
+            <div class="step done">2. Team</div>
+            <div class="step active">3. Billing</div>
+            <div class="step">4. Confirm</div>
+          </div>
+
+          <div class="cards onboarding-grid">
+            <article class="card">
+              <h3>Agency Profile</h3>
+              <p>Organization details and invoice contact used for billing and compliance output.</p>
+              <div class="form-grid">
+                <label>Agency Name<input type="text" value="Horizon Family Partners" readonly></label>
+                <label>Country<input type="text" value="United States" readonly></label>
+                <label>Invoice Email<input type="text" value="billing@horizonfp.com" readonly></label>
+                <label>Tax ID<input type="text" value="US-34-829193" readonly></label>
+              </div>
+            </article>
+
+            <article class="card">
+              <h3>Plan and Payment</h3>
+              <p>Plan selection with cost clarity and saved payment method for activation.</p>
+              <div class="plan-row">
+                <div class="plan selected">
+                  <strong>Growth</strong>
+                  <span>$299 / month</span>
+                </div>
+                <div class="plan">
+                  <strong>Scale</strong>
+                  <span>$499 / month</span>
+                </div>
+              </div>
+              <div class="state-banner warn">Payment issue detected: Card requires 3DS confirmation.</div>
+              <div class="cta-row">
+                <button type="button" class="btn secondary">Retry Payment</button>
+                <button type="button" class="btn primary">Activate Subscription</button>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <aside class="panel">
+        <div class="panel-head">Per-Story UX Checks</div>
+        <div class="panel-body">
+          <ul class="state-list">
+            <li class="ok">Loading and disabled submit states present</li>
+            <li class="ok">Validation and payment failure states present</li>
+            <li class="ok">Success confirmation state present</li>
+            <li class="ok">Keyboard form traversal and focus return</li>
+          </ul>
+          <p class="footer-note">Miro mockup: 3458764659727910759</p>
+        </div>
+      </aside>
+    </main>
+  </div>
+</body>
+</html>

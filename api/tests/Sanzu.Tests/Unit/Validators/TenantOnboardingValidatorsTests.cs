@@ -93,7 +93,7 @@ public sealed class TenantOnboardingValidatorsTests
         var validator = new ActivateTenantBillingRequestValidator();
         var request = new ActivateTenantBillingRequest
         {
-            PlanCode = "Starter",
+            PlanCode = "Inicial",
             BillingCycle = "Monthly",
             PaymentMethodType = "Card",
             PaymentMethodReference = "pm_123",

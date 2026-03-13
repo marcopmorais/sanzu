@@ -1,0 +1,246 @@
+/**
+ * Button Component - Grief-Aware Design System
+ * WCAG 2.1 AA Compliant
+ * Variants: Primary, Secondary, Tertiary, Danger
+ * Sizes: Small, Medium, Large
+ */
+
+/* ===================================
+ * BASE BUTTON STYLES
+ * =================================== */
+
+.btn {
+  /* Layout */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+
+  /* Typography */
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  text-decoration: none;
+  white-space: nowrap;
+
+  /* Spacing */
+  padding: var(--space-3) var(--space-6);
+
+  /* Visual */
+  border: 2px solid transparent;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+
+  /* Interaction */
+  transition: all var(--transition-fast);
+  user-select: none;
+}
+
+/* Remove default button styles */
+.btn {
+  background: none;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+/* ===================================
+ * BUTTON VARIANTS
+ * =================================== */
+
+/* Primary - Main actions */
+.btn-primary {
+  background-color: var(--color-interactive-primary);
+  color: var(--color-text-inverse);
+  border-color: var(--color-interactive-primary);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: var(--color-interactive-primary-hover);
+  border-color: var(--color-interactive-primary-hover);
+}
+
+.btn-primary:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+/* Secondary - Alternative actions */
+.btn-secondary {
+  background-color: transparent;
+  color: var(--color-interactive-primary);
+  border-color: var(--color-interactive-primary);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background-color: rgba(22, 74, 59, 0.05);
+  border-color: var(--color-interactive-primary-hover);
+}
+
+/* Tertiary - Low emphasis actions */
+.btn-tertiary {
+  background-color: transparent;
+  color: var(--color-interactive-primary);
+  border-color: transparent;
+}
+
+.btn-tertiary:hover:not(:disabled) {
+  background-color: rgba(22, 74, 59, 0.05);
+}
+
+/* Danger - Destructive actions */
+.btn-danger {
+  background-color: var(--color-error);
+  color: var(--color-text-inverse);
+  border-color: var(--color-error);
+}
+
+.btn-danger:hover:not(:disabled) {
+  background-color: #a84532;
+  border-color: #a84532;
+}
+
+/* ===================================
+ * BUTTON SIZES
+ * =================================== */
+
+.btn-sm {
+  font-size: var(--font-size-sm);
+  padding: var(--space-2) var(--space-4);
+  gap: var(--space-1);
+}
+
+.btn-md {
+  font-size: var(--font-size-base);
+  padding: var(--space-3) var(--space-6);
+  gap: var(--space-2);
+}
+
+.btn-lg {
+  font-size: var(--font-size-lg);
+  padding: var(--space-4) var(--space-8);
+  gap: var(--space-3);
+}
+
+/* ===================================
+ * BUTTON STATES
+ * =================================== */
+
+/* Focus - Enhanced for keyboard navigation */
+.btn:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+  box-shadow: var(--shadow-focus);
+}
+
+/* Disabled */
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Loading */
+.btn.is-loading {
+  position: relative;
+  color: transparent;
+  pointer-events: none;
+}
+
+.btn.is-loading::after {
+  content: '';
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  top: 50%;
+  left: 50%;
+  margin-left: -8px;
+  margin-top: -8px;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  border-top-color: transparent;
+  animation: button-spin 0.6s linear infinite;
+}
+
+/* Restore color for loading state based on variant */
+.btn-primary.is-loading::after { border-color: var(--color-text-inverse); border-top-color: transparent; }
+.btn-secondary.is-loading::after { border-color: var(--color-interactive-primary); border-top-color: transparent; }
+.btn-tertiary.is-loading::after { border-color: var(--color-interactive-primary); border-top-color: transparent; }
+.btn-danger.is-loading::after { border-color: var(--color-text-inverse); border-top-color: transparent; }
+
+@keyframes button-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  @keyframes button-spin {
+    to { transform: rotate(0deg); }
+  }
+}
+
+/* ===================================
+ * BUTTON GROUPS
+ * =================================== */
+
+.btn-group {
+  display: inline-flex;
+  gap: var(--space-2);
+}
+
+.btn-group-stacked {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+/* ===================================
+ * GRIEF-AWARE BUTTON VARIANTS
+ * Empathetic, clear labeling
+ * =================================== */
+
+/* Example: Confirmation button with empathetic copy */
+.btn-confirm::before {
+  content: attr(data-empathetic-label);
+  display: block;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-regular);
+  opacity: 0.8;
+  margin-bottom: var(--space-1);
+}
+
+/* Full width button (mobile-friendly) */
+.btn-full {
+  width: 100%;
+  justify-content: center;
+}
+
+/* Icon-only button */
+.btn-icon {
+  padding: var(--space-3);
+  aspect-ratio: 1;
+}
+
+.btn-icon.btn-sm { padding: var(--space-2); }
+.btn-icon.btn-lg { padding: var(--space-4); }
+
+/* ===================================
+ * ACCESSIBILITY ENHANCEMENTS
+ * =================================== */
+
+/* Increase touch target size for mobile (minimum 44x44px per WCAG) */
+@media (max-width: 768px) {
+  .btn {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .btn-sm {
+    min-height: 40px;
+    min-width: 40px;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .btn {
+    border-width: 3px;
+  }
+}

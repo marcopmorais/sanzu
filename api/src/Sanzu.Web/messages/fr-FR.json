@@ -1,0 +1,183 @@
+{
+  "metadata": {
+    "title": "Sanzu — Gestion de Dossiers de Confiance",
+    "description": "Plateforme de gestion de dossiers de confiance pour agences et familles."
+  },
+  "common": {
+    "nav": {
+      "home": "Accueil",
+      "pricing": "Tarifs",
+      "resources": "Ressources",
+      "trust": "Confiance",
+      "demo": "Démonstration",
+      "start": "Commencer",
+      "legal": "Mentions légales"
+    },
+    "footer": {
+      "copyright": "© {year} Sanzu. Tous droits réservés.",
+      "legal": "Mentions légales",
+      "privacy": "Politique de confidentialité"
+    },
+    "buttons": {
+      "save": "Enregistrer",
+      "cancel": "Annuler",
+      "back": "Retour",
+      "next": "Suivant",
+      "submit": "Soumettre",
+      "confirm": "Confirmer",
+      "delete": "Supprimer",
+      "edit": "Modifier",
+      "close": "Fermer",
+      "retry": "Réessayer",
+      "export": "Exporter",
+      "search": "Rechercher"
+    },
+    "errors": {
+      "generic": "Une erreur est survenue. Veuillez réessayer.",
+      "notFound": "Page non trouvée.",
+      "loading": "Chargement...",
+      "unauthorized": "Non autorisé.",
+      "forbidden": "Accès refusé."
+    },
+    "pagination": {
+      "previous": "Précédent",
+      "next": "Suivant",
+      "page": "Page {page} sur {totalPages}",
+      "total": "({count} au total)"
+    },
+    "filters": {
+      "all": "Tous",
+      "search": "Rechercher...",
+      "from": "Du",
+      "to": "Au"
+    },
+    "locale": {
+      "pt-PT": "Português",
+      "en-GB": "English",
+      "fr-FR": "Français",
+      "switchLocale": "Changer de langue"
+    }
+  },
+  "home": {
+    "tagline": "Plateforme de gestion de dossiers de confiance pour agences et familles.",
+    "bookDemo": "Réserver une Démo",
+    "startOnboarding": "Commencer l'Inscription",
+    "explore": "Explorer",
+    "trustLink": "Confiance",
+    "pricingLink": "Tarifs",
+    "resourcesLink": "Ressources",
+    "privacyLink": "Confidentialité",
+    "termsLink": "Conditions",
+    "storyRoutes": "Routes des Fonctionnalités",
+    "onboardingLink": "Inscription",
+    "billingActivationLink": "Activation de la Facturation",
+    "billingHistoryLink": "Historique de Facturation",
+    "paymentRecoveryLink": "Récupération de Paiement"
+  },
+  "pricing": {
+    "title": "Tarifs",
+    "subtitle": "Des niveaux de forfait clairs avec une utilisation et une facturation transparentes. Commencez avec un essai gratuit de 30 jours.",
+    "inicialPrice": "49 € / mois",
+    "inicialAnnual": "ou 490 €/an (économisez 98 €)",
+    "inicialCases": "10 dossiers inclus par mois",
+    "inicialOverage": "4,50 € par dossier supplémentaire",
+    "inicialFeatures": "Inscription, facturation et opérations de cycle de vie des dossiers.",
+    "profissionalPrice": "99 € / mois",
+    "profissionalAnnual": "ou 990 €/an (économisez 198 €)",
+    "profissionalCases": "30 dossiers inclus par mois",
+    "profissionalOverage": "3,00 € par dossier supplémentaire",
+    "profissionalFeatures": "Collaboration par rôles et flux de révision de documents.",
+    "agenciaPrice": "199 € / mois",
+    "agenciaAnnual": "ou 1 990 €/an (économisez 398 €)",
+    "agenciaCases": "80 dossiers inclus par mois",
+    "agenciaOverage": "2,00 € par dossier supplémentaire",
+    "agenciaFeatures1": "Supervision de la gouvernance et contrôles KPI de la plateforme.",
+    "agenciaFeatures2": "Support prioritaire et opérations d'analyse des politiques.",
+    "enterpriseDescription": "Tarification personnalisée pour les grandes agences avec support dédié.",
+    "startFreeTrial": "Commencer l'Essai Gratuit",
+    "talkToSales": "Contacter les Ventes",
+    "trialNotice": "Tous les forfaits incluent un essai gratuit de 30 jours. La facturation annuelle économise 2 mois. TVA (23 %) applicable. Paiement par carte uniquement."
+  },
+  "resources": {
+    "title": "Ressources",
+    "subtitle": "Guides et contenus de référence pour l'inscription et le succès opérationnel.",
+    "tableLabel": "Bibliothèque de ressources",
+    "columnResource": "Ressource",
+    "columnAudience": "Public cible",
+    "columnFormat": "Format",
+    "onboardingRunbook": "Manuel d'inscription",
+    "agencyAdministrators": "Administrateurs d'agence",
+    "formatGuide": "Guide",
+    "complianceChecklist": "Liste de vérification de conformité",
+    "operationsLeaders": "Responsables des opérations",
+    "formatChecklist": "Liste de vérification",
+    "workflowPrimer": "Introduction aux flux de travail",
+    "processManagers": "Gestionnaires de processus",
+    "formatPlaybook": "Manuel opérationnel"
+  },
+  "trust": {
+    "title": "Confiance",
+    "subtitle": "Posture de sécurité, conformité et fiabilité pour agences et familles.",
+    "tenantIsolation": "Isolation des locataires avec des frontières strictes d'espace de travail.",
+    "auditability": "Auditabilité immuable pour les actions de cycle de vie et de politique.",
+    "policyControls": "Contrôles de politiques avec flux d'approbation sécurisés par rôle.",
+    "legalLinks": "Consultez les engagements légaux dans <privacy>Confidentialité</privacy> et <terms>Conditions</terms>."
+  },
+  "demo": {
+    "title": "Demander une Démo",
+    "subtitle": "Voie de conversion publique pour intention qualifiée de démonstration.",
+    "description": "Parlez-nous du contexte de votre équipe pour que nous puissions personnaliser la présentation.",
+    "formLabel": "Formulaire de demande de démo",
+    "fullName": "Nom complet",
+    "workEmail": "Email professionnel",
+    "organization": "Organisation",
+    "teamSize": "Taille de l'équipe",
+    "validationNote": "Validation : un email professionnel et une reconnaissance de consentement sont requis avant la soumission.",
+    "submitError": "Impossible de soumettre la demande de démo. Veuillez vérifier les champs obligatoires et réessayer.",
+    "submitting": "Envoi en cours...",
+    "submitButton": "Soumettre la Demande de Démo",
+    "viewSuccess": "Voir l'État de Succès",
+    "privacyConsent": "En soumettant, vous acceptez le traitement des contacts Sanzu au titre de la <link>Politique de Confidentialité</link>.",
+    "successTitle": "Demande de Démo Reçue",
+    "successSubtitle": "État de succès du flux de conversion de démo.",
+    "successMessage": "Nous avons reçu votre demande et vous contacterons avec les prochaines étapes dans un jour ouvrable.",
+    "successNext": "Suivant : consultez votre boîte de réception pour les options de planification ou retournez à <link>Tarifs</link>."
+  },
+  "start": {
+    "title": "Commencer avec Sanzu",
+    "subtitle": "Voie de conversion publique qui démarre la création de compte et l'inscription.",
+    "description": "Créez votre espace de travail locataire et le profil administrateur principal.",
+    "formLabel": "Formulaire de création de compte",
+    "agencyName": "Nom de l'agence",
+    "adminFullName": "Nom complet de l'administrateur",
+    "adminEmail": "Email de l'administrateur",
+    "location": "Localisation",
+    "acceptTerms": "J'accepte les Conditions d'Utilisation",
+    "validationNote": "Validation : le nom de l'agence, l'email professionnel et le consentement aux conditions sont requis.",
+    "submitError": "Impossible de démarrer la création de compte. Vérifiez les champs obligatoires et l'acceptation des conditions.",
+    "submitting": "Envoi en cours...",
+    "submitButton": "Créer un Compte",
+    "viewSuccess": "Voir l'État de Succès",
+    "termsConsent": "En continuant, vous acceptez les <link>Conditions d'Utilisation</link>.",
+    "successTitle": "Création de Compte Lancée",
+    "successSubtitle": "État de succès du flux de conversion de création de compte.",
+    "successMessage": "La configuration de votre espace de travail est en cours. Continuez vers les étapes d'inscription depuis votre lien d'invitation.",
+    "successNext": "Besoin de conseils de mise en œuvre maintenant ? Visitez <link>Ressources</link>."
+  },
+  "legal": {
+    "privacy": {
+      "title": "Politique de Confidentialité",
+      "subtitle": "Voie légale publique pour les divulgations de confidentialité et de traitement des données.",
+      "dataProcessing": "Les données sont traitées uniquement pour la prestation de service, la sécurité et les obligations de support.",
+      "tenantIsolation": "Les données de l'espace de travail du locataire restent logiquement isolées des autres locataires.",
+      "auditRetention": "Les journaux d'audit sont conservés conformément à la politique configurée et aux exigences légales."
+    },
+    "terms": {
+      "title": "Conditions d'Utilisation",
+      "subtitle": "Voie légale publique pour les conditions de service et les conditions contractuelles.",
+      "authorizedUse": "L'utilisation du service est limitée au personnel autorisé de l'agence et aux participants invités.",
+      "accessControls": "Les contrôles d'accès basés sur les rôles sont appliqués dans le cadre du modèle de sécurité.",
+      "billingTerms": "Les conditions de facturation et d'abonnement s'appliquent selon le forfait sélectionné et la politique du locataire."
+    }
+  }
+}

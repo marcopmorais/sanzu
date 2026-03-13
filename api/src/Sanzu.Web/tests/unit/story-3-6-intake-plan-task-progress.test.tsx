@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import CaseWorkflowPage from "../../app/app/cases/[caseId]/workflow/page";
+import CaseWorkflowPage from "../../app/[locale]/app/cases/[caseId]/workflow/page";
 
 describe("Story 3.6 intake-plan-task routes", () => {
   it("renders readiness, next best action, and task progression context", () => {

@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Story 2.5</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./assets/brand.css">
+</head>
+<body>
+  <div class="page">
+    <div class="topbar">
+      <div class="topbar-inner">
+        <a class="brand" href="./index.html">Sanzu</a>
+        <span class="chip">Story 2.5</span>
+      </div>
+    </div>
+
+    <section class="hero">
+      <h1>Case Lifecycle and RBAC Collaboration</h1>
+      <p>Role-aware controls make state transitions clear while restricting unauthorized actions with explicit feedback.</p>
+    </section>
+
+    <main class="layout">
+      <section class="panel">
+        <div class="panel-head">Case Collaboration Workspace</div>
+        <div class="panel-body">
+          <div class="status-row">
+            <span class="status">Case Header</span>
+            <span class="status">Lifecycle Controls</span>
+            <span class="status">Participants Table</span>
+            <span class="status">Role Badges</span>
+          </div>
+
+          <div class="cards rbac-grid">
+            <article class="card">
+              <h3>Lifecycle Controls</h3>
+              <p>Current state, allowed transitions, and reason-coded denies for protected actions.</p>
+              <div class="pill-row">
+                <span class="status">Current: Active</span>
+                <span class="status">Owner: Process Manager</span>
+              </div>
+              <div class="cta-row">
+                <button class="btn primary" type="button">Move to Review</button>
+                <button class="btn secondary" type="button">Archive Case</button>
+              </div>
+              <div class="state-banner warn">Reader role cannot archive case. Escalate to manager.</div>
+            </article>
+
+            <article class="card">
+              <h3>Participant Roles</h3>
+              <p>Role-scoped visibility with clear permission states for each participant.</p>
+              <table class="role-table">
+                <thead>
+                  <tr><th>Name</th><th>Role</th><th>Access</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>Marina R.</td><td><span class="role-chip manager">Manager</span></td><td>Full</td></tr>
+                  <tr><td>Diego F.</td><td><span class="role-chip editor">Editor</span></td><td>Edit Allowed</td></tr>
+                  <tr><td>Jules K.</td><td><span class="role-chip reader">Reader</span></td><td>Read Only</td></tr>
+                </tbody>
+              </table>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <aside class="panel">
+        <div class="panel-head">Per-Story UX Checks</div>
+        <div class="panel-body">
+          <ul class="state-list">
+            <li class="ok">Unauthorized action state is explicit</li>
+            <li class="ok">Lifecycle transition success/error states present</li>
+            <li class="ok">Empty participants state present</li>
+            <li class="ok">Table keyboard navigation validated</li>
+          </ul>
+          <p class="footer-note">Miro mockup: 3458764659727910777</p>
+        </div>
+      </aside>
+    </main>
+  </div>
+</body>
+</html>

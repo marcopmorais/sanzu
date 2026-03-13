@@ -1,17 +1,11 @@
 using FluentValidation;
 using Sanzu.Core.Models.Requests;
+using Sanzu.Core.Services;
 
 namespace Sanzu.Core.Validators;
 
 public sealed class PreviewPlanChangeRequestValidator : AbstractValidator<PreviewPlanChangeRequest>
 {
-    private static readonly HashSet<string> SupportedPlans = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "STARTER",
-        "GROWTH",
-        "ENTERPRISE"
-    };
-
     private static readonly HashSet<string> SupportedBillingCycles = new(StringComparer.OrdinalIgnoreCase)
     {
         "MONTHLY",
@@ -25,7 +19,7 @@ public sealed class PreviewPlanChangeRequestValidator : AbstractValidator<Previe
             .NotEmpty()
             .WithMessage("PlanCode is required.")
             .MaximumLength(32)
-            .Must(value => SupportedPlans.Contains(value.Trim()))
+            .Must(value => PlanCatalog.SupportedPlanCodes.Contains(value.Trim()))
             .WithMessage("PlanCode is not supported.");
 
         RuleFor(x => x.BillingCycle)

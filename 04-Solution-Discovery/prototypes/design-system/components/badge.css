@@ -1,0 +1,457 @@
+/**
+ * Badge Component - Grief-Aware Design System
+ * WCAG 2.1 AA Compliant
+ * Small labels for status, counts, categories, and metadata
+ * Variants: Default, Primary, Success, Warning, Error, Info, Neutral
+ */
+
+/* ===================================
+ * BASE BADGE STYLES
+ * =================================== */
+
+.badge {
+  /* Layout */
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+
+  /* Typography */
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  line-height: 1;
+  white-space: nowrap;
+
+  /* Spacing */
+  padding: var(--space-1) var(--space-3);
+
+  /* Visual */
+  background-color: var(--color-bg-secondary);
+  color: var(--color-text-primary);
+  border-radius: var(--radius-full);
+  border: 1px solid transparent;
+
+  /* Interaction */
+  transition: all var(--transition-fast);
+}
+
+/* ===================================
+ * BADGE VARIANTS
+ * =================================== */
+
+/* Primary */
+.badge-primary {
+  background-color: var(--color-interactive-primary);
+  color: var(--color-text-inverse);
+}
+
+/* Success/Done */
+.badge-success,
+.badge-done {
+  background-color: rgba(45, 122, 99, 0.15);
+  color: var(--color-status-done);
+  border-color: var(--color-status-done);
+}
+
+/* Warning */
+.badge-warning {
+  background-color: rgba(217, 119, 6, 0.15);
+  color: var(--color-warning);
+  border-color: var(--color-warning);
+}
+
+/* Error/Blocked */
+.badge-error,
+.badge-blocked {
+  background-color: rgba(198, 106, 61, 0.15);
+  color: var(--color-status-blocked);
+  border-color: var(--color-status-blocked);
+}
+
+/* Info */
+.badge-info {
+  background-color: var(--color-info-bg);
+  color: var(--color-info);
+  border-color: var(--color-info);
+}
+
+/* Neutral/Pending */
+.badge-neutral,
+.badge-pending {
+  background-color: rgba(139, 139, 139, 0.15);
+  color: var(--color-status-pending);
+  border-color: var(--color-status-pending);
+}
+
+/* Ready */
+.badge-ready {
+  background-color: rgba(74, 155, 127, 0.15);
+  color: var(--color-status-ready);
+  border-color: var(--color-status-ready);
+}
+
+/* Overdue */
+.badge-overdue {
+  background-color: rgba(168, 69, 50, 0.15);
+  color: var(--color-status-overdue);
+  border-color: var(--color-status-overdue);
+}
+
+/* Outline variants - more subtle */
+.badge-outline {
+  background-color: transparent;
+  border-width: 1px;
+}
+
+.badge-primary.badge-outline {
+  color: var(--color-interactive-primary);
+  border-color: var(--color-interactive-primary);
+}
+
+.badge-success.badge-outline {
+  color: var(--color-status-done);
+  border-color: var(--color-status-done);
+  background-color: transparent;
+}
+
+.badge-warning.badge-outline {
+  color: var(--color-warning);
+  border-color: var(--color-warning);
+  background-color: transparent;
+}
+
+.badge-error.badge-outline {
+  color: var(--color-status-blocked);
+  border-color: var(--color-status-blocked);
+  background-color: transparent;
+}
+
+/* ===================================
+ * BADGE SIZES
+ * =================================== */
+
+.badge-xs {
+  font-size: var(--font-size-xs);
+  padding: 2px var(--space-2);
+}
+
+.badge-sm {
+  font-size: var(--font-size-sm);
+  padding: var(--space-1) var(--space-3);
+}
+
+.badge-md {
+  font-size: var(--font-size-base);
+  padding: var(--space-2) var(--space-4);
+}
+
+.badge-lg {
+  font-size: var(--font-size-lg);
+  padding: var(--space-3) var(--space-5);
+}
+
+/* ===================================
+ * BADGE WITH DOT INDICATOR
+ * For status indicators with color dots
+ * =================================== */
+
+.badge-dot::before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: currentColor;
+  margin-right: var(--space-1);
+}
+
+.badge-dot-animated::before {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .badge-dot-animated::before {
+    animation: none;
+  }
+}
+
+/* ===================================
+ * BADGE WITH ICON
+ * =================================== */
+
+.badge-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.badge-icon-only {
+  padding: var(--space-2);
+  border-radius: 50%;
+  aspect-ratio: 1;
+}
+
+/* ===================================
+ * COUNT BADGE
+ * For notification counts, queue sizes, etc.
+ * =================================== */
+
+.badge-count {
+  min-width: 20px;
+  height: 20px;
+  padding: 2px var(--space-1);
+  background-color: var(--color-status-blocked);
+  color: var(--color-text-inverse);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  border-radius: var(--radius-full);
+  text-align: center;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.badge-count-primary {
+  background-color: var(--color-interactive-primary);
+}
+
+.badge-count-success {
+  background-color: var(--color-status-done);
+}
+
+/* Positioned count badge (e.g., on buttons, icons) */
+.badge-count-positioned {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  z-index: 1;
+}
+
+/* ===================================
+ * INTERACTIVE BADGES
+ * For clickable/removable badges (tags)
+ * =================================== */
+
+.badge-interactive {
+  cursor: pointer;
+  user-select: none;
+}
+
+.badge-interactive:hover {
+  opacity: 0.8;
+  transform: translateY(-1px);
+}
+
+.badge-interactive:active {
+  transform: translateY(0);
+}
+
+.badge-interactive:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+}
+
+/* Removable badge with close button */
+.badge-removable {
+  padding-right: var(--space-1);
+}
+
+.badge-remove {
+  background: transparent;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  padding: var(--space-1);
+  margin-left: var(--space-1);
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-xs);
+  opacity: 0.7;
+  transition: opacity var(--transition-fast);
+}
+
+.badge-remove:hover {
+  opacity: 1;
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+/* ===================================
+ * SPECIAL BADGE TYPES
+ * =================================== */
+
+/* Live indicator badge */
+.badge-live {
+  background-color: rgba(45, 122, 99, 0.2);
+  color: var(--color-status-done);
+  border: 1px solid var(--color-status-done);
+}
+
+.badge-live::before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--color-status-done);
+  margin-right: var(--space-2);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+/* Beta/New badge */
+.badge-new,
+.badge-beta {
+  background-color: var(--color-info);
+  color: var(--color-text-inverse);
+  text-transform: uppercase;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.05em;
+}
+
+/* Severity badges for admin interfaces */
+.badge-severity-critical {
+  background-color: rgba(198, 106, 61, 0.2);
+  color: var(--color-status-blocked);
+  border: 1px solid var(--color-status-blocked);
+  font-weight: var(--font-weight-semibold);
+}
+
+.badge-severity-warning {
+  background-color: rgba(217, 119, 6, 0.2);
+  color: var(--color-warning);
+  border: 1px solid var(--color-warning);
+}
+
+.badge-severity-info {
+  background-color: var(--color-info-bg);
+  color: var(--color-info);
+  border: 1px solid var(--color-info);
+}
+
+/* ===================================
+ * BADGE GROUPS
+ * For displaying multiple badges together
+ * =================================== */
+
+.badge-group {
+  display: inline-flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.badge-group-stacked {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  align-items: flex-start;
+}
+
+/* Connected badges (no gap) */
+.badge-group-connected {
+  gap: 0;
+}
+
+.badge-group-connected .badge {
+  border-radius: 0;
+  border-right-width: 0;
+}
+
+.badge-group-connected .badge:first-child {
+  border-top-left-radius: var(--radius-full);
+  border-bottom-left-radius: var(--radius-full);
+}
+
+.badge-group-connected .badge:last-child {
+  border-top-right-radius: var(--radius-full);
+  border-bottom-right-radius: var(--radius-full);
+  border-right-width: 1px;
+}
+
+/* ===================================
+ * GRIEF-AWARE ENHANCEMENTS
+ * =================================== */
+
+/* Empathetic status badges with softer language */
+.badge-empathetic {
+  font-style: italic;
+  background-color: rgba(242, 229, 201, 0.5);
+  color: var(--color-brand-forest);
+  border-color: var(--color-brand-moss);
+}
+
+/* Progress badge for step completion */
+.badge-progress {
+  background-color: var(--color-brand-sand);
+  color: var(--color-brand-forest);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* ===================================
+ * ACCESSIBILITY ENHANCEMENTS
+ * =================================== */
+
+/* Ensure sufficient contrast for all badge variants */
+@media (prefers-contrast: high) {
+  .badge {
+    border-width: 2px;
+    font-weight: var(--font-weight-semibold);
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .badge-interactive,
+  .badge-remove,
+  .badge-dot-animated::before,
+  .badge-live::before {
+    animation: none;
+    transition: none;
+  }
+
+  .badge-interactive:hover {
+    transform: none;
+  }
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  .badge {
+    font-size: var(--font-size-sm);
+  }
+
+  .badge-group {
+    gap: var(--space-1);
+  }
+
+  /* Larger touch targets for interactive badges */
+  .badge-interactive,
+  .badge-removable {
+    min-height: 32px;
+    padding: var(--space-2) var(--space-3);
+  }
+}
+
+/* ===================================
+ * PRINT STYLES
+ * =================================== */
+
+@media print {
+  .badge {
+    border: 1px solid currentColor;
+    color: inherit !important;
+    background-color: transparent !important;
+  }
+
+  .badge-remove {
+    display: none;
+  }
+}

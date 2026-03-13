@@ -54,13 +54,13 @@ vi.mock("@/components/admin/widgets/HealthGauge", () => ({
 
 describe("Tenant360Page — Story 19.4 Support Actions Frontend", () => {
   test("page module exports default component", async () => {
-    const mod = await import("../../app/app/admin/tenants/[tenantId]/page");
+    const mod = await import("../../app/[locale]/app/admin/tenants/[tenantId]/page");
     expect(mod.default).toBeDefined();
     expect(typeof mod.default).toBe("function");
   });
 
   test("SSR renders initial loading state", async () => {
-    const mod = await import("../../app/app/admin/tenants/[tenantId]/page");
+    const mod = await import("../../app/[locale]/app/admin/tenants/[tenantId]/page");
     const Page = mod.default;
     const html = renderToStaticMarkup(<Page />);
     expect(html).toContain("Loading tenant details...");
@@ -81,7 +81,7 @@ describe("Tenant360Page — Story 19.4 Support Actions Frontend", () => {
     const fs = await import("node:fs");
     const path = await import("node:path");
     const src = fs.readFileSync(
-      path.resolve(__dirname, "../../app/app/admin/tenants/[tenantId]/page.tsx"),
+      path.resolve(__dirname, "../../app/[locale]/app/admin/tenants/[tenantId]/page.tsx"),
       "utf-8"
     );
     expect(src).toContain('"actions"');
@@ -100,7 +100,7 @@ describe("Tenant360Page — Story 19.4 Support Actions Frontend", () => {
     const fs = await import("node:fs");
     const path = await import("node:path");
     const src = fs.readFileSync(
-      path.resolve(__dirname, "../../app/app/admin/tenants/[tenantId]/page.tsx"),
+      path.resolve(__dirname, "../../app/[locale]/app/admin/tenants/[tenantId]/page.tsx"),
       "utf-8"
     );
     expect(src).toContain('"support"');

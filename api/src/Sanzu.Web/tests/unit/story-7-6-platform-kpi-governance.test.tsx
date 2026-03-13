@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import PlatformGovernancePage from "../../app/app/admin/platform-governance/page";
+import PlatformGovernancePage from "../../app/[locale]/app/admin/platform-governance/page";
 
 describe("Story 7.6 platform admin and KPI governance route", () => {
   it("renders policy impact and KPI alert remediation guidance", () => {
