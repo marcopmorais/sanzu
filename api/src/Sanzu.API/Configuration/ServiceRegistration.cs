@@ -158,12 +158,19 @@ public static class ServiceRegistration
         services.AddScoped<IValidator<CreatePlaybookRequest>, CreatePlaybookRequestValidator>();
         services.AddScoped<IValidator<UpdatePlaybookRequest>, UpdatePlaybookRequestValidator>();
         services.AddScoped<IValidator<GrantAdminRoleRequest>, GrantAdminRoleRequestValidator>();
+        services.AddScoped<IAdminTenantService, AdminTenantService>();
+        services.AddScoped<IAdminRevenueService, AdminRevenueService>();
+        services.AddScoped<IAdminDashboardService, AdminDashboardService>();
         services.AddScoped<IHealthScoreComputeService, HealthScoreComputeService>();
         services.AddScoped<IHealthScoreInput, BillingStatusInput>();
         services.AddScoped<IHealthScoreInput, CaseCompletionInput>();
         services.AddScoped<IHealthScoreInput, OnboardingCompletionInput>();
+        services.AddScoped<ISupportActionsService, SupportActionsService>();
+        services.AddScoped<IAdminAlertService, AdminAlertService>();
+        services.AddScoped<IAlertRouterService, AlertRouterService>();
         services.AddHostedService<HealthScoreBackgroundService>();
-        services.AddHostedService<DashboardSnapshotBackgroundService>();
+        services.AddHostedService<AdminDashboardBackgroundService>();
+        services.AddHostedService<AlertEvaluationBackgroundService>();
 
         return services;
     }

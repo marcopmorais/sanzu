@@ -6,6 +6,7 @@ public interface ITenantHealthScoreRepository
 {
     Task<TenantHealthScore?> GetLatestByTenantIdAsync(Guid tenantId, CancellationToken cancellationToken);
     Task<IReadOnlyList<TenantHealthScore>> GetLatestForAllTenantsAsync(CancellationToken cancellationToken);
+    Task<IReadOnlyList<TenantHealthScore>> GetHistoryByTenantIdAsync(Guid tenantId, int days, CancellationToken cancellationToken);
     Task CreateAsync(TenantHealthScore score, CancellationToken cancellationToken);
     Task DeleteOlderThanAsync(DateTime cutoff, CancellationToken cancellationToken);
 }

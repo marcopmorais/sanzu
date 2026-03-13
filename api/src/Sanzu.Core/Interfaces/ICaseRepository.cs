@@ -10,4 +10,5 @@ public interface ICaseRepository
     Task<IReadOnlyList<Case>> GetByTenantIdAsync(Guid tenantId, CancellationToken cancellationToken);
     Task<IReadOnlyList<Case>> GetByTenantIdForPlatformAsync(Guid tenantId, CancellationToken cancellationToken);
     Task<int> GetNextCaseSequenceAsync(Guid tenantId, CancellationToken cancellationToken);
+    Task<IReadOnlyList<Case>> GetByTenantIdWithStepsForPlatformAsync(Guid tenantId, CancellationToken cancellationToken);
 }

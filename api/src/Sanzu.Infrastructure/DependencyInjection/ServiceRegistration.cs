@@ -4,7 +4,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Sanzu.Core.Interfaces;
 using Sanzu.Infrastructure.Data;
 using Sanzu.Infrastructure.Repositories;
-using Sanzu.Infrastructure.Services;
 
 namespace Sanzu.Infrastructure.DependencyInjection;
 
@@ -43,8 +42,9 @@ public static class ServiceRegistration
         services.AddScoped<IAgencyPlaybookRepository, AgencyPlaybookRepository>();
         services.AddScoped<IRemediationRepository, RemediationRepository>();
         services.AddScoped<ITenantHealthScoreRepository, TenantHealthScoreRepository>();
-        services.AddScoped<IDashboardSnapshotRepository, DashboardSnapshotRepository>();
-        services.AddScoped<IDashboardSnapshotService, DashboardSnapshotService>();
+        services.AddScoped<IAdminDashboardSnapshotRepository, AdminDashboardSnapshotRepository>();
+        services.AddScoped<IAdminAlertRepository, AdminAlertRepository>();
+        services.AddScoped<IAdminConfigRepository, AdminConfigRepository>();
         services.AddScoped<ITenantInvitationNotificationSender, NoOpTenantInvitationNotificationSender>();
         services.AddScoped<IUnitOfWork, EfUnitOfWork>();
 
