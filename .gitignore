@@ -1,14 +1,87 @@
-# Track only API workspace in this repository.
-*
-!.gitignore
-!README.md
-!.github/
-!.github/**
-!api/
-!api/**
+# ===========================
+# Secrets & credentials
+# ===========================
+.env
+.env.*
+*.pem
+*.key
+*.pfx
+*.p12
+appsettings.*.json
+!appsettings.json
+!appsettings.Development.json
+credentials.json
+secrets.json
 
-# Ignore build artifacts inside tracked api folder.
+# ===========================
+# Build artifacts
+# ===========================
 api/**/bin/
 api/**/obj/
 api/publish/
 api/artifacts/
+
+# ===========================
+# Next.js (frontend build output — never stage)
+# ===========================
+api/src/Sanzu.Web/.next/
+api/src/Sanzu.Web/out/
+
+# ===========================
+# Node / npm
+# ===========================
+node_modules/
+.npm/
+.yarn/
+*.tgz
+
+# ===========================
+# BMAD output (planning artifacts — not committed)
+# ===========================
+_bmad-output/
+
+# ===========================
+# IDE & editor config
+# ===========================
+.vs/
+.vscode/
+.idea/
+.cursor/
+.windsurf/
+*.suo
+*.user
+*.sln.docstates
+
+# ===========================
+# OS generated
+# ===========================
+.DS_Store
+Thumbs.db
+Desktop.ini
+ehthumbs.db
+
+# ===========================
+# Logs & caches
+# ===========================
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.cache/
+*.swp
+*.swo
+*~
+
+# ===========================
+# Test output
+# ===========================
+coverage/
+TestResults/
+*.trx
+
+# ===========================
+# Temporary files
+# ===========================
+*.tmp
+*.temp
+*.bak
