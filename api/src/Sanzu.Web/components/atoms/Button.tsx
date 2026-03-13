@@ -3,11 +3,13 @@ type ButtonVariant = "primary" | "secondary";
 export function Button({
   label,
   variant = "primary",
-  disabled = false
+  disabled = false,
+  onClick
 }: {
   label: string;
   variant?: ButtonVariant;
   disabled?: boolean;
+  onClick?: () => void;
 }) {
   const style =
     variant === "primary"
@@ -18,6 +20,7 @@ export function Button({
     <button
       type="button"
       disabled={disabled}
+      onClick={onClick}
       style={{
         ...style,
         borderRadius: 8,

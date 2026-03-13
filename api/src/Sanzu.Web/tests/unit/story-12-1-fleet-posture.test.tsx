@@ -1,7 +1,7 @@
 import { expect, test } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import FleetPosturePage from "../../app/app/admin/fleet/page";
-import TenantDrilldownPage from "../../app/app/admin/fleet/[tenantId]/page";
+import FleetPosturePage from "../../app/[locale]/app/admin/fleet/page";
+import TenantDrilldownPage from "../../app/[locale]/app/admin/fleet/[tenantId]/page";
 
 test("Fleet posture page renders key sections", () => {
   const html = renderToStaticMarkup(<FleetPosturePage />);

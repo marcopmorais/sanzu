@@ -1,0 +1,183 @@
+{
+  "metadata": {
+    "title": "Sanzu — Trusted Case Workflow",
+    "description": "Trusted case workflow platform for agencies and families."
+  },
+  "common": {
+    "nav": {
+      "home": "Home",
+      "pricing": "Pricing",
+      "resources": "Resources",
+      "trust": "Trust",
+      "demo": "Demo",
+      "start": "Get Started",
+      "legal": "Legal"
+    },
+    "footer": {
+      "copyright": "© {year} Sanzu. All rights reserved.",
+      "legal": "Legal Terms",
+      "privacy": "Privacy Policy"
+    },
+    "buttons": {
+      "save": "Save",
+      "cancel": "Cancel",
+      "back": "Back",
+      "next": "Next",
+      "submit": "Submit",
+      "confirm": "Confirm",
+      "delete": "Delete",
+      "edit": "Edit",
+      "close": "Close",
+      "retry": "Retry",
+      "export": "Export",
+      "search": "Search"
+    },
+    "errors": {
+      "generic": "An error occurred. Please try again.",
+      "notFound": "Page not found.",
+      "loading": "Loading...",
+      "unauthorized": "Unauthorised.",
+      "forbidden": "Access denied."
+    },
+    "pagination": {
+      "previous": "Previous",
+      "next": "Next",
+      "page": "Page {page} of {totalPages}",
+      "total": "({count} total)"
+    },
+    "filters": {
+      "all": "All",
+      "search": "Search...",
+      "from": "From",
+      "to": "To"
+    },
+    "locale": {
+      "pt-PT": "Português",
+      "en-GB": "English",
+      "fr-FR": "Français",
+      "switchLocale": "Change language"
+    }
+  },
+  "home": {
+    "tagline": "Trusted case workflow platform for agencies and families.",
+    "bookDemo": "Book Demo",
+    "startOnboarding": "Start Onboarding",
+    "explore": "Explore",
+    "trustLink": "Trust",
+    "pricingLink": "Pricing",
+    "resourcesLink": "Resources",
+    "privacyLink": "Privacy",
+    "termsLink": "Terms",
+    "storyRoutes": "Application Routes",
+    "onboardingLink": "Onboarding",
+    "billingActivationLink": "Billing Activation",
+    "billingHistoryLink": "Billing History",
+    "paymentRecoveryLink": "Payment Recovery"
+  },
+  "pricing": {
+    "title": "Pricing",
+    "subtitle": "Clear plan tiers with transparent usage and billing. Start with a 30-day free trial.",
+    "inicialPrice": "€49 / month",
+    "inicialAnnual": "or €490/year (save €98)",
+    "inicialCases": "10 cases included per month",
+    "inicialOverage": "€4.50 per additional case",
+    "inicialFeatures": "Onboarding, billing, and case lifecycle operations.",
+    "profissionalPrice": "€99 / month",
+    "profissionalAnnual": "or €990/year (save €198)",
+    "profissionalCases": "30 cases included per month",
+    "profissionalOverage": "€3.00 per additional case",
+    "profissionalFeatures": "Role-aware collaboration and document review workflows.",
+    "agenciaPrice": "€199 / month",
+    "agenciaAnnual": "or €1,990/year (save €398)",
+    "agenciaCases": "80 cases included per month",
+    "agenciaOverage": "€2.00 per additional case",
+    "agenciaFeatures1": "Governance oversight and platform KPI controls.",
+    "agenciaFeatures2": "Priority support and policy drilldown operations.",
+    "enterpriseDescription": "Custom pricing for large agencies with dedicated support.",
+    "startFreeTrial": "Start Free Trial",
+    "talkToSales": "Talk to Sales",
+    "trialNotice": "All plans include a 30-day free trial. Annual billing saves 2 months. VAT (23%) applies. Card payment only."
+  },
+  "resources": {
+    "title": "Resources",
+    "subtitle": "Guides and reference content for onboarding and operational success.",
+    "tableLabel": "Resource library",
+    "columnResource": "Resource",
+    "columnAudience": "Audience",
+    "columnFormat": "Format",
+    "onboardingRunbook": "Onboarding runbook",
+    "agencyAdministrators": "Agency administrators",
+    "formatGuide": "Guide",
+    "complianceChecklist": "Compliance retention checklist",
+    "operationsLeaders": "Operations leaders",
+    "formatChecklist": "Checklist",
+    "workflowPrimer": "Workflow dependency primer",
+    "processManagers": "Process managers",
+    "formatPlaybook": "Playbook"
+  },
+  "trust": {
+    "title": "Trust",
+    "subtitle": "Security, compliance, and reliability posture for agencies and families.",
+    "tenantIsolation": "Tenant isolation with strict workspace boundaries.",
+    "auditability": "Immutable auditability for lifecycle and policy actions.",
+    "policyControls": "Policy controls with role-safe approval workflows.",
+    "legalLinks": "See legal commitments in <privacy>Privacy</privacy> and <terms>Terms</terms>."
+  },
+  "demo": {
+    "title": "Request a Demo",
+    "subtitle": "Public conversion route for qualified demo intent.",
+    "description": "Tell us your team context so we can tailor the walkthrough.",
+    "formLabel": "Demo request form",
+    "fullName": "Full name",
+    "workEmail": "Work email",
+    "organization": "Organisation",
+    "teamSize": "Team size",
+    "validationNote": "Validation: business email and consent acknowledgement are required before submit.",
+    "submitError": "Unable to submit demo request. Please verify required fields and try again.",
+    "submitting": "Submitting...",
+    "submitButton": "Submit Demo Request",
+    "viewSuccess": "View Success State",
+    "privacyConsent": "By submitting you agree to Sanzu contact processing under <link>Privacy Policy</link>.",
+    "successTitle": "Demo Request Received",
+    "successSubtitle": "Success state for demo conversion flow.",
+    "successMessage": "We received your request and will contact you with next steps within one business day.",
+    "successNext": "Next: check your inbox for scheduling options or return to <link>Pricing</link>."
+  },
+  "start": {
+    "title": "Start with Sanzu",
+    "subtitle": "Public conversion route that starts account creation and onboarding.",
+    "description": "Create your tenant workspace and primary admin profile.",
+    "formLabel": "Start account form",
+    "agencyName": "Agency name",
+    "adminFullName": "Administrator full name",
+    "adminEmail": "Administrator email",
+    "location": "Location",
+    "acceptTerms": "I accept the Terms of Service",
+    "validationNote": "Validation: agency name, business email, and terms consent are required.",
+    "submitError": "Unable to start account creation. Check required fields and terms acceptance.",
+    "submitting": "Submitting...",
+    "submitButton": "Create Account",
+    "viewSuccess": "View Success State",
+    "termsConsent": "Continuing means you accept the <link>Terms of Service</link>.",
+    "successTitle": "Account Creation Started",
+    "successSubtitle": "Success state for start-account conversion flow.",
+    "successMessage": "Your workspace setup is in progress. Continue to onboarding steps from your invite link.",
+    "successNext": "Need implementation guidance now? Visit <link>Resources</link>."
+  },
+  "legal": {
+    "privacy": {
+      "title": "Privacy Policy",
+      "subtitle": "Public legal route for privacy and data handling disclosures.",
+      "dataProcessing": "Data is processed only for service delivery, security, and support obligations.",
+      "tenantIsolation": "Tenant workspace data remains logically isolated from other tenants.",
+      "auditRetention": "Audit logs are retained according to configured policy and legal requirements."
+    },
+    "terms": {
+      "title": "Terms of Service",
+      "subtitle": "Public legal route for service terms and contractual conditions.",
+      "authorizedUse": "Service use is limited to authorised agency personnel and invited participants.",
+      "accessControls": "Role-based access controls are enforced as part of the security model.",
+      "billingTerms": "Billing and subscription terms apply according to selected plan and tenant policy."
+    }
+  }
+}

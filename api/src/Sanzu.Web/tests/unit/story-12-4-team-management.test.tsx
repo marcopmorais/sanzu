@@ -11,7 +11,7 @@ test("Admin API client exports team management functions", async () => {
 });
 
 test("Team management page exports default component", async () => {
-  const mod = await import("../../app/app/admin/team/page");
+  const mod = await import("../../app/[locale]/app/admin/team/page");
   expect(mod.default).toBeDefined();
   expect(typeof mod.default).toBe("function");
 });

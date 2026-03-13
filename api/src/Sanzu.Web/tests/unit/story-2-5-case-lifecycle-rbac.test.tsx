@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import CaseLifecyclePage from "../../app/app/cases/[caseId]/page";
+import CaseLifecyclePage from "../../app/[locale]/app/cases/[caseId]/page";
 
 describe("Story 2.5 lifecycle + RBAC routes", () => {
   it("renders lifecycle context, participant table, and blocked-action feedback", () => {

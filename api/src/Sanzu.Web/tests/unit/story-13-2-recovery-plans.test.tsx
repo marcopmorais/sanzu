@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import RecoveryPlanPage from "../../app/app/admin/recovery/page";
+import RecoveryPlanPage from "../../app/[locale]/app/admin/recovery/page";
 
 test("Recovery plan page renders all sections", () => {
   const html = renderToStaticMarkup(<RecoveryPlanPage />);

@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import AdminQueuesPage from "../../app/app/admin/queues/page";
+import AdminQueuesPage from "../../app/[locale]/app/admin/queues/page";
 
 test("Admin queues page renders queue table", () => {
   const html = renderToStaticMarkup(<AdminQueuesPage />);

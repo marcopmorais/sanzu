@@ -12,7 +12,7 @@ test("Admin API client exports getAdminPermissions", async () => {
 });
 
 test("Admin layout module exports default component", async () => {
-  const mod = await import("../../app/app/admin/layout");
+  const mod = await import("../../app/[locale]/app/admin/layout");
   expect(mod.default).toBeDefined();
   expect(typeof mod.default).toBe("function");
 });

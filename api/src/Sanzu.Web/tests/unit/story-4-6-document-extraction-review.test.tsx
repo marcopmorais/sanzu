@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import DocumentExtractionReviewPage from "../../app/app/cases/[caseId]/documents/[documentId]/review/page";
+import DocumentExtractionReviewPage from "../../app/[locale]/app/cases/[caseId]/documents/[documentId]/review/page";
 
 describe("Story 4.6 document and extraction routes", () => {
   it("renders extraction confidence and review decisions with provenance context", () => {

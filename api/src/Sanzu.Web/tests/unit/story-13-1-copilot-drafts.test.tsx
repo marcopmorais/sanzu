@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import CopilotDraftPage from "../../app/app/cases/[caseId]/copilot/page";
+import CopilotDraftPage from "../../app/[locale]/app/cases/[caseId]/copilot/page";
 
 test("Copilot draft page renders all sections", () => {
   const html = renderToStaticMarkup(<CopilotDraftPage />);

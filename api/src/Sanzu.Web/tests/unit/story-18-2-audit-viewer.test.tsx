@@ -13,20 +13,20 @@ vi.mock("@/lib/api-client/generated/admin", () => ({
 
 describe("AuditEventViewerPage", () => {
   test("page module exports default component", async () => {
-    const mod = await import("../../app/app/admin/audit/page");
+    const mod = await import("../../app/[locale]/app/admin/audit/page");
     expect(mod.default).toBeDefined();
     expect(typeof mod.default).toBe("function");
   });
 
   test("renders page title", async () => {
-    const mod = await import("../../app/app/admin/audit/page");
+    const mod = await import("../../app/[locale]/app/admin/audit/page");
     const Page = mod.default;
     const html = renderToStaticMarkup(<Page />);
     expect(html).toContain("Audit Event Viewer");
   });
 
   test("renders filter controls", async () => {
-    const mod = await import("../../app/app/admin/audit/page");
+    const mod = await import("../../app/[locale]/app/admin/audit/page");
     const Page = mod.default;
     const html = renderToStaticMarkup(<Page />);
     expect(html).toContain("Event Type");
@@ -37,7 +37,7 @@ describe("AuditEventViewerPage", () => {
   });
 
   test("renders export buttons", async () => {
-    const mod = await import("../../app/app/admin/audit/page");
+    const mod = await import("../../app/[locale]/app/admin/audit/page");
     const Page = mod.default;
     const html = renderToStaticMarkup(<Page />);
     expect(html).toContain("Export CSV");
@@ -45,7 +45,7 @@ describe("AuditEventViewerPage", () => {
   });
 
   test("renders table headers", async () => {
-    const mod = await import("../../app/app/admin/audit/page");
+    const mod = await import("../../app/[locale]/app/admin/audit/page");
     const Page = mod.default;
     const html = renderToStaticMarkup(<Page />);
     expect(html).toContain("Timestamp");

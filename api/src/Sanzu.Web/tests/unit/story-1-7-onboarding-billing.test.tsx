@@ -1,8 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import OnboardingPage from "../../app/app/onboarding/page";
-import OnboardingBillingPage from "../../app/app/onboarding/billing/page";
+import OnboardingPage from "../../app/[locale]/app/onboarding/page";
+import OnboardingBillingPage from "../../app/[locale]/app/onboarding/billing/page";
 
 describe("Story 1.7 onboarding + billing routes", () => {
   it("renders onboarding and billing route structures with expected UX copy", () => {

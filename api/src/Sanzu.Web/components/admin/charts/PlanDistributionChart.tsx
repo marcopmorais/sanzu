@@ -31,7 +31,7 @@ export function PlanDistributionChart({ data }: PlanDistributionChartProps) {
             cx="50%"
             cy="50%"
             outerRadius={100}
-            label={({ planName, percentage }) => `${planName} (${percentage}%)`}
+            label={({ planName, percentage }: { planName: string; percentage: number }) => `${planName} (${percentage}%)`}
           >
             {data.map((_, index) => (
               <Cell key={index} fill={COLORS[index % COLORS.length]} />

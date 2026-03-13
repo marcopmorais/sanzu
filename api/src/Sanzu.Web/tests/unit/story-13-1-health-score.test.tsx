@@ -9,7 +9,7 @@ test("Admin API client exports health score functions", async () => {
 });
 
 test("Health scores page exports default component", async () => {
-  const mod = await import("../../app/app/admin/health/page");
+  const mod = await import("../../app/[locale]/app/admin/health/page");
   expect(mod.default).toBeDefined();
   expect(typeof mod.default).toBe("function");
 });
